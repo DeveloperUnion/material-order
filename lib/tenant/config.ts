@@ -69,6 +69,7 @@ export function getTenantsByDeployEnv(deployEnv: DeployEnv): TenantConfig[] {
 export const domainToTenant: Record<string, TenantId> = {
   // development テナント
   'localhost': 'development',
+  'staging.material-order.kensetsu-tech.com': 'development',
 
   // auth_client テナント
   'kensetsu-tech.com': 'auth_client',
