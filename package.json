@@ -5,11 +5,12 @@
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "prisma generate && next build",
-    "build:production": "prisma generate && prisma migrate deploy && next build",
+    "build:production": "prisma generate && npm run db:migrate:all && next build",
     "start": "next start",
     "lint": "next lint",
     "db:seed": "tsx prisma/seed.ts",
     "db:migrate": "prisma migrate deploy",
+    "db:migrate:all": "tsx scripts/migrate-all-tenants.ts",
     "db:generate": "prisma generate"
   },
   "prisma": {
