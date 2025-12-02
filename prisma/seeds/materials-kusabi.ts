@@ -84,12 +84,14 @@ export async function seedKusabiMaterials(prisma: PrismaClient) {
     { materialCode: 'KS-047', name: '布板250（メッシュ）　900（小）', size: '900(小)', type: '布板250メッシュ', weightKg: 5.6 },
     { materialCode: 'KS-048', name: '布板250（メッシュ）　600（小）', size: '600(小)', type: '布板250メッシュ', weightKg: 4.3 },
     
+    // ===== 布板400（パンチング） =====
+    { materialCode: 'KS-049', name: '布板400（パンチング）　1800（大）', size: '1800(大)', type: '布板400パンチング', weightKg: 13.7 },
+    { materialCode: 'KS-050', name: '布板400（パンチング）　1500（大）', size: '1500(大)', type: '布板400パンチング', weightKg: 11.5 },
+    { materialCode: 'KS-051', name: '布板400（パンチング）　1200（大）', size: '1200(大)', type: '布板400パンチング', weightKg: 8.9 },
+    { materialCode: 'KS-052', name: '布板400（パンチング）　900（大）', size: '900(大)', type: '布板400パンチング', weightKg: 7.3 },
+    { materialCode: 'KS-053', name: '布板400（パンチング）　600（大）', size: '600(大)', type: '布板400パンチング', weightKg: 5.6 },
+
     // ===== 布板250（パンチング） =====
-    { materialCode: 'KS-049', name: '布板250（パンチング）　1800（大）', size: '1800(大)', type: '布板250パンチング', weightKg: 13.7 },
-    { materialCode: 'KS-050', name: '布板250（パンチング）　1500（大）', size: '1500(大)', type: '布板250パンチング', weightKg: 11.5 },
-    { materialCode: 'KS-051', name: '布板250（パンチング）　1200（大）', size: '1200(大)', type: '布板250パンチング', weightKg: 8.9 },
-    { materialCode: 'KS-052', name: '布板250（パンチング）　900（大）', size: '900(大)', type: '布板250パンチング', weightKg: 7.3 },
-    { materialCode: 'KS-053', name: '布板250（パンチング）　600（大）', size: '600(大)', type: '布板250パンチング', weightKg: 5.6 },
     { materialCode: 'KS-054', name: '布板250（パンチング）　1800（小）', size: '1800(小)', type: '布板250パンチング', weightKg: 8.1 },
     { materialCode: 'KS-055', name: '布板250（パンチング）　1500（小）', size: '1500(小)', type: '布板250パンチング', weightKg: 7.0 },
     { materialCode: 'KS-056', name: '布板250（パンチング）　1200（小）', size: '1200(小)', type: '布板250パンチング', weightKg: 5.8 },
