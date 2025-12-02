@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { getCurrentPrismaClient } from '@/lib/tenant/server';
 import { requireAuth } from '@/lib/auth';
 
 export async function GET(
@@ -8,6 +8,7 @@ export async function GET(
 ) {
   try {
     const currentUser = await requireAuth();
+    const prisma = await getCurrentPrismaClient()
     const resolvedParams = await params;
     const order = await prisma.order.findUnique({
       where: {
@@ -84,11 +85,12 @@ export async function PUT(
 ) {
   try {
     const currentUser = await requireAuth();
+    const prisma = await getCurrentPrismaClient()
     const resolvedParams = await params;
     const data = await request.json();
-    
+
     console.log('Updating order:', resolvedParams.id, JSON.stringify(data, null, 2));
-    
+
     // ユーザーがこの注文の所有者であることを確認
     const existingOrder = await prisma.order.findUnique({
       where: { id: resolvedParams.id }
@@ -168,10 +170,11 @@ export async function DELETE(
 ) {
   try {
     const currentUser = await requireAuth();
+    const prisma = await getCurrentPrismaClient()
     const resolvedParams = await params;
-    
+
     console.log('Deleting order:', resolvedParams.id);
-    
+
     // 注文が存在し、ユーザーが所有者であることを確認
     const existingOrder = await prisma.order.findUnique({
       where: { id: resolvedParams.id }

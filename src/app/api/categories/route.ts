@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { getCurrentPrismaClient } from '@/lib/tenant/server';
 
 export async function GET() {
   try {
+    const prisma = await getCurrentPrismaClient()
     const categories = await prisma.category.findMany({
       orderBy: {
         displayOrder: 'asc'

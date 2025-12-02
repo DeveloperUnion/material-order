@@ -1,5 +1,5 @@
 import { cookies } from 'next/headers'
-import { prisma } from '@/lib/prisma'
+import { getCurrentPrismaClient } from '@/lib/tenant/server'
 
 const SESSION_NAME = 'auth-session'
 
@@ -14,7 +14,7 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
   try {
     const cookieStore = await cookies()
     const sessionCookie = cookieStore.get(SESSION_NAME)
-    
+
     if (!sessionCookie?.value) {
       return null
     }
@@ -22,8 +22,10 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
     // セッションデータがJSON文字列の場合は解析
     try {
       const sessionData = JSON.parse(sessionCookie.value)
-      
+
       if (sessionData.userId) {
+        // テナント用Prismaクライアントを取得
+        const prisma = await getCurrentPrismaClient()
         // データベースから最新のユーザー情報を取得
         const user = await prisma.user.findUnique({
           where: {
@@ -31,7 +33,7 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
             isActive: true
           }
         })
-        
+
         return user
       }
     } catch {
@@ -39,7 +41,7 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
       console.warn('Invalid session format, user needs to re-login')
       return null
     }
-    
+
     return null
   } catch (error) {
     console.error('Error getting current user:', error)

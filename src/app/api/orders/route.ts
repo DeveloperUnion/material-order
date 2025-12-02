@@ -1,12 +1,13 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { getCurrentPrismaClient } from '@/lib/tenant/server';
 import { requireAuth } from '@/lib/auth';
 import { randomBytes } from 'crypto';
 
 export async function GET() {
   try {
     const currentUser = await requireAuth();
-    
+    const prisma = await getCurrentPrismaClient()
+
     const orders = await prisma.order.findMany({
       where: {
         userId: currentUser.id
@@ -65,6 +66,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const currentUser = await requireAuth();
+    const prisma = await getCurrentPrismaClient()
     const data = await request.json();
 
     console.log('Received order data:', JSON.stringify(data, null, 2));
@@ -187,11 +189,12 @@ export async function POST(request: Request) {
 export async function PUT(request: Request) {
   try {
     const currentUser = await requireAuth();
+    const prisma = await getCurrentPrismaClient()
     const data = await request.json();
     const { orderId, ...updateData } = data;
-    
+
     console.log('Updating order:', orderId, JSON.stringify(updateData, null, 2));
-    
+
     // ユーザーがこの注文の所有者であることを確認
     const existingOrder = await prisma.order.findUnique({
       where: { id: orderId }

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import bcrypt from 'bcrypt'
-import { prisma } from '@/lib/prisma'
+import { getPrismaClientFromRequest } from '@/lib/tenant/server'
 
 const SESSION_NAME = 'auth-session'
 
@@ -9,6 +9,9 @@ export async function POST(request: Request) {
   try {
     const body = await request.json()
     const { username, password } = body
+
+    // テナント用Prismaクライアントを取得
+    const prisma = getPrismaClientFromRequest(request)
 
     // データベースからユーザーを検索
     const user = await prisma.user.findUnique({

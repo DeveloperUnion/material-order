@@ -5,6 +5,7 @@ import Image from 'next/image'
 import { Button } from "@/components/ui/button"
 import { LogOut, User } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { useTenant } from '@/lib/tenant/context'
 
 interface UserInfo {
   username: string
@@ -15,6 +16,7 @@ export default function Header() {
   const router = useRouter()
   const pathname = usePathname()
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null)
+  const { config } = useTenant()
 
   useEffect(() => {
     if (pathname !== '/') {
@@ -38,9 +40,9 @@ export default function Header() {
     // localStorageも併せてクリア
     localStorage.removeItem('isAuthenticated')
     localStorage.removeItem('userName')
-    
+
     const response = await fetch('/api/auth/logout', { method: 'POST' })
-    
+
     if (response.ok) {
       router.push('/')
       router.refresh()
@@ -61,11 +63,12 @@ export default function Header() {
     <header className="print:hidden bg-white shadow">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center py-6">
-          <div 
+          <div
             className={`flex items-center ${pathname !== '/' ? 'cursor-pointer hover:opacity-80 transition-opacity' : ''}`}
             onClick={handleLogoClick}
           >
-            <Image src="/icons/logo.jpeg" alt="株式会社櫻建" width={240} height={240} />
+            <Image src={config.appConfig.icon} alt={config.appConfig.title} width={40} height={40} />
+            <h1 className='text-black text-2xl ml-4 font-bold'>{config.appConfig.title}</h1>
           </div>
           {pathname !== '/' && (
             <div className="flex items-center gap-2 md:gap-4">

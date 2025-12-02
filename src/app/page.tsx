@@ -1,9 +1,11 @@
 'use client'
 
 import { useState } from 'react'
+import { useTenant } from '@/lib/tenant/context'
 // import Image from 'next/image'
 
 export default function Home() {
+  const { config } = useTenant()
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -46,7 +48,7 @@ export default function Home() {
       <div className="max-w-md w-full space-y-8">
         <div className="text-center">
           <h2 className="text-3xl font-bold text-slate-800">
-            資材発注管理システム
+            {config.appConfig.appTitle}
           </h2>
           <p className="mt-2 text-sm text-slate-600">
             ログインしてください

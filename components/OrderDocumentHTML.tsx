@@ -6,7 +6,7 @@ const formatDate = (dateString: string) => {
   return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
 };
 
-export const generatePDFContent = (data: OrderDocument, options?: { hidePrintButton?: boolean }): string => {
+export const generatePDFContent = (data: OrderDocument, options?: { hidePrintButton?: boolean; watermarkText?: string }): string => {
   // 行のタイプ定義
   type TableRow = {
     type: 'category-header';
@@ -382,7 +382,7 @@ export const generatePDFContent = (data: OrderDocument, options?: { hidePrintBut
             for (let row = 0; row < rows; row++) {
               for (let colVw = 0; colVw <= 100; colVw += spacingVw) {
                 const top = (row * (100 / (rows - 1))) + (Math.floor(colVw / spacingVw) % 2 === 0 ? 0 : 5);
-                watermarks.push(`<div class="watermark" style="top: ${top}%; left: ${colVw}vw;">株式会社　櫻建</div>`);
+                watermarks.push(`<div class="watermark" style="top: ${top}%; left: ${colVw}vw;">${options?.watermarkText || '株式会社　櫻建'}</div>`);
               }
             }
 
@@ -471,7 +471,7 @@ export const generatePDFContent = (data: OrderDocument, options?: { hidePrintBut
   `;
 };
 
-export const printToPDF = (data: OrderDocument): void => {
+export const printToPDF = (data: OrderDocument, options?: { watermarkText?: string }): void => {
   // iframeを使ってポップアップブロックを回避
   const iframe = document.createElement('iframe');
   iframe.style.position = 'fixed';
@@ -484,7 +484,7 @@ export const printToPDF = (data: OrderDocument): void => {
 
   document.body.appendChild(iframe);
 
-  const htmlContent = generatePDFContent(data);
+  const htmlContent = generatePDFContent(data, { watermarkText: options?.watermarkText });
 
   if (iframe.contentDocument) {
     iframe.contentDocument.open();
