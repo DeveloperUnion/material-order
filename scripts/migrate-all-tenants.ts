@@ -1,10 +1,20 @@
 import { execSync } from 'child_process';
-import { tenantConfigs } from '../lib/tenant/config';
+import { tenantConfigs, getTenantsByDeployEnv, DeployEnv } from '../lib/tenant/config';
 
 async function migrateAllTenants() {
-  console.log('🚀 Starting migrations for all tenants...\n');
+  // DEPLOY_ENV で対象テナントを決定
+  // staging: development テナントのみ
+  // production: auth_client, oken テナント
+  // 未設定: 全テナント
+  const deployEnv = process.env.DEPLOY_ENV as DeployEnv | undefined;
 
-  const tenants = Object.values(tenantConfigs);
+  const tenants = deployEnv
+    ? getTenantsByDeployEnv(deployEnv)
+    : Object.values(tenantConfigs);
+
+  console.log(`🚀 Starting migrations for ${deployEnv || 'all'} tenants...\n`);
+  console.log(`📋 Target tenants: ${tenants.map(t => t.id).join(', ')}\n`);
+
   let successCount = 0;
   let failCount = 0;
 
