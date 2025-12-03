@@ -43,7 +43,7 @@ export const tenantConfigs: Record<TenantId, TenantConfig> = {
     deployEnv: 'production',
     appConfig: {
       icon: '/icons/icon.jpeg',
-      title: '建設テックパートナー',
+      title: '建設テックパートナーズ',
       appTitle: '資材発注管理システム',
     },
   },
