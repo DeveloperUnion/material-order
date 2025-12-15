@@ -376,12 +376,11 @@ export const generatePDFContent = (data: OrderDocument, options?: { hidePrintBut
             display: flex;
             flex-wrap: wrap;
             border: 1px solid #000;
-            border-bottom: 2px solid #000;
             margin-bottom: 0;
           }
           tbody tr:not(.category-header-row) td {
             border: none;
-            border-bottom: 1px solid #ccc;
+            border-bottom: 0.5px solid #ccc;
           }
           tbody tr:not(.category-header-row) td:first-child {
             width: 100%;
