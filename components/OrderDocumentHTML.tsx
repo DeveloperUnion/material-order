@@ -357,13 +357,62 @@ export const generatePDFContent = (data: OrderDocument, options?: { hidePrintBut
           position: absolute;
           font-size: 18px;
           font-weight: bold;
-          color: rgba(0, 0, 0, 0.12);
+          color: rgba(0, 0, 0, 0.07);
           white-space: nowrap;
           transform: translate(-50%, -50%) rotate(-45deg);
         }
         @media screen and (max-width: 767px) {
           .watermark {
             font-size: 16px;
+          }
+          /* スマホ用2行レイアウト */
+          table {
+            table-layout: auto;
+          }
+          thead {
+            display: none;
+          }
+          tbody tr:not(.category-header-row) {
+            display: flex;
+            flex-wrap: wrap;
+            border: 1px solid #000;
+            border-bottom: 2px solid #000;
+            margin-bottom: 0;
+          }
+          tbody tr:not(.category-header-row) td {
+            border: none;
+            border-bottom: 1px solid #ccc;
+          }
+          tbody tr:not(.category-header-row) td:first-child {
+            width: 100%;
+            text-align: left;
+            background-color: #f1f5f9;
+            padding: 2px 8px;
+            font-size: 12px;
+            white-space: normal;
+          }
+          tbody tr:not(.category-header-row) td:nth-child(2),
+          tbody tr:not(.category-header-row) td:nth-child(3),
+          tbody tr:not(.category-header-row) td:nth-child(4) {
+            width: 33.333%;
+            flex: none;
+            text-align: center;
+            padding: 2px 4px;
+            border-bottom: none;
+            border-right: 1px solid #000;
+            box-sizing: border-box;
+            white-space: normal;
+          }
+          tbody tr:not(.category-header-row) td:nth-child(4) {
+            border-right: none;
+          }
+                    .category-header-row {
+            display: block;
+            margin-top: 0;
+          }
+          .category-header-row td {
+            display: block;
+            text-align: center;
           }
         }
       </style>
@@ -426,9 +475,9 @@ export const generatePDFContent = (data: OrderDocument, options?: { hidePrintBut
             <table>
               <thead>
                 <tr>
-                  <th style="text-align: left; width: 50%;">資材名</th>
-                  <th style="text-align: right; width: 15%;">数量</th>
-                  <th style="text-align: right; width: 15%;">単重</th>
+                  <th style="text-align: left; width: 46%;">資材名</th>
+                  <th style="text-align: right; width: 18%;">数量</th>
+                  <th style="text-align: right; width: 16%;">単重</th>
                   <th style="text-align: right; width: 20%;">合計</th>
                 </tr>
               </thead>
