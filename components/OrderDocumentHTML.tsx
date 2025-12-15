@@ -395,12 +395,35 @@ export const generatePDFContent = (data: OrderDocument, options?: { hidePrintBut
           tbody tr:not(.category-header-row) td:nth-child(4) {
             width: 33.333%;
             flex: none;
-            text-align: center;
-            padding: 2px 4px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
             border-bottom: none;
             border-right: 1px solid #000;
             box-sizing: border-box;
             white-space: normal;
+          }
+          tbody tr:not(.category-header-row) td:nth-child(2)::before,
+          tbody tr:not(.category-header-row) td:nth-child(3)::before,
+          tbody tr:not(.category-header-row) td:nth-child(4)::before {
+            font-size: 9px;
+            color: #666;
+            font-weight: normal;
+            width: 100%;
+            text-align: center;
+            border-bottom: 0.5px solid #ccc;
+            padding: 1px 0;
+          }
+          tbody tr:not(.category-header-row) td:nth-child(2)::before {
+            content: "数量";
+          }
+          tbody tr:not(.category-header-row) td:nth-child(3)::before {
+            content: "単重";
+          }
+          tbody tr:not(.category-header-row) td:nth-child(4)::before {
+            content: "合計";
           }
           tbody tr:not(.category-header-row) td:nth-child(4) {
             border-right: none;
