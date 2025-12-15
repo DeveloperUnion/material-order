@@ -420,10 +420,10 @@ export const generatePDFContent = (data: OrderDocument, options?: { hidePrintBut
             content: "数量";
           }
           tbody tr:not(.category-header-row) td:nth-child(3)::before {
-            content: "単重";
+            content: "単重(kg)";
           }
           tbody tr:not(.category-header-row) td:nth-child(4)::before {
-            content: "合計";
+            content: "合計(kg)";
           }
           tbody tr:not(.category-header-row) td:nth-child(4) {
             border-right: none;
