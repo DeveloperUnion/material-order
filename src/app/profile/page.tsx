@@ -148,8 +148,11 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-slate-700"></div>
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-slate-600 mx-auto"></div>
+          <p className="mt-4 text-sm text-gray-500">読み込み中...</p>
+        </div>
       </div>
     );
   }
@@ -158,16 +161,20 @@ export default function ProfilePage() {
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-2xl mx-auto px-4">
         {/* ヘッダー */}
-        <div className="flex items-center gap-4 mb-8">
+        <div className="flex items-center gap-4 mb-6">
           <Button
-            variant="outline"
+            variant="ghost"
+            size="sm"
             onClick={() => router.push('/dashboard')}
-            className="flex items-center gap-2"
+            className="text-gray-600 hover:text-gray-900"
           >
-            <ArrowLeft className="h-4 w-4" />
+            <ArrowLeft className="h-4 w-4 mr-1" />
             戻る
           </Button>
-          <h1 className="text-2xl font-bold text-gray-900">プロフィール</h1>
+          <div>
+            <h1 className="text-xl font-semibold text-gray-900">プロフィール</h1>
+            <p className="text-sm text-gray-500">アカウント情報の確認・編集</p>
+          </div>
         </div>
 
         {/* メッセージ表示 */}
@@ -341,7 +348,8 @@ export default function ProfilePage() {
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     required
-                    className="w-full px-4 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent text-gray-900"
+                    placeholder="8文字以上"
+                    className="w-full px-4 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent text-gray-900 placeholder:text-gray-400"
                   />
                   <button
                     type="button"
@@ -352,8 +360,12 @@ export default function ProfilePage() {
                   </button>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <Button type="submit" disabled={passwordLoading}>
+              <div className="flex items-center gap-3">
+                <Button
+                  type="submit"
+                  disabled={passwordLoading}
+                  className="bg-slate-800 hover:bg-slate-900 text-white"
+                >
                   {passwordLoading ? '変更中...' : 'パスワードを変更'}
                 </Button>
                 <Button

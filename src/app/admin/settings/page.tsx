@@ -96,8 +96,11 @@ export default function TenantSettingsPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-slate-700"></div>
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-slate-600 mx-auto"></div>
+          <p className="mt-4 text-sm text-gray-500">読み込み中...</p>
+        </div>
       </div>
     );
   }
@@ -106,16 +109,20 @@ export default function TenantSettingsPage() {
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-2xl mx-auto px-4">
         {/* ヘッダー */}
-        <div className="flex items-center gap-4 mb-8">
+        <div className="flex items-center gap-4 mb-6">
           <Button
-            variant="outline"
+            variant="ghost"
+            size="sm"
             onClick={() => router.push('/dashboard')}
-            className="flex items-center gap-2"
+            className="text-gray-600 hover:text-gray-900"
           >
-            <ArrowLeft className="h-4 w-4" />
+            <ArrowLeft className="h-4 w-4 mr-1" />
             戻る
           </Button>
-          <h1 className="text-2xl font-bold text-gray-900">テナント設定</h1>
+          <div>
+            <h1 className="text-xl font-semibold text-gray-900">テナント設定</h1>
+            <p className="text-sm text-gray-500">会社情報の確認・編集</p>
+          </div>
         </div>
 
         {/* メッセージ表示 */}
