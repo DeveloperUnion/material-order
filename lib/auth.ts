@@ -1,48 +1,32 @@
-import { cookies } from 'next/headers'
-import { getCurrentPrismaClient } from '@/lib/tenant/server'
+import { auth } from '@/auth'
+import { UserRole } from '@prisma/client'
 
-const SESSION_NAME = 'auth-session'
-
+// 現在のユーザー情報の型
 export interface CurrentUser {
   id: string
-  username: string
-  companyName: string
-  isActive: boolean
+  tenantId: string
+  email: string
+  name: string
+  role: UserRole
+  tenantName: string
 }
 
 export async function getCurrentUser(): Promise<CurrentUser | null> {
   try {
-    const cookieStore = await cookies()
-    const sessionCookie = cookieStore.get(SESSION_NAME)
+    const session = await auth()
 
-    if (!sessionCookie?.value) {
+    if (!session?.user) {
       return null
     }
 
-    // セッションデータがJSON文字列の場合は解析
-    try {
-      const sessionData = JSON.parse(sessionCookie.value)
-
-      if (sessionData.userId) {
-        // テナント用Prismaクライアントを取得
-        const prisma = await getCurrentPrismaClient()
-        // データベースから最新のユーザー情報を取得
-        const user = await prisma.user.findUnique({
-          where: {
-            id: sessionData.userId,
-            isActive: true
-          }
-        })
-
-        return user
-      }
-    } catch {
-      // 旧形式のセッション（単純な文字列）の場合は null を返す
-      console.warn('Invalid session format, user needs to re-login')
-      return null
+    return {
+      id: session.user.id,
+      tenantId: session.user.tenantId,
+      email: session.user.email || '',
+      name: session.user.name || '',
+      role: session.user.role,
+      tenantName: session.user.tenantName,
     }
-
-    return null
   } catch (error) {
     console.error('Error getting current user:', error)
     return null
@@ -51,10 +35,27 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
 
 export async function requireAuth(): Promise<CurrentUser> {
   const user = await getCurrentUser()
-  
+
   if (!user) {
     throw new Error('認証が必要です')
   }
-  
+
   return user
+}
+
+// ADMIN権限を必須にするヘルパー
+export async function requireAdmin(): Promise<CurrentUser> {
+  const user = await requireAuth()
+
+  if (user.role !== 'ADMIN') {
+    throw new Error('管理者権限が必要です')
+  }
+
+  return user
+}
+
+// セッションからtenantIdを取得するヘルパー
+export async function getSessionTenantId(): Promise<string> {
+  const user = await requireAuth()
+  return user.tenantId
 }

@@ -1,15 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getPrismaClientFromRequest } from '@/lib/tenant/server';
+import { requireAuth } from '@/lib/auth';
 
 export async function GET(request: NextRequest) {
   try {
+    const currentUser = await requireAuth();
     const prisma = getPrismaClientFromRequest(request)
     const { searchParams } = new URL(request.url);
     const orderId = searchParams.get('orderId');
 
-    // 通常の材料を取得
+    // 通常の材料を取得（テナントでフィルタリング）
     const materials = await prisma.material.findMany({
       where: {
+        tenantId: currentUser.tenantId,
         isActive: true,
         isTemporary: false
       },
@@ -32,6 +35,7 @@ export async function GET(request: NextRequest) {
     if (orderId) {
       const temporaryMaterials = await prisma.material.findMany({
         where: {
+          tenantId: currentUser.tenantId,
           isActive: true,
           isTemporary: true,
           createdForOrderId: orderId
@@ -58,6 +62,14 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(materials);
   } catch (error) {
     console.error('資材取得エラー:', error);
+
+    if (error instanceof Error && error.message === '認証が必要です') {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
     return NextResponse.json(
       { error: '資材の取得に失敗しました' },
       { status: 500 }
@@ -67,6 +79,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const currentUser = await requireAuth();
     const prisma = getPrismaClientFromRequest(request)
     const body = await request.json();
     const { name, categoryId, size, type, weightKg, notes, isTemporary, createdForOrderId } = body;
@@ -145,6 +158,7 @@ export async function POST(request: NextRequest) {
 
     const newMaterial = await prisma.material.create({
       data: {
+        tenantId: currentUser.tenantId,
         materialCode,
         name,
         categoryId,

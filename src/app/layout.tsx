@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/Header";
-import { TenantProvider } from "@/lib/tenant/context";
-import { getCurrentTenantId, getCurrentTenantConfig } from "@/lib/tenant/server";
+import Providers from "@/components/Providers";
+import { defaultAppConfig } from "@/lib/tenant/config";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -15,33 +15,28 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export async function generateMetadata(): Promise<Metadata> {
-  const config = await getCurrentTenantConfig();
-  return {
-    title: config.appConfig.appTitle,
-    description: "建設業向け資材発注管理アプリケーション",
-    icons: {
-      apple: config.appConfig.icon,
-    },
-  };
-}
+export const metadata: Metadata = {
+  title: defaultAppConfig.appTitle,
+  description: "建設業向け資材発注管理アプリケーション",
+  icons: {
+    apple: defaultAppConfig.icon,
+  },
+};
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const tenantId = await getCurrentTenantId();
-
   return (
     <html lang="ja">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <TenantProvider initialTenantId={tenantId}>
+        <Providers>
           <Header />
           {children}
-        </TenantProvider>
+        </Providers>
       </body>
     </html>
   );

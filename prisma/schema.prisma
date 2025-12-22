@@ -4,38 +4,98 @@ generator client {
 
 datasource db {
   provider  = "postgresql"
-  url       = env("DEV_DATABASE_URL")
-  directUrl = env("DEV_DIRECT_URL")
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
-model User {
-  id          String   @id @default(uuid())
-  username    String   @unique
-  password    String
-  companyName String   @map("company_name")
-  isActive    Boolean  @default(true) @map("is_active")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+// ユーザーロール
+enum UserRole {
+  ADMIN  // 管理者（ユーザー管理、資材マスタ編集可能）
+  MEMBER // 一般（発注作成のみ）
+}
+
+// テナント/会社
+model Tenant {
+  id        String   @id @default(uuid())
+  name      String   // 会社名
+  settings  Json?    // ロゴURL、テーマカラー等
+  maxUsers  Int      @default(10) @map("max_users") // テナントごとの最大ユーザー数
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  users       User[]
+  invitations Invitation[]
+  categories  Category[]
+  materials   Material[]
   orders      Order[]
 
-  @@index([username])
+  @@map("tenants")
+}
+
+// ユーザー/従業員
+model User {
+  id          String    @id @default(uuid())
+  tenantId    String    @map("tenant_id")
+  tenant      Tenant    @relation(fields: [tenantId], references: [id])
+  email       String    @unique // グローバルで一意（ログインIDとして使用）
+  password    String?   // bcryptハッシュ（SSO時はnull）
+  name        String    // 表示名
+  role        UserRole  @default(MEMBER)
+  isActive    Boolean   @default(true) @map("is_active")
+  invitedAt   DateTime? @map("invited_at")    // 招待日時
+  joinedAt    DateTime? @map("joined_at")     // 登録完了日時
+  lastLoginAt DateTime? @map("last_login_at") // 最終ログイン
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  orders Order[]
+
+  @@index([tenantId])
+  @@index([email])
   @@map("users")
 }
 
+// 招待
+model Invitation {
+  id        String    @id @default(uuid())
+  tenantId  String    @map("tenant_id")
+  tenant    Tenant    @relation(fields: [tenantId], references: [id])
+  email     String    @unique // グローバルで一意
+  role      UserRole  @default(MEMBER)
+  token     String    @unique // ランダムトークン
+  expiresAt DateTime  @map("expires_at") // 有効期限（7日）
+  usedAt    DateTime? @map("used_at")    // 使用日時
+  createdBy String    @map("created_by") // 招待者のユーザーID
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  @@index([tenantId])
+  @@index([token])
+  @@map("invitations")
+}
+
+// カテゴリ
 model Category {
   id           String     @id @default(uuid())
-  name         String     @unique
+  tenantId     String     @map("tenant_id")
+  tenant       Tenant     @relation(fields: [tenantId], references: [id])
+  name         String
   displayOrder Int        @default(0) @map("display_order")
   createdAt    DateTime   @default(now()) @map("created_at")
   updatedAt    DateTime   @updatedAt @map("updated_at")
   materials    Material[]
 
+  @@unique([tenantId, name]) // テナント内で一意
+  @@index([tenantId])
   @@map("categories")
 }
 
+// 資材
 model Material {
   id                String        @id @default(uuid())
-  materialCode      String        @unique @map("material_code")
+  tenantId          String        @map("tenant_id")
+  tenant            Tenant        @relation(fields: [tenantId], references: [id])
+  materialCode      String        @map("material_code")
   name              String
   categoryId        String        @map("category_id")
   size              String?
@@ -51,15 +111,20 @@ model Material {
   createdForOrder   Order?        @relation("TemporaryMaterials", fields: [createdForOrderId], references: [id], onDelete: Cascade)
   orderDetails      OrderDetail[]
 
+  @@unique([tenantId, materialCode]) // テナント内で一意
+  @@index([tenantId])
   @@index([categoryId])
   @@index([name])
   @@index([createdForOrderId])
   @@map("materials")
 }
 
+// 発注
 model Order {
   id                 String        @id @default(uuid())
-  orderNumber        String        @unique @map("order_number")
+  tenantId           String        @map("tenant_id")
+  tenant             Tenant        @relation(fields: [tenantId], references: [id])
+  orderNumber        String        @map("order_number")
   projectName        String        @map("project_name")
   personInCharge     String?       @map("person_in_charge")
   orderDate          DateTime      @map("order_date")
@@ -75,12 +140,15 @@ model Order {
   temporaryMaterials Material[]    @relation("TemporaryMaterials")
   user               User          @relation(fields: [userId], references: [id])
 
+  @@unique([tenantId, orderNumber]) // テナント内で一意
+  @@index([tenantId])
   @@index([userId])
   @@index([orderDate])
   @@index([status])
   @@map("orders")
 }
 
+// 発注明細
 model OrderDetail {
   id            String   @id @default(uuid())
   orderId       String   @map("order_id")

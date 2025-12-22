@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import MaterialOrderForm from "@/components/MaterialOrderForm";
 import { OrderDocument } from "@/types/material-order";
 import { formatWeight, formatTotalWeight } from "@/lib/utils/format";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft } from "lucide-react";
 
 export default function MaterialOrderPage() {
   const router = useRouter();
@@ -156,5 +158,28 @@ export default function MaterialOrderPage() {
     );
   }
 
-  return <MaterialOrderForm onSubmit={handleFormSubmit} />;
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <div className="container mx-auto px-4 py-6">
+        {/* ヘッダー */}
+        <div className="flex items-center gap-4 mb-6">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => router.push('/dashboard')}
+            className="text-gray-600 hover:text-gray-900"
+          >
+            <ArrowLeft className="h-4 w-4 mr-1" />
+            戻る
+          </Button>
+          <div>
+            <h1 className="text-xl font-semibold text-gray-900">新規発注書作成</h1>
+            <p className="text-sm text-gray-500">資材を選択して発注書を作成</p>
+          </div>
+        </div>
+
+        <MaterialOrderForm onSubmit={handleFormSubmit} />
+      </div>
+    </div>
+  );
 }

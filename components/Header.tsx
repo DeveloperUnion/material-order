@@ -4,53 +4,19 @@ import { useRouter, usePathname } from 'next/navigation'
 import Image from 'next/image'
 import { Button } from "@/components/ui/button"
 import { LogOut, User } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useSession, signOut } from 'next-auth/react'
 import { useTenant } from '@/lib/tenant/context'
-
-interface UserInfo {
-  username: string
-  companyName: string
-}
 
 export default function Header() {
   const router = useRouter()
   const pathname = usePathname()
-  const [userInfo, setUserInfo] = useState<UserInfo | null>(null)
+  const { data: session } = useSession()
   const { config } = useTenant()
 
-  useEffect(() => {
-    if (pathname !== '/') {
-      fetchUserInfo()
-    }
-  }, [pathname])
-
-  const fetchUserInfo = async () => {
-    try {
-      const response = await fetch('/api/auth/me')
-      if (response.ok) {
-        const data = await response.json()
-        setUserInfo(data.user)
-      }
-    } catch (error) {
-      console.error('Error fetching user info:', error)
-    }
-  }
-
   const handleLogout = async () => {
-    // localStorageも併せてクリア
-    localStorage.removeItem('isAuthenticated')
-    localStorage.removeItem('userName')
-
-    const response = await fetch('/api/auth/logout', { method: 'POST' })
-
-    if (response.ok) {
-      router.push('/')
-      router.refresh()
-    } else {
-      // APIが失敗してもログアウト処理を実行
-      router.push('/')
-      router.refresh()
-    }
+    await signOut({ redirect: false })
+    router.push('/')
+    router.refresh()
   }
 
   const handleLogoClick = () => {
@@ -67,16 +33,19 @@ export default function Header() {
             className={`flex items-center ${pathname !== '/' ? 'cursor-pointer hover:opacity-80 transition-opacity' : ''}`}
             onClick={handleLogoClick}
           >
-            <Image src={config.appConfig.icon} alt={config.appConfig.title} width={40} height={40} />
-            <h1 className='text-black text-2xl ml-4 font-bold'>{config.appConfig.title}</h1>
+            <Image src={config.icon} alt={config.title} width={40} height={40} />
+            <h1 className='text-black text-2xl ml-4 font-bold'>{config.title}</h1>
           </div>
           {pathname !== '/' && (
             <div className="flex items-center gap-2 md:gap-4">
-              {userInfo && (
-                <div className="hidden sm:flex items-center text-sm text-gray-600">
+              {session?.user && (
+                <button
+                  onClick={() => router.push('/profile')}
+                  className="hidden sm:flex items-center text-sm text-gray-600 hover:text-gray-900 transition-colors"
+                >
                   <User className="h-4 w-4 mr-1" />
-                  <span>{userInfo.companyName}</span>
-                </div>
+                  <span>{session.user.name}</span>
+                </button>
               )}
               <Button
                 onClick={handleLogout}

@@ -30,7 +30,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Eye, Search, Calendar, FileText, Printer, Trash2, Copy } from 'lucide-react';
+import { Eye, Search, Calendar, FileText, Printer, Trash2, Copy, ArrowLeft } from 'lucide-react';
 
 interface OrderData {
   id: string;
@@ -246,10 +246,10 @@ export default function OrderHistory() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen bg-gray-50">
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">読み込み中...</p>
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-slate-600 mx-auto"></div>
+          <p className="mt-4 text-sm text-gray-500">読み込み中...</p>
         </div>
       </div>
     );
@@ -258,14 +258,21 @@ export default function OrderHistory() {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-6 py-8">
-        {/* ページタイトル */}
-        <div className="mb-8">
-          <h1 className="text-2xl font-semibold text-gray-900 mb-2">
-            発注書履歴
-          </h1>
-          <p className="text-gray-600">
-            過去の発注書を確認・ダウンロードできます
-          </p>
+        {/* ヘッダー */}
+        <div className="flex items-center gap-4 mb-6">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => router.push('/dashboard')}
+            className="text-gray-600 hover:text-gray-900"
+          >
+            <ArrowLeft className="h-4 w-4 mr-1" />
+            戻る
+          </Button>
+          <div>
+            <h1 className="text-xl font-semibold text-gray-900">発注書履歴</h1>
+            <p className="text-sm text-gray-500">過去の発注書を確認・ダウンロード</p>
+          </div>
         </div>
 
         {/* 検索・フィルターセクション */}

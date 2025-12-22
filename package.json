@@ -4,21 +4,18 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "npm run build:vercel",
-    "build:vercel": "prisma generate && npm run db:migrate:all && next build",
-    "build:staging": "DEPLOY_ENV=staging npm run build:vercel",
-    "build:production": "DEPLOY_ENV=production npm run build:vercel",
+    "build": "prisma generate && npm run db:migrate && next build",
     "start": "next start",
     "lint": "next lint",
     "db:seed": "tsx prisma/seed.ts",
     "db:migrate": "prisma migrate deploy",
-    "db:migrate:all": "tsx scripts/migrate-all-tenants.ts",
     "db:generate": "prisma generate"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
+    "@auth/prisma-adapter": "^2.11.1",
     "@hookform/resolvers": "^5.1.1",
     "@prisma/client": "^6.15.0",
     "@radix-ui/react-dialog": "^1.1.15",
@@ -33,6 +30,7 @@
     "date-fns": "^4.1.0",
     "lucide-react": "^0.542.0",
     "next": "15.3.8",
+    "next-auth": "^5.0.0-beta.30",
     "prisma": "^6.15.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
