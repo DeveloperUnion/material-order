@@ -5,7 +5,6 @@ import Image from 'next/image'
 import { Button } from "@/components/ui/button"
 import { LogOut, User } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { useTenant } from '@/lib/tenant/context'
 
 interface UserInfo {
   username: string
@@ -16,7 +15,6 @@ export default function Header() {
   const router = useRouter()
   const pathname = usePathname()
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null)
-  const { config } = useTenant()
 
   useEffect(() => {
     if (pathname !== '/') {
@@ -67,8 +65,8 @@ export default function Header() {
             className={`flex items-center ${pathname !== '/' ? 'cursor-pointer hover:opacity-80 transition-opacity' : ''}`}
             onClick={handleLogoClick}
           >
-            <Image src={config.appConfig.icon} alt={config.appConfig.title} width={40} height={40} />
-            <h1 className='text-black text-2xl ml-4 font-bold'>{config.appConfig.title}</h1>
+            <Image src="/oken.png" alt="櫻建資材発注" width={40} height={40} />
+            <h1 className='text-black text-2xl ml-4 font-bold'>櫻建資材発注</h1>
           </div>
           {pathname !== '/' && (
             <div className="flex items-center gap-2 md:gap-4">

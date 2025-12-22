@@ -1,15 +1,9 @@
 import { NextResponse, type NextRequest } from 'next/server'
-import { getTenantIdFromDomain, type TenantId } from '@/lib/tenant/config'
 
 const SESSION_NAME = 'auth-session'
-const TENANT_HEADER = 'x-tenant-id'
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
-  const hostname = request.nextUrl.hostname
-
-  // テナントIDを検出
-  const tenantId: TenantId = getTenantIdFromDomain(hostname)
 
   // 認証不要なパス
   const publicPaths = ['/', '/api/auth/login', '/api/auth/logout']
@@ -41,19 +35,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(dashboardUrl)
   }
 
-  // テナントIDをヘッダーに追加してリクエストを転送
-  const response = NextResponse.next()
-  response.headers.set(TENANT_HEADER, tenantId)
-
-  // リクエストヘッダーにもテナントIDを追加（Server Componentsで使用）
-  const requestHeaders = new Headers(request.headers)
-  requestHeaders.set(TENANT_HEADER, tenantId)
-
-  return NextResponse.next({
-    request: {
-      headers: requestHeaders,
-    },
-  })
+  return NextResponse.next()
 }
 
 export const config = {
@@ -64,7 +46,6 @@ export const config = {
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
      * - images - .svg, .png, .jpg, .jpeg, .gif, .webp
-     * Feel free to modify this pattern to include more paths.
      */
     '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],

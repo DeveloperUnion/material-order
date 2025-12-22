@@ -1,5 +1,5 @@
 import { cookies } from 'next/headers'
-import { getCurrentPrismaClient } from '@/lib/tenant/server'
+import { prisma } from '@/lib/prisma'
 
 const SESSION_NAME = 'auth-session'
 
@@ -24,8 +24,6 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
       const sessionData = JSON.parse(sessionCookie.value)
 
       if (sessionData.userId) {
-        // テナント用Prismaクライアントを取得
-        const prisma = await getCurrentPrismaClient()
         // データベースから最新のユーザー情報を取得
         const user = await prisma.user.findUnique({
           where: {
@@ -51,10 +49,10 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
 
 export async function requireAuth(): Promise<CurrentUser> {
   const user = await getCurrentUser()
-  
+
   if (!user) {
     throw new Error('認証が必要です')
   }
-  
+
   return user
 }

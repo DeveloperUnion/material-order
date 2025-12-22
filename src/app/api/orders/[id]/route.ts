@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getCurrentPrismaClient } from '@/lib/tenant/server';
+import { prisma } from '@/lib/prisma';
 import { requireAuth } from '@/lib/auth';
 
 export async function GET(
@@ -8,7 +8,6 @@ export async function GET(
 ) {
   try {
     const currentUser = await requireAuth();
-    const prisma = await getCurrentPrismaClient()
     const resolvedParams = await params;
     const order = await prisma.order.findUnique({
       where: {
@@ -85,7 +84,6 @@ export async function PUT(
 ) {
   try {
     const currentUser = await requireAuth();
-    const prisma = await getCurrentPrismaClient()
     const resolvedParams = await params;
     const data = await request.json();
 
@@ -170,7 +168,6 @@ export async function DELETE(
 ) {
   try {
     const currentUser = await requireAuth();
-    const prisma = await getCurrentPrismaClient()
     const resolvedParams = await params;
 
     console.log('Deleting order:', resolvedParams.id);

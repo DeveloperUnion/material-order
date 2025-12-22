@@ -5,7 +5,6 @@ import { useParams, useRouter } from 'next/navigation';
 import { generatePDFContent } from '@/components/OrderDocumentHTML';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
-import { useTenant } from '@/lib/tenant/context';
 
 interface OrderDetail {
   id: string;
@@ -33,7 +32,6 @@ interface OrderDetail {
 export default function OrderPrintPage() {
   const params = useParams();
   const router = useRouter();
-  const { config } = useTenant();
   const [order, setOrder] = useState<OrderDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [htmlContent, setHtmlContent] = useState<string>('');
@@ -71,10 +69,10 @@ export default function OrderPrintPage() {
         note: data.order.shippingAddress || ''
       };
 
-      // HTML生成（印刷ボタンを非表示に、透かしはテナント設定から）
+      // HTML生成（印刷ボタンを非表示に）
       const content = generatePDFContent(orderDocument, {
         hidePrintButton: true,
-        watermarkText: config.appConfig.title
+        watermarkText: '櫻建資材発注'
       });
       setHtmlContent(content);
 
@@ -113,7 +111,7 @@ export default function OrderPrintPage() {
     } finally {
       setLoading(false);
     }
-  }, [router, config.appConfig.title]);
+  }, [router]);
 
   useEffect(() => {
     if (params.id) {

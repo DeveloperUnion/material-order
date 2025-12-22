@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getPrismaClientFromRequest } from '@/lib/tenant/server';
+import { prisma } from '@/lib/prisma';
 
 export async function GET(request: NextRequest) {
   try {
-    const prisma = getPrismaClientFromRequest(request)
     const { searchParams } = new URL(request.url);
     const orderId = searchParams.get('orderId');
 
@@ -67,7 +66,6 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const prisma = getPrismaClientFromRequest(request)
     const body = await request.json();
     const { name, categoryId, size, type, weightKg, notes, isTemporary, createdForOrderId } = body;
 
