@@ -364,7 +364,7 @@ export default function ProfilePage() {
                 <Button
                   type="submit"
                   disabled={passwordLoading}
-                  className="bg-slate-800 hover:bg-slate-900 text-white"
+                  className="!bg-slate-700 hover:!bg-slate-800 !text-white"
                 >
                   {passwordLoading ? '変更中...' : 'パスワードを変更'}
                 </Button>
@@ -381,6 +381,7 @@ export default function ProfilePage() {
                     setShowConfirmPassword(false);
                     setError(null);
                   }}
+                  className="!border-gray-300 !bg-white !text-gray-700 hover:!bg-gray-100 hover:!text-gray-900"
                 >
                   キャンセル
                 </Button>
