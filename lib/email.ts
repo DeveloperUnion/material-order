@@ -22,7 +22,7 @@ export async function sendInvitationEmail({
   // Resend APIキーが設定されていない場合はスキップ
   if (!process.env.RESEND_API_KEY) {
     console.log('RESEND_API_KEY not set, skipping email send');
-    return { success: true };
+    return { success: false, error: 'RESEND_API_KEY not configured' };
   }
 
   const roleText = role === 'ADMIN' ? '管理者' : 'メンバー';

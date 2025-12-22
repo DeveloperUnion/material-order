@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, UserPlus, Copy, Check, Users, Mail, MoreVertical, Shield, ShieldOff, UserX, UserCheck, Clock } from 'lucide-react';
+import { ArrowLeft, UserPlus, Check, Users, Mail, MoreVertical, Shield, ShieldOff, UserX, UserCheck, Clock, Trash2 } from 'lucide-react';
 
 interface User {
   id: string;
@@ -37,8 +37,6 @@ export default function UserManagementPage() {
   const [inviteRole, setInviteRole] = useState<'ADMIN' | 'MEMBER'>('MEMBER');
   const [inviteLoading, setInviteLoading] = useState(false);
   const [inviteSuccess, setInviteSuccess] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
-  const [inviteUrl, setInviteUrl] = useState<string | null>(null);
 
   // ユーザー編集
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
@@ -100,7 +98,6 @@ export default function UserManagementPage() {
     setInviteLoading(true);
     setError(null);
     setInviteSuccess(null);
-    setInviteUrl(null);
 
     try {
       const res = await fetch('/api/invitations', {
@@ -119,12 +116,7 @@ export default function UserManagementPage() {
         throw new Error(data.error || '招待の送信に失敗しました');
       }
 
-      setInviteUrl(data.inviteUrl);
-      setInviteSuccess(
-        data.emailSent
-          ? `${inviteEmail} に招待メールを送信しました`
-          : '招待を作成しました（メール送信はスキップされました）'
-      );
+      setInviteSuccess('招待メールを送信しました');
       setInvitations([data.invitation, ...invitations]);
       setInviteEmail('');
     } catch (err) {
@@ -134,11 +126,22 @@ export default function UserManagementPage() {
     }
   };
 
-  const copyInviteUrl = async () => {
-    if (inviteUrl) {
-      await navigator.clipboard.writeText(inviteUrl);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+  const handleDeleteInvitation = async (invitationId: string) => {
+    if (!confirm('この招待を削除しますか？')) return;
+
+    try {
+      const res = await fetch(`/api/invitations/${invitationId}`, {
+        method: 'DELETE',
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || '招待の削除に失敗しました');
+      }
+
+      setInvitations(invitations.filter(inv => inv.id !== invitationId));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'エラーが発生しました');
     }
   };
 
@@ -212,7 +215,6 @@ export default function UserManagementPage() {
             onClick={() => {
               setShowInviteForm(!showInviteForm);
               setInviteSuccess(null);
-              setInviteUrl(null);
             }}
             className="bg-slate-800 hover:bg-slate-900 text-white"
           >
@@ -245,14 +247,14 @@ export default function UserManagementPage() {
                     onChange={(e) => setInviteEmail(e.target.value)}
                     placeholder="メールアドレスを入力"
                     required
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent outline-none"
+                    className="w-full px-3 py-2 text-sm text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent outline-none placeholder:text-gray-400"
                   />
                 </div>
                 <div className="sm:w-32">
                   <select
                     value={inviteRole}
                     onChange={(e) => setInviteRole(e.target.value as 'ADMIN' | 'MEMBER')}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent outline-none bg-white"
+                    className="w-full px-3 py-2 text-sm text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent outline-none bg-white"
                   >
                     <option value="MEMBER">メンバー</option>
                     <option value="ADMIN">管理者</option>
@@ -261,7 +263,7 @@ export default function UserManagementPage() {
                 <Button
                   type="submit"
                   disabled={inviteLoading}
-                  className="bg-slate-800 hover:bg-slate-900 text-white sm:w-auto"
+                  className="!bg-slate-700 hover:!bg-slate-800 !text-white sm:w-auto"
                 >
                   {inviteLoading ? '送信中...' : '招待を送信'}
                 </Button>
@@ -275,25 +277,6 @@ export default function UserManagementPage() {
                   <Check className="h-4 w-4" />
                   {inviteSuccess}
                 </p>
-                {inviteUrl && (
-                  <div className="mt-2 flex items-center gap-2">
-                    <input
-                      type="text"
-                      value={inviteUrl}
-                      readOnly
-                      className="flex-1 px-2 py-1.5 text-xs bg-white border border-green-300 rounded text-gray-600"
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={copyInviteUrl}
-                      className="text-xs"
-                    >
-                      {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-                    </Button>
-                  </div>
-                )}
               </div>
             )}
           </div>
@@ -457,15 +440,24 @@ export default function UserManagementPage() {
                       </div>
                     </div>
                   </div>
-                  <span
-                    className={`text-xs px-2 py-1 rounded-full font-medium ${
-                      invitation.role === 'ADMIN'
-                        ? 'bg-purple-100 text-purple-700'
-                        : 'bg-gray-100 text-gray-600'
-                    }`}
-                  >
-                    {invitation.role === 'ADMIN' ? '管理者' : 'メンバー'}
-                  </span>
+                  <div className="flex items-center gap-3">
+                    <span
+                      className={`text-xs px-2 py-1 rounded-full font-medium ${
+                        invitation.role === 'ADMIN'
+                          ? 'bg-purple-100 text-purple-700'
+                          : 'bg-gray-100 text-gray-600'
+                      }`}
+                    >
+                      {invitation.role === 'ADMIN' ? '管理者' : 'メンバー'}
+                    </span>
+                    <button
+                      onClick={() => handleDeleteInvitation(invitation.id)}
+                      className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                      title="招待を削除"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>

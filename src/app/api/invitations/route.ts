@@ -58,7 +58,12 @@ export async function POST(request: Request) {
     const prisma = getCurrentPrismaClient();
     const body = await request.json();
 
-    const { email, role = 'MEMBER', sendEmail = true } = body;
+    // ベースURL取得（リクエストヘッダーから動的に取得）
+    const host = request.headers.get('host') || 'localhost:3000';
+    const protocol = request.headers.get('x-forwarded-proto') || 'http';
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || `${protocol}://${host}`;
+
+    const { email, role = 'MEMBER' } = body;
 
     // バリデーション
     if (!email || typeof email !== 'string') {
@@ -143,7 +148,28 @@ export async function POST(request: Request) {
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 7);
 
-    // 招待作成
+    // 招待URL生成
+    const inviteUrl = `${baseUrl}/invite/${token}`;
+
+    // メール送信を先に実行（失敗したら招待を作成しない）
+    const emailResult = await sendInvitationEmail({
+      to: email.toLowerCase(),
+      inviterName: currentUser.name,
+      tenantName: tenant.name,
+      role: role as 'ADMIN' | 'MEMBER',
+      inviteUrl,
+      expiresAt,
+    });
+
+    if (!emailResult.success) {
+      console.error('Email send failed:', emailResult.error);
+      return NextResponse.json(
+        { error: '招待メールの送信に失敗しました' },
+        { status: 500 }
+      );
+    }
+
+    // メール送信成功後に招待を作成
     const invitation = await prisma.invitation.create({
       data: {
         tenantId: currentUser.tenantId,
@@ -155,28 +181,6 @@ export async function POST(request: Request) {
       },
     });
 
-    // 招待URL生成
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-    const inviteUrl = `${baseUrl}/invite/${token}`;
-
-    // メール送信（オプション）
-    let emailSent = false;
-    let emailError: string | undefined;
-
-    if (sendEmail) {
-      const emailResult = await sendInvitationEmail({
-        to: email.toLowerCase(),
-        inviterName: currentUser.name,
-        tenantName: tenant.name,
-        role: role as 'ADMIN' | 'MEMBER',
-        inviteUrl,
-        expiresAt,
-      });
-
-      emailSent = emailResult.success;
-      emailError = emailResult.error;
-    }
-
     return NextResponse.json({
       invitation: {
         id: invitation.id,
@@ -184,9 +188,7 @@ export async function POST(request: Request) {
         role: invitation.role,
         expiresAt: invitation.expiresAt,
       },
-      inviteUrl,
-      emailSent,
-      emailError,
+      emailSent: true,
     }, { status: 201 });
   } catch (error) {
     console.error('Error creating invitation:', error);
