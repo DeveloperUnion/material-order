@@ -2,17 +2,15 @@
 
 import { SessionProvider } from 'next-auth/react'
 import { TenantProvider } from '@/lib/tenant/context'
-import { TenantId } from '@/lib/tenant/config'
 
 interface ProvidersProps {
   children: React.ReactNode
-  tenantId: TenantId
 }
 
-export default function Providers({ children, tenantId }: ProvidersProps) {
+export default function Providers({ children }: ProvidersProps) {
   return (
     <SessionProvider>
-      <TenantProvider initialTenantId={tenantId}>
+      <TenantProvider>
         {children}
       </TenantProvider>
     </SessionProvider>

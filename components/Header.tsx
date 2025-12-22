@@ -33,16 +33,19 @@ export default function Header() {
             className={`flex items-center ${pathname !== '/' ? 'cursor-pointer hover:opacity-80 transition-opacity' : ''}`}
             onClick={handleLogoClick}
           >
-            <Image src={config.appConfig.icon} alt={config.appConfig.title} width={40} height={40} />
-            <h1 className='text-black text-2xl ml-4 font-bold'>{config.appConfig.title}</h1>
+            <Image src={config.icon} alt={config.title} width={40} height={40} />
+            <h1 className='text-black text-2xl ml-4 font-bold'>{config.title}</h1>
           </div>
           {pathname !== '/' && (
             <div className="flex items-center gap-2 md:gap-4">
               {session?.user && (
-                <div className="hidden sm:flex items-center text-sm text-gray-600">
+                <button
+                  onClick={() => router.push('/profile')}
+                  className="hidden sm:flex items-center text-sm text-gray-600 hover:text-gray-900 transition-colors"
+                >
                   <User className="h-4 w-4 mr-1" />
                   <span>{session.user.name}</span>
-                </div>
+                </button>
               )}
               <Button
                 onClick={handleLogout}

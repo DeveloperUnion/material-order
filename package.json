@@ -4,15 +4,11 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "npm run build:vercel",
-    "build:vercel": "prisma generate && npm run db:migrate:all && next build",
-    "build:staging": "DEPLOY_ENV=staging npm run build:vercel",
-    "build:production": "DEPLOY_ENV=production npm run build:vercel",
+    "build": "prisma generate && npm run db:migrate && next build",
     "start": "next start",
     "lint": "next lint",
     "db:seed": "tsx prisma/seed.ts",
     "db:migrate": "prisma migrate deploy",
-    "db:migrate:all": "tsx scripts/migrate-all-tenants.ts",
     "db:generate": "prisma generate"
   },
   "prisma": {

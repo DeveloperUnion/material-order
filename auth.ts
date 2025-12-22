@@ -47,7 +47,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const password = credentials.password as string
 
         try {
-          const prisma = await getCurrentPrismaClient()
+          const prisma = getCurrentPrismaClient()
 
           // ユーザーを検索（テナント情報も含む）
           const user = await prisma.user.findUnique({

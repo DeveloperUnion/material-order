@@ -4,7 +4,8 @@ import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FileText, Clock, BarChart3, CheckCircle, AlertCircle } from 'lucide-react';
+import { FileText, Clock, BarChart3, CheckCircle, AlertCircle, Users, Settings } from 'lucide-react';
+import { useSession } from 'next-auth/react';
 import { format } from 'date-fns';
 
 interface Stats {
@@ -15,6 +16,8 @@ interface Stats {
 
 export default function Dashboard() {
   const router = useRouter();
+  const { data: session } = useSession();
+  const isAdmin = session?.user?.role === 'ADMIN';
   const [stats, setStats] = useState<Stats>({
     thisMonthOrders: 0,
     completedOrders: 0,
@@ -74,6 +77,14 @@ export default function Dashboard() {
     router.push('/order-history');
   };
 
+  const navigateToUserManagement = () => {
+    router.push('/admin/users');
+  };
+
+  const navigateToTenantSettings = () => {
+    router.push('/admin/settings');
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* メインコンテンツ */}
@@ -84,6 +95,52 @@ export default function Dashboard() {
             ダッシュボード
           </h1>
         </div>
+        {/* 管理者メニュー */}
+        {isAdmin && (
+          <div className="mb-8 grid md:grid-cols-2 gap-4">
+            <Card
+              className="hover:shadow-md transition-shadow border border-purple-200 bg-purple-50/30 cursor-pointer"
+              onClick={navigateToUserManagement}
+            >
+              <CardHeader className="pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                    <Users className="h-5 w-5 text-purple-600" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-lg text-gray-900">
+                      ユーザー管理
+                    </CardTitle>
+                    <CardDescription className="text-gray-600">
+                      ユーザーの招待・管理を行います
+                    </CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+            </Card>
+            <Card
+              className="hover:shadow-md transition-shadow border border-slate-200 bg-slate-50/30 cursor-pointer"
+              onClick={navigateToTenantSettings}
+            >
+              <CardHeader className="pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center">
+                    <Settings className="h-5 w-5 text-slate-600" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-lg text-gray-900">
+                      テナント設定
+                    </CardTitle>
+                    <CardDescription className="text-gray-600">
+                      会社情報の編集を行います
+                    </CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+            </Card>
+          </div>
+        )}
+
         {/* メインアクション */}
         <div className="grid md:grid-cols-2 gap-6 mb-12">
           <Card 

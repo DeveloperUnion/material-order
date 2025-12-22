@@ -8,7 +8,7 @@ export async function GET(
 ) {
   try {
     const currentUser = await requireAuth();
-    const prisma = await getCurrentPrismaClient()
+    const prisma = getCurrentPrismaClient()
     const resolvedParams = await params;
     const order = await prisma.order.findUnique({
       where: {
@@ -86,7 +86,7 @@ export async function PUT(
 ) {
   try {
     const currentUser = await requireAuth();
-    const prisma = await getCurrentPrismaClient()
+    const prisma = getCurrentPrismaClient()
     const resolvedParams = await params;
     const data = await request.json();
 
@@ -171,7 +171,7 @@ export async function DELETE(
 ) {
   try {
     const currentUser = await requireAuth();
-    const prisma = await getCurrentPrismaClient()
+    const prisma = getCurrentPrismaClient()
     const resolvedParams = await params;
 
     console.log('Deleting order:', resolvedParams.id);

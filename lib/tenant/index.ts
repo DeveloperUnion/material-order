@@ -1,27 +1,18 @@
-// テナント設定
+// アプリ設定
 export {
-  type TenantId,
-  type TenantConfig,
-  tenantConfigs,
-  domainToTenant,
-  defaultTenantId,
-  getTenantIdFromDomain,
-  getTenantConfig,
-  getSupabaseConfig,
+  type AppConfig,
+  defaultAppConfig,
+  getAppConfig,
 } from './config'
 
 // サーバーサイドユーティリティ
 export {
-  TENANT_HEADER,
-  getCurrentTenantId,
-  getCurrentTenantConfig,
   getCurrentPrismaClient,
-  getTenantIdFromRequest,
   getPrismaClientFromRequest,
 } from './server'
 
-// Prismaクライアント管理
+// Prismaクライアント
 export {
-  getPrismaClient,
-  disconnectAllPrismaClients,
+  prisma,
+  disconnectPrisma,
 } from './prisma'

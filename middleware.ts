@@ -1,18 +1,11 @@
-import { NextResponse, type NextRequest } from 'next/server'
+import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
-import { getTenantIdFromDomain, type TenantId } from '@/lib/tenant/config'
-
-const TENANT_HEADER = 'x-tenant-id'
 
 export default auth((request) => {
   const { pathname } = request.nextUrl
-  const hostname = request.nextUrl.hostname
-
-  // テナントIDを検出
-  const tenantId: TenantId = getTenantIdFromDomain(hostname)
 
   // 認証不要なパス
-  const publicPaths = ['/', '/api/auth']
+  const publicPaths = ['/', '/api/auth', '/invite']
   const isPublicPath = publicPaths.some(path =>
     pathname === path || pathname.startsWith(path + '/')
   )
@@ -32,15 +25,7 @@ export default auth((request) => {
     return NextResponse.redirect(dashboardUrl)
   }
 
-  // リクエストヘッダーにテナントIDを追加（Server Componentsで使用）
-  const requestHeaders = new Headers(request.headers)
-  requestHeaders.set(TENANT_HEADER, tenantId)
-
-  return NextResponse.next({
-    request: {
-      headers: requestHeaders,
-    },
-  })
+  return NextResponse.next()
 })
 
 export const config = {

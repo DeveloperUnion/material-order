@@ -5,7 +5,7 @@ import { requireAuth } from '@/lib/auth';
 export async function GET() {
   try {
     const currentUser = await requireAuth();
-    const prisma = await getCurrentPrismaClient()
+    const prisma = getCurrentPrismaClient()
 
     const categories = await prisma.category.findMany({
       where: {

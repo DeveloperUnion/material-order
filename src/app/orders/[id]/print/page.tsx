@@ -74,7 +74,7 @@ export default function OrderPrintPage() {
       // HTML生成（印刷ボタンを非表示に、透かしはテナント設定から）
       const content = generatePDFContent(orderDocument, {
         hidePrintButton: true,
-        watermarkText: config.appConfig.title
+        watermarkText: config.title
       });
       setHtmlContent(content);
 
@@ -113,7 +113,7 @@ export default function OrderPrintPage() {
     } finally {
       setLoading(false);
     }
-  }, [router, config.appConfig.title]);
+  }, [router, config.title]);
 
   useEffect(() => {
     if (params.id) {

@@ -1,12 +1,13 @@
 'use client'
 
-import { createContext, useContext, useEffect, ReactNode } from 'react'
-import { TenantId, TenantConfig, tenantConfigs, getTenantIdFromDomain, getTenantConfig } from './config'
+import { createContext, useContext, ReactNode } from 'react'
+import { useSession } from 'next-auth/react'
+import { AppConfig, getAppConfig } from './config'
 
 // テナントコンテキストの型
 interface TenantContextType {
-  tenantId: TenantId
-  config: TenantConfig
+  config: AppConfig
+  tenantName: string | null
 }
 
 const TenantContext = createContext<TenantContextType | null>(null)
@@ -22,26 +23,18 @@ export function useTenant(): TenantContextType {
 
 interface TenantProviderProps {
   children: ReactNode
-  // サーバーから渡されたテナントID（オプション）
-  initialTenantId?: TenantId
 }
 
-export function TenantProvider({ children, initialTenantId }: TenantProviderProps) {
-  // テナントIDを決定
-  const tenantId = initialTenantId ?? (typeof window !== 'undefined'
-    ? getTenantIdFromDomain(window.location.hostname)
-    : 'auth_client')
+export function TenantProvider({ children }: TenantProviderProps) {
+  const { data: session } = useSession()
 
-  const config = getTenantConfig(tenantId)
-
-  // ドキュメントタイトルを設定
-  useEffect(() => {
-    document.title = config.appConfig.appTitle
-  }, [config.appConfig.appTitle])
+  // セッションからテナント名を取得（ログイン前はnull）
+  const tenantName = session?.user?.tenantName ?? null
+  const config = getAppConfig(tenantName ?? undefined)
 
   const value: TenantContextType = {
-    tenantId,
     config,
+    tenantName,
   }
 
   return (
@@ -50,7 +43,3 @@ export function TenantProvider({ children, initialTenantId }: TenantProviderProp
     </TenantContext.Provider>
   )
 }
-
-// サーバーサイドでテナント設定を取得するユーティリティ（エクスポート）
-export { tenantConfigs, getTenantIdFromDomain, getTenantConfig }
-export type { TenantId, TenantConfig }
