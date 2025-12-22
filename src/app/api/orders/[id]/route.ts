@@ -13,6 +13,7 @@ export async function GET(
     const order = await prisma.order.findUnique({
       where: {
         id: resolvedParams.id,
+        tenantId: currentUser.tenantId,
         userId: currentUser.id
       },
       include: {
@@ -91,12 +92,12 @@ export async function PUT(
 
     console.log('Updating order:', resolvedParams.id, JSON.stringify(data, null, 2));
 
-    // ユーザーがこの注文の所有者であることを確認
+    // ユーザーがこの注文の所有者であり、同じテナントであることを確認
     const existingOrder = await prisma.order.findUnique({
       where: { id: resolvedParams.id }
     });
-    
-    if (!existingOrder || existingOrder.userId !== currentUser.id) {
+
+    if (!existingOrder || existingOrder.tenantId !== currentUser.tenantId || existingOrder.userId !== currentUser.id) {
       return NextResponse.json(
         { error: 'Order not found or access denied' },
         { status: 404 }
@@ -180,13 +181,13 @@ export async function DELETE(
       where: { id: resolvedParams.id }
     });
 
-    if (!existingOrder) {
+    if (!existingOrder || existingOrder.tenantId !== currentUser.tenantId) {
       return NextResponse.json(
         { error: '発注書が見つかりません' },
         { status: 404 }
       );
     }
-    
+
     if (existingOrder.userId !== currentUser.id) {
       return NextResponse.json(
         { error: 'アクセスが拒否されました' },

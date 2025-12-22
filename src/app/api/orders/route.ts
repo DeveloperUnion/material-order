@@ -10,6 +10,7 @@ export async function GET() {
 
     const orders = await prisma.order.findMany({
       where: {
+        tenantId: currentUser.tenantId,
         userId: currentUser.id
       },
       orderBy: {
