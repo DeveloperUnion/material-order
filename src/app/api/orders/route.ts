@@ -71,9 +71,10 @@ export async function POST(request: Request) {
 
     console.log('Received order data:', JSON.stringify(data, null, 2));
 
-    // ユーザー名 + ランダムなユニークIDで注文番号を生成
+    // ユーザー名の最初の部分 + ランダムなユニークIDで注文番号を生成
     const uniqueId = randomBytes(4).toString('hex').toUpperCase();
-    const orderNumber = `${currentUser.username.toUpperCase()}-${uniqueId}`;
+    const namePart = currentUser.name.substring(0, 4).toUpperCase();
+    const orderNumber = `${namePart}-${uniqueId}`;
 
     // copyFromOrderIdが指定されている場合、元の発注書のisTemporary材料を複製してIDマッピングを作成
     const materialIdMap = new Map<string, string>();
@@ -99,6 +100,7 @@ export async function POST(request: Request) {
 
         const newMaterial = await prisma.material.create({
           data: {
+            tenantId: currentUser.tenantId,
             materialCode: newMaterialCode,
             name: material.name,
             categoryId: material.categoryId,
@@ -128,6 +130,7 @@ export async function POST(request: Request) {
 
     const order = await prisma.order.create({
         data: {
+          tenantId: currentUser.tenantId,
           orderNumber: orderNumber,
           userId: currentUser.id,
           projectName: data.projectName || 'プロジェクト',

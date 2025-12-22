@@ -6,7 +6,7 @@ import { useTenant } from '@/lib/tenant/context'
 
 export default function Home() {
   const { config } = useTenant()
-  const [username, setUsername] = useState('')
+  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
@@ -22,7 +22,7 @@ export default function Home() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ email, password }),
       })
 
       const data = await response.json()
@@ -34,7 +34,7 @@ export default function Home() {
 
       // ログイン成功時は window.location でリダイレクト
       localStorage.setItem('isAuthenticated', 'true')
-      localStorage.setItem('userName', username)
+      localStorage.setItem('userName', data.user.name)
       window.location.href = '/dashboard'
     } catch {
       setError('予期しないエラーが発生しました')
@@ -57,18 +57,19 @@ export default function Home() {
         <form className="mt-8 space-y-6 bg-white p-8 rounded-2xl shadow-xl" onSubmit={handleLogin}>
           <div className="space-y-4">
             <div>
-              <label htmlFor="username" className="sr-only">
-                ユーザーID
+              <label htmlFor="email" className="sr-only">
+                メールアドレス
               </label>
               <input
-                id="username"
-                name="username"
-                type="text"
+                id="email"
+                name="email"
+                type="email"
                 required
+                autoComplete="email"
                 className="appearance-none relative block w-full px-4 py-3 border border-slate-200 placeholder-slate-400 text-slate-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-transparent transition-all duration-200 hover:border-slate-300"
-                placeholder="ユーザーID"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                placeholder="メールアドレス"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
               />
             </div>
             <div>
@@ -80,6 +81,7 @@ export default function Home() {
                 name="password"
                 type="password"
                 required
+                autoComplete="current-password"
                 className="appearance-none relative block w-full px-4 py-3 border border-slate-200 placeholder-slate-400 text-slate-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-transparent transition-all duration-200 hover:border-slate-300"
                 placeholder="パスワード"
                 value={password}

@@ -8,8 +8,12 @@ import { useEffect, useState } from 'react'
 import { useTenant } from '@/lib/tenant/context'
 
 interface UserInfo {
-  username: string
-  companyName: string
+  id: string
+  tenantId: string
+  email: string
+  name: string
+  role: string
+  tenantName: string
 }
 
 export default function Header() {
@@ -75,7 +79,7 @@ export default function Header() {
               {userInfo && (
                 <div className="hidden sm:flex items-center text-sm text-gray-600">
                   <User className="h-4 w-4 mr-1" />
-                  <span>{userInfo.companyName}</span>
+                  <span>{userInfo.name}</span>
                 </div>
               )}
               <Button

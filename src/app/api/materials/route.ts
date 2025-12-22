@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getPrismaClientFromRequest } from '@/lib/tenant/server';
+import { requireAuth } from '@/lib/auth';
 
 export async function GET(request: NextRequest) {
   try {
@@ -67,6 +68,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const currentUser = await requireAuth();
     const prisma = getPrismaClientFromRequest(request)
     const body = await request.json();
     const { name, categoryId, size, type, weightKg, notes, isTemporary, createdForOrderId } = body;
@@ -145,6 +147,7 @@ export async function POST(request: NextRequest) {
 
     const newMaterial = await prisma.material.create({
       data: {
+        tenantId: currentUser.tenantId,
         materialCode,
         name,
         categoryId,
