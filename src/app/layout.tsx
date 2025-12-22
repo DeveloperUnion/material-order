@@ -17,7 +17,7 @@ export const metadata: Metadata = {
   title: "櫻建資材発注",
   description: "建設業向け資材発注管理アプリケーション",
   icons: {
-    apple: "/oken.png",
+    apple: "/icons/oken-icon.jpeg",
   },
 };
 
