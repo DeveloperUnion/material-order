@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/Header";
-import { TenantProvider } from "@/lib/tenant/context";
+import Providers from "@/components/Providers";
 import { getCurrentTenantId, getCurrentTenantConfig } from "@/lib/tenant/server";
 
 const geistSans = Geist({
@@ -38,10 +38,10 @@ export default async function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <TenantProvider initialTenantId={tenantId}>
+        <Providers tenantId={tenantId}>
           <Header />
           {children}
-        </TenantProvider>
+        </Providers>
       </body>
     </html>
   );

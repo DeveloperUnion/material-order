@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server'
-import { getCurrentUser } from '@/lib/auth'
+import { auth } from '@/auth'
 
 export async function GET() {
   try {
-    const user = await getCurrentUser()
+    const session = await auth()
 
-    if (!user) {
+    if (!session?.user) {
       return NextResponse.json(
         { error: 'Not authenticated' },
         { status: 401 }
@@ -14,12 +14,12 @@ export async function GET() {
 
     return NextResponse.json({
       user: {
-        id: user.id,
-        tenantId: user.tenantId,
-        email: user.email,
-        name: user.name,
-        role: user.role,
-        tenantName: user.tenant.name
+        id: session.user.id,
+        tenantId: session.user.tenantId,
+        email: session.user.email,
+        name: session.user.name,
+        role: session.user.role,
+        tenantName: session.user.tenantName
       }
     })
   } catch (error) {

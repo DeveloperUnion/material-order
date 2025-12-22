@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { signIn } from 'next-auth/react'
 import { useTenant } from '@/lib/tenant/context'
 // import Image from 'next/image'
 
@@ -17,24 +18,18 @@ export default function Home() {
     setLoading(true)
 
     try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
+      const result = await signIn('credentials', {
+        email,
+        password,
+        redirect: false,
       })
 
-      const data = await response.json()
-
-      if (!response.ok) {
-        setError(data.error || 'ログインに失敗しました')
+      if (result?.error) {
+        setError('メールアドレスまたはパスワードが正しくありません')
         return
       }
 
-      // ログイン成功時は window.location でリダイレクト
-      localStorage.setItem('isAuthenticated', 'true')
-      localStorage.setItem('userName', data.user.name)
+      // ログイン成功時はダッシュボードへリダイレクト
       window.location.href = '/dashboard'
     } catch {
       setError('予期しないエラーが発生しました')

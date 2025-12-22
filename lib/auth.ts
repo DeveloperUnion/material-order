@@ -1,17 +1,5 @@
-import { cookies } from 'next/headers'
-import { getCurrentPrismaClient } from '@/lib/tenant/server'
+import { auth } from '@/auth'
 import { UserRole } from '@prisma/client'
-
-const SESSION_NAME = 'auth-session'
-
-// セッションに保存するデータの型
-export interface SessionData {
-  userId: string
-  tenantId: string
-  email: string
-  name: string
-  role: UserRole
-}
 
 // 現在のユーザー情報の型
 export interface CurrentUser {
@@ -20,61 +8,25 @@ export interface CurrentUser {
   email: string
   name: string
   role: UserRole
-  isActive: boolean
-  tenant: {
-    id: string
-    name: string
-    isActive: boolean
-  }
+  tenantName: string
 }
 
 export async function getCurrentUser(): Promise<CurrentUser | null> {
   try {
-    const cookieStore = await cookies()
-    const sessionCookie = cookieStore.get(SESSION_NAME)
+    const session = await auth()
 
-    if (!sessionCookie?.value) {
+    if (!session?.user) {
       return null
     }
 
-    // セッションデータがJSON文字列の場合は解析
-    try {
-      const sessionData = JSON.parse(sessionCookie.value) as SessionData
-
-      if (sessionData.userId) {
-        // テナント用Prismaクライアントを取得
-        const prisma = await getCurrentPrismaClient()
-        // データベースから最新のユーザー情報を取得（テナント情報も含む）
-        const user = await prisma.user.findUnique({
-          where: {
-            id: sessionData.userId,
-            isActive: true
-          },
-          include: {
-            tenant: {
-              select: {
-                id: true,
-                name: true,
-                isActive: true
-              }
-            }
-          }
-        })
-
-        // ユーザーまたはテナントが無効な場合はnull
-        if (!user || !user.tenant.isActive) {
-          return null
-        }
-
-        return user
-      }
-    } catch {
-      // 旧形式のセッション（単純な文字列）の場合は null を返す
-      console.warn('Invalid session format, user needs to re-login')
-      return null
+    return {
+      id: session.user.id,
+      tenantId: session.user.tenantId,
+      email: session.user.email || '',
+      name: session.user.name || '',
+      role: session.user.role,
+      tenantName: session.user.tenantName,
     }
-
-    return null
   } catch (error) {
     console.error('Error getting current user:', error)
     return null
