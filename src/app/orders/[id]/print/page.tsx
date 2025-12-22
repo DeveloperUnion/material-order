@@ -72,7 +72,7 @@ export default function OrderPrintPage() {
       // HTML生成（印刷ボタンを非表示に）
       const content = generatePDFContent(orderDocument, {
         hidePrintButton: true,
-        watermarkText: '櫻建資材発注'
+        watermarkText: '株式会社　櫻建'
       });
       setHtmlContent(content);
 
