@@ -31,6 +31,17 @@ export default function MaterialOrderPage() {
 
     setIsCreatingOrder(true);
     try {
+      // sessionStorage から draftOrderId を取得
+      let draftOrderId: string | null = null;
+      try {
+        const savedDraft = sessionStorage.getItem('material-order-draft-new');
+        if (savedDraft) {
+          draftOrderId = JSON.parse(savedDraft).draftOrderId || null;
+        }
+      } catch {
+        // ignore
+      }
+
       const requestData = {
         projectName: orderData.siteName,
         personInCharge: orderData.ordererName,
@@ -40,6 +51,7 @@ export default function MaterialOrderPage() {
         deliveryDate: null,
         status: 'completed',
         notes: null, // orderData.note, // 備考機能を削除
+        draftOrderId,
         items: orderData.items.map(item => ({
           materialId: item.id,
           quantity: item.quantity,
@@ -64,6 +76,13 @@ export default function MaterialOrderPage() {
 
       const result = await response.json();
       console.log('発注書を作成しました:', result);
+
+      // 発注作成成功後に下書きデータを削除
+      try {
+        sessionStorage.removeItem('material-order-draft-new');
+      } catch {
+        // ignore
+      }
 
       // 印刷専用ページに遷移
       router.push(`/orders/${result.order.id}/print`);
