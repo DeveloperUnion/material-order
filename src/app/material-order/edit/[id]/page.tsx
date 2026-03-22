@@ -127,6 +127,13 @@ export default function MaterialOrderEditPage() {
       const result = await response.json();
       console.log('発注書を更新しました:', result);
 
+      // 更新成功後に下書きデータを削除
+      try {
+        sessionStorage.removeItem(`material-order-draft-edit-${orderId}`);
+      } catch {
+        // ignore
+      }
+
       // 印刷専用ページに遷移
       router.push(`/orders/${orderId}/print`);
     } catch (error) {

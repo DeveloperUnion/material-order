@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useEffect, useRef } from "react";
+import React, { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { useForm, Controller, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -62,16 +62,72 @@ type Material = {
   isActive: boolean;
 };
 
+// sessionStorage のキーを生成
+function getDraftStorageKey(editMode: boolean, orderId?: string): string {
+  if (editMode && orderId) {
+    return `material-order-draft-edit-${orderId}`;
+  }
+  return 'material-order-draft-new';
+}
+
+interface DraftData {
+  ordererName: string;
+  siteName: string;
+  contactInfo: string;
+  loadingDate: string;
+  materials: Record<string, number>;
+  selectedCategoryId: string;
+  draftOrderId: string | null;
+  savedAt: number;
+}
+
+// コンポーネント外で同期的に下書きデータを読み込む
+function loadDraft(storageKey: string): DraftData | null {
+  try {
+    const saved = sessionStorage.getItem(storageKey);
+    if (saved) {
+      return JSON.parse(saved);
+    }
+  } catch {
+    // ignore
+  }
+  return null;
+}
+
 export default function MaterialOrderForm({ onSubmit, editMode = false, editOrderData = null }: MaterialOrderFormProps) {
+  const storageKey = useMemo(
+    () => getDraftStorageKey(editMode, editOrderData?.orderId),
+    [editMode, editOrderData?.orderId]
+  );
+
+  // 初回レンダリング時に同期的に下書きを読み込む
+  const initialDraft = useRef(loadDraft(storageKey));
+
   const [categories, setCategories] = useState<Category[]>([]);
   const [materials, setMaterials] = useState<Material[]>([]);
-  const [selectedCategoryId, setSelectedCategoryId] = useState<string>("");
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string>(
+    initialDraft.current?.selectedCategoryId || ""
+  );
   const [loading, setLoading] = useState(true);
   const [showAddMaterialForm, setShowAddMaterialForm] = useState(false);
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [editData, setEditData] = useState<EditOrderData | null>(editOrderData);
-  const [draftOrderId, setDraftOrderId] = useState<string | null>(null);
+  const [draftOrderId, setDraftOrderId] = useState<string | null>(
+    initialDraft.current?.draftOrderId || null
+  );
   const submitButtonRef = useRef<HTMLButtonElement>(null);
+  const [restoredFromDraft, setRestoredFromDraft] = useState(!!initialDraft.current);
+  const isInitializedRef = useRef(!!initialDraft.current);
+  const saveEnabledRef = useRef(false);
+
+  // sessionStorage から下書きデータを削除
+  const clearDraft = useCallback(() => {
+    try {
+      sessionStorage.removeItem(storageKey);
+    } catch {
+      // sessionStorage が使えない環境では無視
+    }
+  }, [storageKey]);
 
   // 編集データが props で渡された場合に設定
   useEffect(() => {
@@ -80,31 +136,33 @@ export default function MaterialOrderForm({ onSubmit, editMode = false, editOrde
     }
   }, [editOrderData]);
 
+  // defaultValues を下書きデータから構築（同期的）
+  const draft = initialDraft.current;
   const {
     register,
     control,
     handleSubmit,
     setValue,
     reset,
+    getValues,
     formState: { errors },
   } = useForm<OrderFormData>({
     resolver: zodResolver(orderFormSchema),
     defaultValues: {
-      ordererName: "",
-      siteName: "",
-      contactInfo: "",
-      loadingDate: "",
-      // note: "", // コメントアウト
-      materials: {},
+      ordererName: draft?.ordererName || "",
+      siteName: draft?.siteName || "",
+      contactInfo: draft?.contactInfo || "",
+      loadingDate: draft?.loadingDate || "",
+      materials: draft?.materials || {},
     },
   });
 
-  // 編集データの読み込みとデータ取得
+  // 編集データの読み込みとデータ取得（初回のみ）
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // 編集モードの場合はeditData.orderId、新規の場合はdraftOrderIdを使用
-        const orderId = editMode ? editData?.orderId : draftOrderId;
+        // 編集モードの場合はeditData.orderId、新規の場合は復元したdraftOrderIdを使用
+        const orderId = editMode ? editData?.orderId : initialDraft.current?.draftOrderId || null;
         const materialsUrl = orderId ? `/api/materials?orderId=${orderId}` : '/api/materials';
 
         const [categoriesRes, materialsRes] = await Promise.all([
@@ -118,75 +176,103 @@ export default function MaterialOrderForm({ onSubmit, editMode = false, editOrde
         setCategories(categoriesData);
         setMaterials(materialsData);
 
-        if (categoriesData.length > 0) {
+        // 下書き復元済みの場合はカテゴリを上書きしない
+        if (categoriesData.length > 0 && !initialDraft.current?.selectedCategoryId) {
           setSelectedCategoryId(categoriesData[0].id);
         }
-
 
       } catch (error) {
         console.error('データの取得に失敗しました:', error);
       } finally {
         setLoading(false);
+        // データ取得完了後に自動保存を有効化
+        requestAnimationFrame(() => {
+          saveEnabledRef.current = true;
+        });
       }
     };
 
     fetchData();
-  }, [editMode, editData, draftOrderId, setValue]);
+  }, [editMode, editData]);
 
-  // 編集データと資材データが揃ったらフォームを初期化
+  // 下書きデータの資材数量を setValue で反映（useWatch が検知できるように）
   useEffect(() => {
-    console.log('Form initialization check:', {
-      editMode,
-      hasEditData: !!editData,
-      materialsCount: materials.length,
-      loading
-    });
-    
+    if (!loading && initialDraft.current) {
+      const draftMaterials = initialDraft.current.materials;
+      if (draftMaterials && Object.keys(draftMaterials).length > 0) {
+        Object.entries(draftMaterials).forEach(([id, qty]) => {
+          setValue(`materials.${id}`, qty as number);
+        });
+      }
+    }
+  }, [loading, setValue]);
+
+  // 編集データと資材データが揃ったらフォームを初期化（下書き復元済みの場合はスキップ）
+  useEffect(() => {
+    if (isInitializedRef.current) return;
+
     if (editMode && editData && materials.length > 0 && !loading) {
-      console.log('Initializing form with edit data:', editData);
-      
       // 資材の数量を復元
       const materialQuantities: { [key: string]: number } = {};
       editData.items?.forEach((item) => {
         const material = materials.find((m: Material) => m.name === item.name);
         if (material) {
           materialQuantities[material.id] = item.quantity;
-          console.log(`Mapping material: ${item.name} -> ${material.id} (quantity: ${item.quantity})`);
-        } else {
-          console.warn(`Material not found: ${item.name}`);
         }
       });
-      
-      console.log('Material quantities to set:', materialQuantities);
-      
-      // reset()を使用してフォーム全体を再初期化
+
       const formData = {
         ordererName: editData.ordererName || "",
         siteName: editData.siteName || "",
         contactInfo: editData.contactInfo || "",
         loadingDate: editData.loadingDate || "",
-        // note: editData.note || "", // コメントアウト
         materials: materialQuantities,
       };
-      
-      console.log('Resetting form with:', formData);
+
       reset(formData);
+      isInitializedRef.current = true;
     }
   }, [editMode, editData, materials, loading, reset]);
 
-  // useWatchを使用してmaterialsフィールドを監視
+  // useWatchを使用してフォームフィールドを監視
   const watchedMaterials = useWatch({
     control,
     name: 'materials',
     defaultValue: {}
   });
-  
-  // デバッグ用
-  useEffect(() => {
-    console.log('watchedMaterials changed (useWatch):', watchedMaterials);
-  }, [watchedMaterials]);
+
+  const watchedFields = useWatch({
+    control,
+    name: ['ordererName', 'siteName', 'contactInfo', 'loadingDate'],
+  });
   
   const selectedMaterials = useMemo(() => watchedMaterials || {}, [watchedMaterials]);
+
+  // フォームデータを sessionStorage に自動保存（デバウンス 500ms）
+  useEffect(() => {
+    if (loading || !saveEnabledRef.current) return;
+
+    const timer = setTimeout(() => {
+      try {
+        const values = getValues();
+        const draft: DraftData = {
+          ordererName: values.ordererName || "",
+          siteName: values.siteName || "",
+          contactInfo: values.contactInfo || "",
+          loadingDate: values.loadingDate || "",
+          materials: watchedMaterials || {},
+          selectedCategoryId,
+          draftOrderId,
+          savedAt: Date.now(),
+        };
+        sessionStorage.setItem(storageKey, JSON.stringify(draft));
+      } catch {
+        // sessionStorage が使えない環境では無視
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [watchedMaterials, watchedFields, selectedCategoryId, draftOrderId, loading, getValues, storageKey]);
 
   const currentMaterials = useMemo(() => {
     const filtered = materials.filter(m => {
@@ -359,6 +445,28 @@ export default function MaterialOrderForm({ onSubmit, editMode = false, editOrde
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-slate-100 p-6">
       <form onSubmit={handleSubmit(onFormSubmit)} className="max-w-6xl mx-auto">
+        {restoredFromDraft && (
+          <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-xl flex items-center justify-between">
+            <span className="text-blue-800 font-medium">前回の入力内容を復元しました</span>
+            <button
+              type="button"
+              onClick={() => {
+                clearDraft();
+                reset({
+                  ordererName: "",
+                  siteName: "",
+                  contactInfo: "",
+                  loadingDate: "",
+                  materials: {},
+                });
+                setRestoredFromDraft(false);
+              }}
+              className="px-3 py-1 text-sm bg-blue-100 hover:bg-blue-200 text-blue-800 rounded-lg transition-colors"
+            >
+              クリア
+            </button>
+          </div>
+        )}
         <div className="text-center mb-10">
           <h1 className="text-3xl font-bold mb-4 text-slate-800">
             {editMode ? '発注書編集' : '資材発注書作成'}
