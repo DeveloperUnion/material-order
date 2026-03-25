@@ -17,7 +17,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: defaultAppConfig.appTitle,
-  description: "建設業向け資材発注管理アプリケーション",
+  description: "建設業向けスマート資材発注アプリケーション",
   icons: {
     apple: defaultAppConfig.icon,
   },
