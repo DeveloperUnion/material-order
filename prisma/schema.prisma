@@ -10,8 +10,9 @@ datasource db {
 
 // ユーザーロール
 enum UserRole {
-  ADMIN  // 管理者（ユーザー管理、資材マスタ編集可能）
-  MEMBER // 一般（発注作成のみ）
+  SUPER_ADMIN // システム管理者（全テナント管理）
+  ADMIN       // テナント管理者（ユーザー管理、資材マスタ編集可能）
+  MEMBER      // 一般（発注作成のみ）
 }
 
 // テナント/会社
@@ -99,12 +100,10 @@ model Material {
   name              String
   categoryId        String        @map("category_id")
   size              String?
-  type              String        @default("標準")
   weightKg          Float         @map("weight_kg")
   isActive          Boolean       @default(true) @map("is_active")
   isTemporary       Boolean       @default(false) @map("is_temporary")
   createdForOrderId String?       @map("created_for_order_id")
-  notes             String?
   createdAt         DateTime      @default(now()) @map("created_at")
   updatedAt         DateTime      @updatedAt @map("updated_at")
   category          Category      @relation(fields: [categoryId], references: [id])

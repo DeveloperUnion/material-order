@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
     const currentUser = await requireAuth();
     const prisma = getPrismaClientFromRequest(request)
     const body = await request.json();
-    const { name, categoryId, size, type, weightKg, notes, isTemporary, createdForOrderId } = body;
+    const { name, categoryId, size, weightKg, isTemporary, createdForOrderId } = body;
 
     // バリデーション
     if (!name || !categoryId || weightKg === null || weightKg === undefined) {
@@ -163,9 +163,7 @@ export async function POST(request: NextRequest) {
         name,
         categoryId,
         size: size || null,
-        type: type || '標準',
         weightKg: parseFloat(weightKg),
-        notes: notes || null,
         isActive: true,
         isTemporary: isTemporary || false,
         createdForOrderId: createdForOrderId || null
