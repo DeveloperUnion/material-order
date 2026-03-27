@@ -47,7 +47,7 @@ export async function requireAuth(): Promise<CurrentUser> {
 export async function requireAdmin(): Promise<CurrentUser> {
   const user = await requireAuth()
 
-  if (user.role !== 'ADMIN') {
+  if (user.role !== 'ADMIN' && user.role !== 'SUPER_ADMIN') {
     throw new Error('管理者権限が必要です')
   }
 

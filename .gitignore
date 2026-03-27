@@ -45,3 +45,6 @@ CLAUDE.md
 DB.md
 
 /src/generated/prisma
+
+# tenant management scripts (private)
+/scripts

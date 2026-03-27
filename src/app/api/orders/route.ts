@@ -106,9 +106,7 @@ export async function POST(request: Request) {
             name: material.name,
             categoryId: material.categoryId,
             size: material.size,
-            type: material.type,
             weightKg: material.weightKg,
-            notes: material.notes,
             isActive: true,
             isTemporary: true,
             createdForOrderId: null // まだorderIdを設定しない
