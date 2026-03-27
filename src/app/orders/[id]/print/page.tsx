@@ -143,10 +143,10 @@ export default function OrderPrintPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen bg-white">
+      <div className="flex items-center justify-center h-screen bg-[#f4f4f5]">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-slate-700 mx-auto"></div>
-          <p className="mt-4 text-gray-600">読み込み中...</p>
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#0891b2] mx-auto"></div>
+          <p className="mt-4 text-sm text-[#71717a]">読み込み中...</p>
         </div>
       </div>
     );
@@ -156,8 +156,8 @@ export default function OrderPrintPage() {
     return (
       <div className="flex items-center justify-center h-screen bg-white">
         <div className="text-center">
-          <p className="text-gray-600 mb-4">発注書が見つかりません</p>
-          <Button onClick={handleBack} className="bg-slate-700 hover:bg-slate-800">
+          <p className="text-sm text-[#71717a] mb-4">発注書が見つかりません</p>
+          <Button onClick={handleBack} size="sm" className="bg-[#0891b2] hover:bg-[#0e7490] text-white">
             戻る
           </Button>
         </div>
@@ -172,14 +172,14 @@ export default function OrderPrintPage() {
         <Button
           onClick={handleBack}
           variant="outline"
-          className="flex items-center gap-2 bg-white border-gray-300 text-gray-700 hover:bg-gray-50 shadow-lg"
+          className="flex items-center gap-2 border border-[#d4d4d8] bg-white text-[#18181b] hover:bg-[#f4f4f5] shadow-lg"
         >
           <ArrowLeft className="h-4 w-4" />
           戻る
         </Button>
         <Button
           onClick={handlePrint}
-          className="bg-slate-700 hover:bg-slate-800 text-white shadow-lg"
+          className="bg-[#0891b2] hover:bg-[#0e7490] text-white shadow-lg"
         >
           印刷 / PDFに保存
         </Button>

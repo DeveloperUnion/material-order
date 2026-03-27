@@ -6,8 +6,6 @@ import { format } from 'date-fns';
 import { ja } from 'date-fns/locale';
 import { formatWeight } from '@/lib/utils/format';
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -17,20 +15,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Dialog,
   DialogContent,
   DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Eye, Search, Calendar, FileText, Printer, Trash2, Copy, ArrowLeft } from 'lucide-react';
+import { Eye, Search, Calendar, Printer, Trash2, Copy, ArrowLeft } from 'lucide-react';
 
 interface OrderData {
   id: string;
@@ -59,8 +50,7 @@ export default function OrderHistory() {
   const [monthFilter, setMonthFilter] = useState('all');
   const [copyDialogOpen, setCopyDialogOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<{ id: string; orderNumber: string } | null>(null);
-  
-  // 月選択用のオプションを生成
+
   const generateMonthOptions = () => {
     const months = [];
     const currentDate = new Date();
@@ -73,14 +63,13 @@ export default function OrderHistory() {
     }
     return months;
   };
-  
+
   const monthOptions = useMemo(() => generateMonthOptions(), []);
 
   const fetchOrders = useCallback(async () => {
     try {
       const response = await fetch('/api/orders');
       if (response.status === 401) {
-        // セッション切れ - ログインページにリダイレクト
         router.push('/');
         return;
       }
@@ -102,20 +91,18 @@ export default function OrderHistory() {
 
   const filteredOrders = useMemo(() => {
     return orders.filter((order) => {
-      // 検索条件（現場名、担当者名）
-      const matchesSearch = 
+      const matchesSearch =
         order.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (order.customerAddress && order.customerAddress.toLowerCase().includes(searchTerm.toLowerCase()));
-      
+
       const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
-      
-      // 月フィルター
+
       let matchesMonth = true;
       if (monthFilter !== 'all') {
         const orderMonth = format(new Date(order.createdAt), 'yyyy-MM');
         matchesMonth = orderMonth === monthFilter;
       }
-      
+
       return matchesSearch && matchesStatus && matchesMonth;
     });
   }, [orders, searchTerm, statusFilter, monthFilter]);
@@ -135,7 +122,6 @@ export default function OrderHistory() {
       });
 
       if (response.status === 401) {
-        // セッション切れ - ログインページにリダイレクト
         router.push('/');
         return;
       }
@@ -145,8 +131,6 @@ export default function OrderHistory() {
       }
 
       alert('発注書を削除しました');
-
-      // 一覧を再読み込み
       fetchOrders();
     } catch (error) {
       console.error('Error deleting order:', error);
@@ -163,10 +147,8 @@ export default function OrderHistory() {
     if (!selectedOrder) return;
 
     try {
-      // 注文詳細を取得
       const response = await fetch(`/api/orders/${selectedOrder.id}`);
       if (response.status === 401) {
-        // セッション切れ - ログインページにリダイレクト
         setCopyDialogOpen(false);
         router.push('/');
         return;
@@ -177,7 +159,6 @@ export default function OrderHistory() {
       const data = await response.json();
       const order = data.order;
 
-      // 新しい発注書として作成（APIが期待する形式に変換）
       const createResponse = await fetch('/api/orders', {
         method: 'POST',
         headers: {
@@ -192,7 +173,7 @@ export default function OrderHistory() {
           deliveryDate: order.deliveryDate,
           notes: order.shippingAddress,
           status: 'pending',
-          copyFromOrderId: selectedOrder.id, // 元の発注書のIDを渡してisTemporary材料を複製
+          copyFromOrderId: selectedOrder.id,
           items: order.items.map((item: { materialId: string; quantity: number; totalWeight: number; notes: string | null }) => ({
             materialId: item.materialId,
             quantity: item.quantity,
@@ -203,7 +184,6 @@ export default function OrderHistory() {
       });
 
       if (createResponse.status === 401) {
-        // セッション切れ - ログインページにリダイレクト
         setCopyDialogOpen(false);
         router.push('/');
         return;
@@ -218,8 +198,6 @@ export default function OrderHistory() {
       const newOrderData = await createResponse.json();
       setCopyDialogOpen(false);
       alert('発注書をコピーしました');
-
-      // 新しく作成された発注書の詳細ページに移動
       router.push(`/orders/${newOrderData.order.id}`);
     } catch (error) {
       console.error('Error copying order:', error);
@@ -229,7 +207,6 @@ export default function OrderHistory() {
   };
 
   const handleDownload = (orderId: string) => {
-    // 印刷専用ページに遷移
     router.push(`/orders/${orderId}/print`);
   };
 
@@ -239,220 +216,197 @@ export default function OrderHistory() {
       completed: { label: '完了', className: 'bg-green-50 text-green-700 border border-green-200' },
       cancelled: { label: 'キャンセル', className: 'bg-red-50 text-red-700 border border-red-200' },
     };
-    
-    const config = statusConfig[status] || { label: status, className: 'bg-gray-50 text-gray-700 border border-gray-200' };
+
+    const config = statusConfig[status] || { label: status, className: 'bg-[#f4f4f5] text-[#71717a] border border-[#e4e4e7]' };
     return <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${config.className}`}>{config.label}</span>;
   };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+      <div className="flex items-center justify-center min-h-screen bg-[#f4f4f5]">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-slate-600 mx-auto"></div>
-          <p className="mt-4 text-sm text-gray-500">読み込み中...</p>
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#0891b2] mx-auto"></div>
+          <p className="mt-4 text-sm text-[#71717a]">読み込み中...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto px-6 py-8">
+    <div className="min-h-screen bg-[#f4f4f5]">
+      <div className="container mx-auto px-4 py-8 max-w-5xl">
         {/* ヘッダー */}
         <div className="flex items-center gap-4 mb-6">
           <Button
             variant="ghost"
             size="sm"
             onClick={() => router.push('/dashboard')}
-            className="text-gray-600 hover:text-gray-900"
+            className="text-[#71717a] hover:text-[#18181b]"
           >
             <ArrowLeft className="h-4 w-4 mr-1" />
             戻る
           </Button>
-          <div>
-            <h1 className="text-xl font-semibold text-gray-900">発注書履歴</h1>
-            <p className="text-sm text-gray-500">過去の発注書を確認・ダウンロード</p>
-          </div>
+          <h1 className="text-xl font-bold text-[#18181b]">発注書履歴</h1>
         </div>
 
-        {/* 検索・フィルターセクション */}
-        <Card className="mb-8 border border-gray-200">
-          <CardHeader className="pb-4">
-            <div className="flex items-center gap-2">
-              <FileText className="h-5 w-5 text-gray-600" />
-              <CardTitle className="text-lg text-gray-900">検索・フィルター</CardTitle>
+        {/* 検索・フィルター */}
+        <div className="bg-white rounded-2xl border border-[#e4e4e7] p-5 mb-4">
+          <div className="flex flex-col lg:flex-row gap-3">
+            {/* 検索欄 */}
+            <div className="relative flex-1">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Search className="h-4 w-4 text-[#a1a1aa]" />
+              </div>
+              <input
+                placeholder="現場名、担当者名で検索..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-3 py-2 text-sm text-[#18181b] border border-[#d4d4d8] rounded-lg focus:ring-2 focus:ring-[#0891b2] focus:border-transparent outline-none placeholder:text-[#a1a1aa]"
+              />
             </div>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-col lg:flex-row gap-4">
-              {/* 検索欄 */}
-              <div className="relative flex-1">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Search className="h-5 w-5 text-gray-400" />
-                </div>
-                <Input
-                  placeholder="現場名、担当者名で検索..."
-                  value={searchTerm}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
-                  className="pl-10 h-10 bg-white text-gray-900 border-gray-300 focus:border-blue-500 focus:ring-blue-500 placeholder-gray-500"
-                />
-              </div>
-              
-              {/* フィルター */}
-              <div className="flex flex-col sm:flex-row gap-3 lg:w-auto">
-                <Select value={monthFilter} onValueChange={setMonthFilter}>
-                  <SelectTrigger className="w-full sm:w-[140px] h-10 bg-white text-gray-900 border-gray-300">
-                    <div className="flex items-center">
-                      <Calendar className="mr-2 h-4 w-4 text-gray-500" />
-                      <SelectValue placeholder="月" />
-                    </div>
-                  </SelectTrigger>
-                  <SelectContent className="bg-white text-gray-900">
-                    <SelectItem value="all">すべて</SelectItem>
-                    {monthOptions.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
 
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-full sm:w-[140px] h-10 bg-white text-gray-900 border-gray-300">
-                    <SelectValue placeholder="ステータス" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-white text-gray-900">
-                    <SelectItem value="all">すべて</SelectItem>
-                    <SelectItem value="pending">処理中</SelectItem>
-                    <SelectItem value="completed">完了</SelectItem>
-                    <SelectItem value="cancelled">キャンセル</SelectItem>
-                  </SelectContent>
-                </Select>
+            {/* フィルター */}
+            <div className="flex gap-2">
+              <div className="relative">
+                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#a1a1aa] pointer-events-none" />
+                <select
+                  value={monthFilter}
+                  onChange={(e) => setMonthFilter(e.target.value)}
+                  className="pl-9 pr-3 py-2 text-sm text-[#18181b] border border-[#d4d4d8] rounded-lg focus:ring-2 focus:ring-[#0891b2] focus:border-transparent outline-none bg-white appearance-none cursor-pointer"
+                >
+                  <option value="all">すべての月</option>
+                  {monthOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
               </div>
+
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="px-3 py-2 text-sm text-[#18181b] border border-[#d4d4d8] rounded-lg focus:ring-2 focus:ring-[#0891b2] focus:border-transparent outline-none bg-white appearance-none cursor-pointer"
+              >
+                <option value="all">すべて</option>
+                <option value="pending">処理中</option>
+                <option value="completed">完了</option>
+                <option value="cancelled">キャンセル</option>
+              </select>
             </div>
-            
-            {/* 検索結果数表示 */}
-            {searchTerm && (
-              <div className="mt-4 pt-4 border-t border-gray-200">
-                <p className="text-sm text-gray-600">
-                  「{searchTerm}」の検索結果: {filteredOrders.length}件
-                </p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+          </div>
 
-        {/* テーブルセクション */}
-        <Card className="border border-gray-200">
-          <CardContent className="p-0">
-            {filteredOrders.length === 0 ? (
-              <div className="text-center py-12">
-                <p className="text-gray-500">発注書が見つかりません</p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-gray-50 border-b border-gray-200">
-                      <TableHead className="font-medium text-gray-700">現場名</TableHead>
-                      <TableHead className="font-medium text-gray-700">担当者名</TableHead>
-                      <TableHead className="font-medium text-gray-700">発注日</TableHead>
-                      <TableHead className="font-medium text-gray-700">積込日</TableHead>
-                      <TableHead className="text-right font-medium text-gray-700">合計重量</TableHead>
-                      <TableHead className="font-medium text-gray-700">ステータス</TableHead>
-                      <TableHead className="text-right font-medium text-gray-700"></TableHead>
+          {searchTerm && (
+            <div className="mt-3 pt-3 border-t border-[#e4e4e7]">
+              <p className="text-xs text-[#71717a]">
+                「{searchTerm}」の検索結果: {filteredOrders.length}件
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* テーブル */}
+        <div className="bg-white rounded-2xl border border-[#e4e4e7] overflow-hidden">
+          {filteredOrders.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-sm text-[#71717a]">発注書が見つかりません</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-[#fafafa] border-b border-[#e4e4e7]">
+                    <TableHead className="text-xs font-bold text-[#71717a]">現場名</TableHead>
+                    <TableHead className="text-xs font-bold text-[#71717a]">担当者名</TableHead>
+                    <TableHead className="text-xs font-bold text-[#71717a]">発注日</TableHead>
+                    <TableHead className="text-xs font-bold text-[#71717a]">積込日</TableHead>
+                    <TableHead className="text-right text-xs font-bold text-[#71717a]">合計重量</TableHead>
+                    <TableHead className="text-xs font-bold text-[#71717a]">ステータス</TableHead>
+                    <TableHead className="text-right text-xs font-bold text-[#71717a]"></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredOrders.map((order) => (
+                    <TableRow key={order.id} className="hover:bg-[#fafafa] border-b border-[#f4f4f5]">
+                      <TableCell className="text-sm text-[#18181b]">{order.customerName}</TableCell>
+                      <TableCell className="text-sm text-[#18181b]">{order.customerAddress}</TableCell>
+                      <TableCell className="text-sm text-[#71717a]">
+                        {format(new Date(order.createdAt), 'yyyy/MM/dd', { locale: ja })}
+                      </TableCell>
+                      <TableCell className="text-sm text-[#71717a]">
+                        {order.loadingDate ? format(new Date(order.loadingDate), 'yyyy年M月d日', { locale: ja }) : '-'}
+                      </TableCell>
+                      <TableCell className="text-right text-sm text-[#18181b]">
+                        {formatWeight(order.totalWeight)}
+                      </TableCell>
+                      <TableCell>{getStatusBadge(order.status)}</TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-1.5">
+                          <button
+                            onClick={() => handleCopy(order.id, order.orderNumber)}
+                            className="p-2 rounded-lg text-[#71717a] hover:text-[#0891b2] hover:bg-[#ecfeff] transition-colors"
+                            title="コピー"
+                          >
+                            <Copy className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => handleView(order.id)}
+                            className="p-2 rounded-lg text-[#71717a] hover:text-[#0891b2] hover:bg-[#ecfeff] transition-colors"
+                            title="詳細表示"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDownload(order.id)}
+                            className="p-2 rounded-lg text-[#71717a] hover:text-[#0891b2] hover:bg-[#ecfeff] transition-colors"
+                            title="発注書出力"
+                          >
+                            <Printer className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(order.id, order.orderNumber)}
+                            className="p-2 rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                            title="削除"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </TableCell>
                     </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredOrders.map((order) => (
-                      <TableRow key={order.id} className="hover:bg-gray-50 border-b border-gray-100">
-                        <TableCell className="text-gray-700">{order.customerName}</TableCell>
-                        <TableCell className="text-gray-700">{order.customerAddress}</TableCell>
-                        <TableCell className="text-gray-700">
-                          {format(new Date(order.createdAt), 'yyyy/MM/dd', { locale: ja })}
-                        </TableCell>
-                        <TableCell className="text-gray-700">
-                          {order.loadingDate ? format(new Date(order.loadingDate), 'yyyy年M月d日', { locale: ja }) : '-'}
-                        </TableCell>
-                        <TableCell className="text-right text-gray-700">
-                          {formatWeight(order.totalWeight)}
-                        </TableCell>
-                        <TableCell>{getStatusBadge(order.status)}</TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleCopy(order.id, order.orderNumber)}
-                              className="h-8 w-8 p-0 bg-white border-gray-300 hover:bg-gray-50 hover:border-gray-400 transition-colors"
-                              title="コピー"
-                            >
-                              <Copy className="h-4 w-4 text-gray-600" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleView(order.id)}
-                              className="h-8 w-8 p-0 bg-white border-gray-300 hover:bg-gray-50 hover:border-gray-400 transition-colors"
-                              title="詳細表示"
-                            >
-                              <Eye className="h-4 w-4 text-gray-600" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleDownload(order.id)}
-                              className="h-8 w-8 p-0 bg-white border-gray-300 hover:bg-gray-50 hover:border-gray-400 transition-colors"
-                              title="発注書出力"
-                            >
-                              <Printer className="h-4 w-4 text-gray-600" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleDelete(order.id, order.orderNumber)}
-                              className="h-8 w-8 p-0 bg-white border-red-300 hover:bg-red-50 hover:border-red-400 transition-colors"
-                              title="削除"
-                            >
-                              <Trash2 className="h-4 w-4 text-red-600" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* コピー確認ダイアログ */}
       <Dialog open={copyDialogOpen} onOpenChange={setCopyDialogOpen}>
-        <DialogContent className="sm:max-w-md bg-white">
+        <DialogContent className="sm:max-w-md bg-white rounded-2xl">
           <DialogHeader>
-            <DialogTitle className="text-gray-900">発注書のコピー</DialogTitle>
+            <DialogTitle className="text-[#18181b]">発注書のコピー</DialogTitle>
           </DialogHeader>
           {selectedOrder && (
-            <div className="space-y-2 text-sm text-gray-900">
+            <div className="space-y-2 text-sm text-[#18181b]">
               <p>発注書「{selectedOrder.orderNumber}」をコピーしますか？</p>
-              <p>新しい発注書として複製されます。</p>
+              <p className="text-[#71717a]">新しい発注書として複製されます。</p>
             </div>
           )}
           <DialogFooter className="flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2">
             <Button
               type="button"
-              variant="outline"
+              size="sm"
+              className="border border-[#d4d4d8] bg-white text-[#18181b] hover:bg-[#f4f4f5]"
               onClick={() => setCopyDialogOpen(false)}
-              className="bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
             >
               キャンセル
             </Button>
             <Button
               type="button"
+              size="sm"
               onClick={confirmCopy}
-              className="bg-slate-700 hover:bg-slate-800 text-white"
+              className="bg-[#0891b2] hover:bg-[#0e7490] text-white"
             >
               コピー
             </Button>
