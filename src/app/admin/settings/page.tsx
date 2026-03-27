@@ -396,7 +396,7 @@ export default function CompanySettingsPage() {
                     onChange={(e) => setInviteEmail(e.target.value)}
                     placeholder="メールアドレスを入力"
                     required
-                    className="flex-1 px-3 py-2 text-sm border border-[#d4d4d8] rounded-lg focus:ring-2 focus:ring-[#0891b2] focus:border-transparent outline-none placeholder:text-[#a1a1aa]"
+                    className="flex-1 px-3 py-2 text-sm text-[#18181b] border border-[#d4d4d8] rounded-lg focus:ring-2 focus:ring-[#0891b2] focus:border-transparent outline-none placeholder:text-[#a1a1aa]"
                   />
                   <select
                     value={inviteRole}
