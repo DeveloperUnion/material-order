@@ -101,6 +101,17 @@ export async function POST(request: Request) {
       );
     }
 
+    // 古い招待（使用済み or 期限切れ）を削除
+    await prisma.invitation.deleteMany({
+      where: {
+        email: email.toLowerCase(),
+        OR: [
+          { usedAt: { not: null } },
+          { expiresAt: { lte: new Date() } },
+        ],
+      },
+    });
+
     // 既存の有効な招待チェック
     const existingInvitation = await prisma.invitation.findFirst({
       where: {

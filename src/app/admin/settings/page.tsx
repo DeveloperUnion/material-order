@@ -401,7 +401,7 @@ export default function CompanySettingsPage() {
                   <select
                     value={inviteRole}
                     onChange={(e) => setInviteRole(e.target.value as 'ADMIN' | 'MEMBER')}
-                    className="sm:w-28 px-3 py-2 text-sm border border-[#d4d4d8] rounded-lg focus:ring-2 focus:ring-[#0891b2] focus:border-transparent outline-none bg-white"
+                    className="sm:w-28 px-3 py-2 text-sm text-[#18181b] border border-[#d4d4d8] rounded-lg focus:ring-2 focus:ring-[#0891b2] focus:border-transparent outline-none bg-white"
                   >
                     <option value="MEMBER">メンバー</option>
                     <option value="ADMIN">管理者</option>
