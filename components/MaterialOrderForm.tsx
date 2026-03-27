@@ -57,7 +57,6 @@ type Material = {
   name: string;
   categoryId: string;
   size?: string;
-  type: string;
   weightKg: number;
   isActive: boolean;
 };
@@ -287,7 +286,6 @@ export default function MaterialOrderForm({ onSubmit, editMode = false, editOrde
       const query = searchQuery.toLowerCase();
       return m.name.toLowerCase().includes(query) ||
              (m.size && m.size.toLowerCase().includes(query)) ||
-             m.type.toLowerCase().includes(query) ||
              m.materialCode.toLowerCase().includes(query);
     });
 
@@ -436,18 +434,18 @@ export default function MaterialOrderForm({ onSubmit, editMode = false, editOrde
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4 flex items-center justify-center">
-        <div className="text-slate-600">データを読み込み中...</div>
+      <div className="min-h-screen bg-[#f4f4f5] p-4 flex items-center justify-center">
+        <div className="text-[#71717a]">データを読み込み中...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-slate-100 p-6">
+    <div className="min-h-screen bg-[#f4f4f5] p-6">
       <form onSubmit={handleSubmit(onFormSubmit)} className="max-w-6xl mx-auto">
         {restoredFromDraft && (
-          <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-xl flex items-center justify-between">
-            <span className="text-blue-800 font-medium">前回の入力内容を復元しました</span>
+          <div className="mb-4 p-3 bg-[#ecfeff] border border-[#a5f3fc] rounded-xl flex items-center justify-between">
+            <span className="text-sm text-[#0891b2] font-medium">前回の入力内容を復元しました</span>
             <button
               type="button"
               onClick={() => {
@@ -461,28 +459,22 @@ export default function MaterialOrderForm({ onSubmit, editMode = false, editOrde
                 });
                 setRestoredFromDraft(false);
               }}
-              className="px-3 py-1 text-sm bg-blue-100 hover:bg-blue-200 text-blue-800 rounded-lg transition-colors"
+              className="px-3 py-1 text-xs border border-[#d4d4d8] bg-white text-[#18181b] hover:bg-[#f4f4f5] rounded-lg transition-colors"
             >
               クリア
             </button>
           </div>
         )}
-        <div className="text-center mb-10">
-          <h1 className="text-3xl font-bold mb-4 text-slate-800">
-            {editMode ? '発注書編集' : '資材発注書作成'}
-          </h1>
-          <div className="h-1 w-24 mx-auto bg-slate-300 rounded-full"></div>
-        </div>
 
-        <div className="space-y-6 mb-10 bg-white p-8 rounded-2xl shadow-xl border border-gray-200">
+        <div className="space-y-6 mb-10 bg-white p-8 rounded-2xl border border-[#e4e4e7]">
           <div className="relative">
-            <label className="block text-lg font-semibold mb-3 text-slate-700">
+            <label className="block text-sm font-semibold mb-2 text-[#71717a]">
               注文者名 <span className="text-red-500">*</span>
             </label>
             <input
               {...register("ordererName")}
               type="text"
-              className="w-full p-4 text-lg text-slate-800 bg-gray-50 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-slate-400 transition-all duration-200 hover:border-gray-300 placeholder:text-slate-400"
+              className="w-full px-4 py-3 text-base text-[#18181b] border border-[#d4d4d8] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0891b2] focus:border-transparent transition-all placeholder:text-[#a1a1aa]"
               placeholder="山田太郎"
             />
             {errors.ordererName && (
@@ -491,13 +483,13 @@ export default function MaterialOrderForm({ onSubmit, editMode = false, editOrde
           </div>
 
           <div className="relative">
-            <label className="block text-lg font-semibold mb-3 text-slate-700">
+            <label className="block text-sm font-semibold mb-2 text-[#71717a]">
               現場名 <span className="text-red-500">*</span>
             </label>
             <input
               {...register("siteName")}
               type="text"
-              className="w-full p-4 text-lg text-slate-800 bg-gray-50 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-slate-400 transition-all duration-200 hover:border-gray-300 placeholder:text-slate-400"
+              className="w-full px-4 py-3 text-base text-[#18181b] border border-[#d4d4d8] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0891b2] focus:border-transparent transition-all placeholder:text-[#a1a1aa]"
               placeholder="〇〇ビル新築工事"
             />
             {errors.siteName && (
@@ -506,13 +498,13 @@ export default function MaterialOrderForm({ onSubmit, editMode = false, editOrde
           </div>
 
           <div className="relative">
-            <label className="block text-lg font-semibold mb-3 text-slate-700">
+            <label className="block text-sm font-semibold mb-2 text-[#71717a]">
               連絡先
             </label>
             <input
               {...register("contactInfo")}
               type="text"
-              className="w-full p-4 text-lg text-slate-800 bg-gray-50 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-slate-400 transition-all duration-200 hover:border-gray-300 placeholder:text-slate-400"
+              className="w-full px-4 py-3 text-base text-[#18181b] border border-[#d4d4d8] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0891b2] focus:border-transparent transition-all placeholder:text-[#a1a1aa]"
               placeholder="090-1234-5678"
             />
             {errors.contactInfo && (
@@ -521,14 +513,14 @@ export default function MaterialOrderForm({ onSubmit, editMode = false, editOrde
           </div>
 
           <div className="relative">
-            <label className="block text-lg font-semibold mb-3 text-slate-700">
+            <label className="block text-sm font-semibold mb-2 text-[#71717a]">
               積込日
             </label>
             <input
               {...register("loadingDate")}
               type="date"
               placeholder="積込予定日を選択"
-              className="w-full p-4 text-lg text-slate-800 bg-gray-50 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-slate-400 transition-all duration-200 hover:border-gray-300 placeholder:text-slate-400"
+              className="w-full px-4 py-3 text-base text-[#18181b] border border-[#d4d4d8] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0891b2] focus:border-transparent transition-all placeholder:text-[#a1a1aa]"
             />
             {errors.loadingDate && (
               <p className="text-red-500 mt-2 text-sm font-medium">{errors.loadingDate.message}</p>
@@ -537,12 +529,12 @@ export default function MaterialOrderForm({ onSubmit, editMode = false, editOrde
 
           {/* 備考入力フィールド - コメントアウト
           <div className="relative">
-            <label className="block text-lg font-semibold mb-3 text-slate-700">
+            <label className="block text-sm font-semibold mb-2 text-[#71717a]">
               備考
             </label>
             <textarea
               {...register("note")}
-              className="w-full p-4 text-lg text-slate-800 bg-gray-50 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-slate-400 transition-all duration-200 hover:border-gray-300 placeholder:text-slate-400 resize-none"
+              className="w-full px-4 py-3 text-base text-[#18181b] border border-[#d4d4d8] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0891b2] focus:border-transparent transition-all placeholder:text-[#a1a1aa] resize-none"
               rows={3}
               placeholder="特記事項があれば入力"
             />
@@ -550,9 +542,9 @@ export default function MaterialOrderForm({ onSubmit, editMode = false, editOrde
           */}
         </div>
 
-        <div className="mb-10 bg-white p-8 rounded-2xl shadow-xl border border-gray-200">
-          <label className="block text-2xl font-bold mb-6 text-slate-800 text-center">
-            資材カテゴリー
+        <div className="mb-10 bg-white p-8 rounded-2xl border border-[#e4e4e7]">
+          <label className="block text-base font-bold mb-4 text-[#18181b]">
+            カテゴリー
           </label>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
             {categories.map((category) => (
@@ -560,10 +552,10 @@ export default function MaterialOrderForm({ onSubmit, editMode = false, editOrde
                 key={category.id}
                 type="button"
                 onClick={() => setSelectedCategoryId(category.id)}
-                className={`px-6 py-4 rounded-xl font-semibold text-lg transition-all duration-200 transform hover:scale-105 shadow-md ${
+                className={`px-5 py-3 rounded-xl font-medium text-base transition-all ${
                   selectedCategoryId === category.id
-                    ? "bg-slate-800 text-white shadow-lg shadow-slate-300"
-                    : "bg-gray-50 text-slate-700 hover:bg-gray-100 border border-gray-200 hover:shadow-lg"
+                    ? "bg-[#0891b2] text-white"
+                    : "bg-white text-[#18181b] border border-[#e4e4e7] hover:bg-[#fafafa]"
                 }`}
               >
                 {category.name}
@@ -574,22 +566,22 @@ export default function MaterialOrderForm({ onSubmit, editMode = false, editOrde
 
         <div className="space-y-6 mb-8">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-3xl font-bold text-slate-800">
+            <h2 className="text-base font-bold text-[#18181b]">
               資材選択
             </h2>
             {isOtherCategory && (
               <button
                 type="button"
                 onClick={handleAddMaterialClick}
-                className="px-6 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-all duration-200 font-semibold shadow-md hover:shadow-lg transform hover:scale-105 flex items-center space-x-2"
+                className="px-4 py-2 bg-[#0891b2] text-white rounded-lg hover:bg-[#0e7490] transition-all font-medium text-sm"
               >
                 <span>材料を追加</span>
               </button>
             )}
           </div>
           
-          <div className="bg-white p-6 rounded-2xl shadow-xl border border-gray-200">
-            <label className="block text-lg font-semibold mb-4 text-slate-700">
+          <div className="bg-white p-6 rounded-2xl border border-[#e4e4e7]">
+            <label className="block text-lg font-semibold mb-4 text-[#71717a]">
               資材検索
             </label>
             <div className="relative">
@@ -597,26 +589,26 @@ export default function MaterialOrderForm({ onSubmit, editMode = false, editOrde
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full p-4 text-lg text-slate-800 bg-gray-50 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-slate-400 transition-all duration-200 hover:border-gray-300 placeholder:text-slate-400 pr-12"
+                className="w-full px-4 py-3 text-base text-[#18181b] border border-[#d4d4d8] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0891b2] focus:border-transparent transition-all placeholder:text-[#a1a1aa] pr-12"
                 placeholder="資材名で検索..."
               />
               <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                <div className="w-8 h-8 bg-slate-700 rounded-lg flex items-center justify-center">
+                <div className="w-8 h-8 bg-[#ecfeff] rounded-lg flex items-center justify-center">
                   <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" className="text-[#0891b2]"></path>
                   </svg>
                 </div>
               </div>
             </div>
             {searchQuery && (
-              <div className="flex justify-between items-center mt-4 p-3 bg-gray-50 rounded-xl border border-gray-200">
-                <span className="text-slate-700 font-medium">
+              <div className="flex justify-between items-center mt-4 p-3 bg-[#fafafa] rounded-xl border border-[#e4e4e7]">
+                <span className="text-[#71717a] font-medium">
                   {currentMaterials.length}件見つかりました
                 </span>
                 <button
                   type="button"
                   onClick={() => setSearchQuery("")}
-                  className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition-colors font-medium"
+                  className="px-3 py-1.5 text-sm border border-[#d4d4d8] bg-white text-[#18181b] hover:bg-[#f4f4f5] rounded-lg transition-colors font-medium"
                 >
                   クリア
                 </button>
@@ -626,12 +618,12 @@ export default function MaterialOrderForm({ onSubmit, editMode = false, editOrde
         {currentMaterials.map((material) => (
           <div
             key={material.id}
-            className="bg-white rounded-2xl p-4 md:p-6 shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-[1.01] border border-gray-200"
+            className="bg-white rounded-2xl p-4 md:p-6 hover:shadow-sm transition-all border border-[#e4e4e7]"
           >
             <div className="mb-4">
-              <h3 className="text-lg md:text-xl font-bold text-slate-800 mb-2">{material.name}</h3>
+              <h3 className="text-base font-bold text-[#18181b] mb-2">{material.name}</h3>
               <div className="flex items-center space-x-2">
-                <span className="px-3 py-1 bg-blue-100 text-blue-800 text-sm font-medium rounded-full">
+                <span className="px-2.5 py-0.5 bg-[#ecfeff] text-[#0891b2] text-xs font-medium rounded-full">
                   {formatWeight(Number(material.weightKg))}
                 </span>
               </div>
@@ -641,7 +633,7 @@ export default function MaterialOrderForm({ onSubmit, editMode = false, editOrde
                 <button
                   type="button"
                   onClick={() => handleQuantityChange(material.id, -1)}
-                  className="w-10 h-10 md:w-12 md:h-12 bg-slate-600 text-white rounded-xl text-lg md:text-xl font-bold hover:bg-slate-700 shadow-md hover:shadow-lg transition-all duration-200 active:scale-95"
+                  className="w-12 h-12 bg-white border border-[#6366f1] text-[#6366f1] rounded-lg text-xl font-bold hover:bg-[#eef2ff] transition-all active:scale-95"
                 >
                   −
                 </button>
@@ -681,20 +673,20 @@ export default function MaterialOrderForm({ onSubmit, editMode = false, editOrde
                           field.onChange(0);
                         }
                       }}
-                      className="w-16 md:w-20 text-center text-lg md:text-xl bg-white border-2 border-gray-300 rounded-xl p-2 font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 hover:border-gray-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      className="w-16 md:w-20 text-center text-lg bg-white border border-[#d4d4d8] rounded-lg p-2 font-bold text-[#18181b] focus:outline-none focus:ring-2 focus:ring-[#0891b2] focus:border-transparent transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     />
                   )}
                 />
                 <button
                   type="button"
                   onClick={() => handleQuantityChange(material.id, 1)}
-                  className="w-10 h-10 md:w-12 md:h-12 bg-slate-600 text-white rounded-xl text-lg md:text-xl font-bold hover:bg-slate-700 shadow-md hover:shadow-lg transition-all duration-200 active:scale-95"
+                  className="w-12 h-12 bg-white border border-[#6366f1] text-[#6366f1] rounded-lg text-xl font-bold hover:bg-[#eef2ff] transition-all active:scale-95"
                 >
                   +
                 </button>
               </div>
               <div className="flex justify-center sm:justify-end">
-                <div className="px-3 py-2 md:px-4 md:py-2 bg-orange-100 text-orange-800 font-bold text-base md:text-lg rounded-xl max-w-full overflow-hidden">
+                <div className="px-3 py-1.5 bg-[#ecfeff] text-[#0891b2] font-bold text-sm rounded-lg">
                   {formatWeight(Number(selectedMaterials[material.id] || 0) * Number(material.weightKg))}
                 </div>
               </div>
@@ -703,21 +695,21 @@ export default function MaterialOrderForm({ onSubmit, editMode = false, editOrde
         ))}
       </div>
 
-        <div className="bg-white rounded-2xl p-8 shadow-xl border border-gray-200 mb-8">
+        <div className="bg-white rounded-2xl p-8 border border-[#e4e4e7] mb-8">
           <div className="text-center mb-6">
-            <div className="text-slate-500 text-sm font-medium uppercase tracking-wider mb-2">合計重量</div>
-            <div className="text-4xl font-bold text-slate-800">
+            <div className="text-[#a1a1aa] text-sm font-medium uppercase tracking-wider mb-2">合計重量</div>
+            <div className="text-4xl font-bold text-[#18181b]">
               {formatTotalWeight(orderItems.totalWeight)}
             </div>
           </div>
-          <div className="flex justify-center items-center space-x-8 text-slate-600">
+          <div className="flex justify-center items-center space-x-8 text-[#71717a]">
             <div className="text-center">
-              <div className="text-2xl font-bold text-slate-800">{orderItems.items.length}</div>
+              <div className="text-2xl font-bold text-[#18181b]">{orderItems.items.length}</div>
               <div className="text-sm font-medium">選択資材</div>
             </div>
-            <div className="w-px h-12 bg-gray-300"></div>
+            <div className="w-px h-12 bg-[#e4e4e7]"></div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-slate-800">
+              <div className="text-2xl font-bold text-[#18181b]">
                 {orderItems.items.reduce((sum, item) => sum + item.quantity, 0)}
               </div>
               <div className="text-sm font-medium">合計点数</div>
@@ -729,7 +721,7 @@ export default function MaterialOrderForm({ onSubmit, editMode = false, editOrde
           ref={submitButtonRef}
           type="submit"
           disabled={orderItems.items.length === 0}
-          className="w-full py-5 bg-gradient-to-r from-slate-800 to-slate-700 text-white text-xl font-bold rounded-xl hover:from-slate-900 hover:to-slate-800 disabled:from-gray-400 disabled:to-gray-400 disabled:cursor-not-allowed shadow-xl hover:shadow-2xl transition-all duration-200 transform hover:-translate-y-1 active:scale-[0.98]"
+          className="w-full py-4 bg-[#0891b2] text-white text-lg font-bold rounded-xl hover:bg-[#0e7490] disabled:bg-[#a1a1aa] disabled:cursor-not-allowed transition-all"
         >
           {editMode ? '発注書を更新' : '発注書を作成'}
         </button>
@@ -739,14 +731,14 @@ export default function MaterialOrderForm({ onSubmit, editMode = false, editOrde
       <div className="fixed bottom-6 right-6 flex flex-col space-y-3 z-50">
         <button
           onClick={scrollToTop}
-          className="w-14 h-14 bg-slate-700 hover:bg-slate-800 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-110 active:scale-95 flex items-center justify-center"
+          className="w-14 h-14 bg-white border border-[#6366f1] text-[#6366f1] hover:bg-[#eef2ff] rounded-full shadow-lg transition-all active:scale-95 flex items-center justify-center"
           title="一番上まで移動"
         >
-          <ChevronUp className="h-6 w-6" />
+          <ChevronUp className="h-7 w-7" />
         </button>
         <button
           onClick={scrollToSubmit}
-          className="w-14 h-14 bg-slate-700 hover:bg-slate-800 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-110 active:scale-95 flex items-center justify-center"
+          className="w-14 h-14 bg-white border border-[#6366f1] text-[#6366f1] hover:bg-[#eef2ff] rounded-full shadow-lg transition-all active:scale-95 flex items-center justify-center"
           title="注文ボタンまで移動"
         >
           <ChevronDown className="h-6 w-6" />

@@ -43,8 +43,9 @@ export const generatePDFContent = (data: OrderDocument, options?: { hidePrintBut
     columns.push(allRows.slice(i, i + itemsPerColumn));
   }
 
-  // 最小2列を保証
-  if (columns.length === 1 && allRows.length > 0) {
+  // アイテムが2個以上の場合は最小2列を保証
+  const itemCount = allRows.filter(r => r.type === 'item').length;
+  if (columns.length === 1 && itemCount > 1) {
     const allRowsInColumn = columns[0];
     const midPoint = Math.ceil(allRowsInColumn.length / 2);
     columns[0] = allRowsInColumn.slice(0, midPoint);
@@ -218,7 +219,7 @@ export const generatePDFContent = (data: OrderDocument, options?: { hidePrintBut
         .info-section {
           margin-bottom: 5px;
           padding: 6px;
-          background-color: #f8fafc;
+          background-color: #fafafa;
           border: 2px solid #000;
           border-radius: 4px;
         }
@@ -255,7 +256,7 @@ export const generatePDFContent = (data: OrderDocument, options?: { hidePrintBut
         th {
           border: 1px solid #000;
           padding: 0 2px;
-          background-color: #475569;
+          background-color: #0891b2;
           color: white;
           font-weight: bold;
           font-size: 14px;
@@ -272,10 +273,10 @@ export const generatePDFContent = (data: OrderDocument, options?: { hidePrintBut
           overflow-wrap: break-word;
         }
         .row-alternate {
-          background-color: #f7fafc;
+          background-color: #f4f4f5;
         }
         .category-header-row {
-          background-color: #cbd5e1;
+          background-color: #ecfeff;
           font-weight: bold;
           text-align: center;
         }
@@ -286,7 +287,7 @@ export const generatePDFContent = (data: OrderDocument, options?: { hidePrintBut
         .total-section {
           margin-top: 5px;
           padding: 6px;
-          background-color: #f8fafc;
+          background-color: #fafafa;
           border-radius: 4px;
           border: 2px solid #000;
           display: flex;
@@ -301,12 +302,12 @@ export const generatePDFContent = (data: OrderDocument, options?: { hidePrintBut
         .total-value {
           font-size: 20px;
           font-weight: bold;
-          color: #1e293b;
+          color: #18181b;
         }
         .note-section {
           margin-top: 5px;
           padding: 6px;
-          background-color: #f8fafc;
+          background-color: #fafafa;
           border-radius: 4px;
           border: 2px solid #000;
         }
@@ -323,7 +324,7 @@ export const generatePDFContent = (data: OrderDocument, options?: { hidePrintBut
           white-space: pre-wrap;
         }
         .print-button {
-          background: linear-gradient(to right, #1e293b, #334155);
+          background: #0891b2;
           color: white;
           border: none;
           padding: 12px 24px;
@@ -335,7 +336,7 @@ export const generatePDFContent = (data: OrderDocument, options?: { hidePrintBut
           transition: all 0.2s ease;
         }
         .print-button:hover {
-          background: linear-gradient(to right, #0f172a, #1e293b);
+          background: #0e7490;
           transform: translateY(-1px);
           box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
         }
@@ -385,7 +386,7 @@ export const generatePDFContent = (data: OrderDocument, options?: { hidePrintBut
           tbody tr:not(.category-header-row) td:first-child {
             width: 100%;
             text-align: left;
-            background-color: #f1f5f9;
+            background-color: #f4f4f5;
             padding: 2px 8px;
             font-size: 12px;
             white-space: normal;
@@ -504,27 +505,15 @@ export const generatePDFContent = (data: OrderDocument, options?: { hidePrintBut
                 </tr>
               </thead>
               <tbody>
-                ${columnItems.map((row, rowIndex) => {
-                  if (row.type === 'category-header') {
-                    return `
-                <tr class="category-header-row">
-                  <td colspan="4">${row.categoryName}</td>
-                </tr>`;
-                  } else {
-                    // 同一カテゴリ内でのアイテムインデックスを計算（縞模様用）
-                    let itemIndexInCategory = 0;
-                    for (let i = rowIndex - 1; i >= 0; i--) {
-                      if (columnItems[i].type === 'category-header') break;
-                      itemIndexInCategory++;
-                    }
-                    return `
-                <tr ${itemIndexInCategory % 2 === 1 ? 'class="row-alternate"' : ''}>
+                ${columnItems.filter(row => row.type === 'item').map((row, rowIndex) => {
+                  if (row.type !== 'item') return '';
+                  return `
+                <tr ${rowIndex % 2 === 1 ? 'class="row-alternate"' : ''}>
                   <td style="font-weight: bold; white-space: normal; line-height: 1.3;">${row.item.name}</td>
                   <td style="text-align: right; font-weight: bold;">${row.item.quantity}</td>
                   <td style="text-align: right;">${formatWeight(row.item.weightPerUnit).replace('kg', '')}</td>
                   <td style="text-align: right; font-weight: bold;">${formatWeight(row.item.totalWeight).replace('kg', '')}</td>
                 </tr>`;
-                  }
                 }).join('')}
               </tbody>
             </table>

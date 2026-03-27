@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { signIn } from 'next-auth/react'
 import { useTenant } from '@/lib/tenant/context'
-// import Image from 'next/image'
 
 export default function Home() {
   const { config } = useTenant()
@@ -29,7 +28,6 @@ export default function Home() {
         return
       }
 
-      // ログイン成功時はダッシュボードへリダイレクト
       window.location.href = '/dashboard'
     } catch {
       setError('予期しないエラーが発生しました')
@@ -39,17 +37,17 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen flex items-start justify-center bg-gradient-to-br from-slate-50 to-slate-100 pt-20">
+    <div className="min-h-screen flex items-start justify-center bg-[#f4f4f5] pt-20">
       <div className="max-w-md w-full space-y-8">
         <div className="text-center">
-          <h2 className="text-3xl font-bold text-slate-800">
+          <h2 className="text-3xl font-bold text-[#18181b]">
             {config.appTitle}
           </h2>
-          <p className="mt-2 text-sm text-slate-600">
+          <p className="mt-2 text-sm text-[#71717a]">
             ログインしてください
           </p>
         </div>
-        <form className="mt-8 space-y-6 bg-white p-8 rounded-2xl shadow-xl" onSubmit={handleLogin}>
+        <form className="mt-8 space-y-6 bg-white p-8 rounded-2xl border border-[#e4e4e7] shadow-sm" onSubmit={handleLogin}>
           <div className="space-y-4">
             <div>
               <label htmlFor="email" className="sr-only">
@@ -61,7 +59,7 @@ export default function Home() {
                 type="email"
                 required
                 autoComplete="email"
-                className="appearance-none relative block w-full px-4 py-3 border border-slate-200 placeholder-slate-400 text-slate-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-transparent transition-all duration-200 hover:border-slate-300"
+                className="appearance-none relative block w-full px-4 py-3 border border-[#d4d4d8] placeholder-[#a1a1aa] text-[#18181b] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0891b2] focus:border-transparent transition-all"
                 placeholder="メールアドレス"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -77,7 +75,7 @@ export default function Home() {
                 type="password"
                 required
                 autoComplete="current-password"
-                className="appearance-none relative block w-full px-4 py-3 border border-slate-200 placeholder-slate-400 text-slate-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-transparent transition-all duration-200 hover:border-slate-300"
+                className="appearance-none relative block w-full px-4 py-3 border border-[#d4d4d8] placeholder-[#a1a1aa] text-[#18181b] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0891b2] focus:border-transparent transition-all"
                 placeholder="パスワード"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -86,8 +84,8 @@ export default function Home() {
           </div>
 
           {error && (
-            <div className="rounded-lg bg-red-50 border border-red-200 p-4">
-              <div className="text-sm text-red-600 font-medium">{error}</div>
+            <div className="rounded-xl bg-red-50 border border-red-200 p-4">
+              <div className="text-sm text-red-700">{error}</div>
             </div>
           )}
 
@@ -95,7 +93,7 @@ export default function Home() {
             <button
               type="submit"
               disabled={loading}
-              className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-semibold rounded-lg text-white bg-slate-700 hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 disabled:opacity-50 transition-all duration-200 shadow-lg hover:shadow-xl"
+              className="w-full flex justify-center py-3 px-4 text-sm font-semibold rounded-lg text-white bg-[#0891b2] hover:bg-[#0e7490] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#0891b2] disabled:opacity-50 transition-all"
             >
               {loading ? 'ログイン中...' : 'ログイン'}
             </button>
