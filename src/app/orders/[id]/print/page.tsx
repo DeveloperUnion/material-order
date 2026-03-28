@@ -157,7 +157,7 @@ export default function OrderPrintPage() {
       <div className="flex items-center justify-center h-screen bg-white">
         <div className="text-center">
           <p className="text-sm text-[#71717a] mb-4">発注書が見つかりません</p>
-          <Button onClick={handleBack} size="sm" className="bg-[#0891b2] hover:bg-[#0e7490] text-white">
+          <Button onClick={handleBack} size="sm" className="bg-slate-800 hover:bg-slate-900 text-white">
             戻る
           </Button>
         </div>
@@ -168,7 +168,7 @@ export default function OrderPrintPage() {
   return (
     <div className="min-h-screen bg-white">
       {/* 印刷時に非表示になるボタン */}
-      <div className="print:hidden fixed top-4 left-4 z-50 flex gap-2">
+      <div className="print:hidden fixed top-20 left-4 z-50 flex gap-2">
         <Button
           onClick={handleBack}
           variant="outline"
@@ -179,7 +179,7 @@ export default function OrderPrintPage() {
         </Button>
         <Button
           onClick={handlePrint}
-          className="bg-[#0891b2] hover:bg-[#0e7490] text-white shadow-lg"
+          className="bg-slate-800 hover:bg-slate-900 text-white shadow-lg"
         >
           印刷 / PDFに保存
         </Button>

@@ -189,8 +189,8 @@ export default function ProfilePage() {
         {/* プロフィール情報 */}
         <div className="bg-white rounded-2xl border border-[#e4e4e7] p-6 mb-4">
           <div className="flex items-center gap-4 mb-6">
-            <div className="w-14 h-14 rounded-full bg-[#eef2ff] flex items-center justify-center">
-              <User className="h-7 w-7 text-[#6366f1]" />
+            <div className="w-14 h-14 rounded-full bg-[#ecfeff] flex items-center justify-center">
+              <User className="h-7 w-7 text-[#0891b2]" />
             </div>
             <div>
               <h2 className="text-lg font-bold text-[#18181b]">{profile?.name}</h2>
@@ -209,10 +209,10 @@ export default function ProfilePage() {
                       type="text"
                       value={newName}
                       onChange={(e) => setNewName(e.target.value)}
-                      className="flex-1 px-3 py-1.5 text-sm text-[#18181b] border border-[#d4d4d8] rounded-lg focus:ring-2 focus:ring-[#0891b2] focus:border-transparent outline-none"
+                      className="flex-1 px-3 py-1.5 text-sm text-[#18181b] border border-[#d4d4d8] rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent outline-none"
                       autoFocus
                     />
-                    <Button type="submit" size="sm" disabled={nameLoading} className="bg-[#0891b2] hover:bg-[#0e7490] text-white">
+                    <Button type="submit" size="sm" disabled={nameLoading} className="bg-slate-800 hover:bg-slate-900 text-white">
                       {nameLoading ? '...' : '保存'}
                     </Button>
                     <Button
@@ -236,7 +236,7 @@ export default function ProfilePage() {
                   variant="ghost"
                   size="sm"
                   onClick={() => setEditingName(true)}
-                  className="text-[#6366f1] hover:text-[#0e7490]"
+                  className="text-slate-600 hover:text-slate-800"
                 >
                   編集
                 </Button>
@@ -255,7 +255,7 @@ export default function ProfilePage() {
               <span
                 className={`inline-flex px-2 py-0.5 text-[10px] font-medium rounded-full ${
                   profile?.role === 'ADMIN'
-                    ? 'bg-[#eef2ff] text-[#6366f1]'
+                    ? 'bg-[#ecfeff] text-[#0891b2]'
                     : 'bg-[#f4f4f5] text-[#71717a]'
                 }`}
               >
@@ -286,8 +286,8 @@ export default function ProfilePage() {
         {/* パスワード変更 */}
         <div className="bg-white rounded-2xl border border-[#e4e4e7] p-6">
           <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 bg-[#eef2ff] rounded-lg flex items-center justify-center">
-              <Lock className="h-5 w-5 text-[#6366f1]" />
+            <div className="w-10 h-10 bg-[#ecfeff] rounded-lg flex items-center justify-center">
+              <Lock className="h-5 w-5 text-[#0891b2]" />
             </div>
             <h3 className="text-base font-bold text-[#18181b]">パスワード変更</h3>
           </div>
@@ -304,7 +304,7 @@ export default function ProfilePage() {
                     value={currentPassword}
                     onChange={(e) => setCurrentPassword(e.target.value)}
                     required
-                    className="w-full px-3 py-2 pr-10 text-sm text-[#18181b] border border-[#d4d4d8] rounded-lg focus:ring-2 focus:ring-[#0891b2] focus:border-transparent outline-none"
+                    className="w-full px-3 py-2 pr-10 text-sm text-[#18181b] border border-[#d4d4d8] rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent outline-none"
                   />
                   <button
                     type="button"
@@ -326,7 +326,7 @@ export default function ProfilePage() {
                     onChange={(e) => setNewPassword(e.target.value)}
                     required
                     placeholder="8文字以上"
-                    className="w-full px-3 py-2 pr-10 text-sm text-[#18181b] border border-[#d4d4d8] rounded-lg focus:ring-2 focus:ring-[#0891b2] focus:border-transparent outline-none placeholder:text-[#a1a1aa]"
+                    className="w-full px-3 py-2 pr-10 text-sm text-[#18181b] border border-[#d4d4d8] rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent outline-none placeholder:text-[#a1a1aa]"
                   />
                   <button
                     type="button"
@@ -348,7 +348,7 @@ export default function ProfilePage() {
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     required
                     placeholder="8文字以上"
-                    className="w-full px-3 py-2 pr-10 text-sm text-[#18181b] border border-[#d4d4d8] rounded-lg focus:ring-2 focus:ring-[#0891b2] focus:border-transparent outline-none placeholder:text-[#a1a1aa]"
+                    className="w-full px-3 py-2 pr-10 text-sm text-[#18181b] border border-[#d4d4d8] rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent outline-none placeholder:text-[#a1a1aa]"
                   />
                   <button
                     type="button"
@@ -364,7 +364,7 @@ export default function ProfilePage() {
                   type="submit"
                   size="sm"
                   disabled={passwordLoading}
-                  className="bg-[#0891b2] hover:bg-[#0e7490] text-white"
+                  className="bg-slate-800 hover:bg-slate-900 text-white"
                 >
                   {passwordLoading ? '変更中...' : 'パスワードを変更'}
                 </Button>

@@ -43,8 +43,8 @@ export default function Header() {
                   onClick={() => router.push('/profile')}
                   className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm text-[#18181b] hover:bg-[#f4f4f5] transition-colors"
                 >
-                  <div className="w-7 h-7 bg-[#eef2ff] rounded-full flex items-center justify-center">
-                    <User className="h-3.5 w-3.5 text-[#6366f1]" />
+                  <div className="w-7 h-7 bg-[#ecfeff] rounded-full flex items-center justify-center">
+                    <User className="h-3.5 w-3.5 text-[#0891b2]" />
                   </div>
                   <span className="font-medium">{session.user.name}</span>
                 </button>

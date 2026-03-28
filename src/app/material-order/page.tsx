@@ -110,7 +110,7 @@ export default function MaterialOrderPage() {
               <button
                 onClick={handleCreateOrder}
                 disabled={isCreatingOrder || orderCreated}
-                className="flex-1 sm:flex-none px-4 py-2 bg-[#0891b2] text-white rounded-lg hover:bg-[#0e7490] disabled:bg-[#a1a1aa] disabled:cursor-not-allowed font-medium transition-all text-sm"
+                className="flex-1 sm:flex-none px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-900 disabled:bg-[#a1a1aa] disabled:cursor-not-allowed font-medium transition-all text-sm"
               >
                 {isCreatingOrder ? "作成中..." : orderCreated ? "作成済み" : "発注書を作成"}
               </button>

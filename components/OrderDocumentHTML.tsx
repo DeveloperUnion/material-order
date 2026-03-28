@@ -256,7 +256,7 @@ export const generatePDFContent = (data: OrderDocument, options?: { hidePrintBut
         th {
           border: 1px solid #000;
           padding: 0 2px;
-          background-color: #0891b2;
+          background-color: #3f3f46;
           color: white;
           font-weight: bold;
           font-size: 14px;
@@ -276,7 +276,7 @@ export const generatePDFContent = (data: OrderDocument, options?: { hidePrintBut
           background-color: #f4f4f5;
         }
         .category-header-row {
-          background-color: #ecfeff;
+          background-color: #e4e4e7;
           font-weight: bold;
           text-align: center;
         }
@@ -324,7 +324,7 @@ export const generatePDFContent = (data: OrderDocument, options?: { hidePrintBut
           white-space: pre-wrap;
         }
         .print-button {
-          background: #0891b2;
+          background: #1e293b;
           color: white;
           border: none;
           padding: 12px 24px;
@@ -336,7 +336,7 @@ export const generatePDFContent = (data: OrderDocument, options?: { hidePrintBut
           transition: all 0.2s ease;
         }
         .print-button:hover {
-          background: #0e7490;
+          background: #0f172a;
           transform: translateY(-1px);
           box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
         }

@@ -41,7 +41,7 @@ export default function Home() {
       <div className="max-w-md w-full space-y-8">
         <div className="text-center">
           <h2 className="text-3xl font-bold text-[#18181b]">
-            {config.appTitle}
+            スマート資材発注
           </h2>
           <p className="mt-2 text-sm text-[#71717a]">
             ログインしてください
@@ -59,7 +59,7 @@ export default function Home() {
                 type="email"
                 required
                 autoComplete="email"
-                className="appearance-none relative block w-full px-4 py-3 border border-[#d4d4d8] placeholder-[#a1a1aa] text-[#18181b] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0891b2] focus:border-transparent transition-all"
+                className="appearance-none relative block w-full px-4 py-3 border border-[#d4d4d8] placeholder-[#a1a1aa] text-[#18181b] rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-transparent transition-all"
                 placeholder="メールアドレス"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -75,7 +75,7 @@ export default function Home() {
                 type="password"
                 required
                 autoComplete="current-password"
-                className="appearance-none relative block w-full px-4 py-3 border border-[#d4d4d8] placeholder-[#a1a1aa] text-[#18181b] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0891b2] focus:border-transparent transition-all"
+                className="appearance-none relative block w-full px-4 py-3 border border-[#d4d4d8] placeholder-[#a1a1aa] text-[#18181b] rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-transparent transition-all"
                 placeholder="パスワード"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -93,7 +93,7 @@ export default function Home() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full flex justify-center py-3 px-4 text-sm font-semibold rounded-lg text-white bg-[#0891b2] hover:bg-[#0e7490] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#0891b2] disabled:opacity-50 transition-all"
+              className="w-full flex justify-center py-3 px-4 text-sm font-semibold rounded-lg text-white bg-slate-800 hover:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 disabled:opacity-50 transition-all"
             >
               {loading ? 'ログイン中...' : 'ログイン'}
             </button>
