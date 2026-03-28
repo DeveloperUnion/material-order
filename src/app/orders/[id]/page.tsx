@@ -91,7 +91,7 @@ export default function OrderDetailPage() {
             <Button
               onClick={() => router.push('/order-history')}
               size="sm"
-              className="bg-[#0891b2] hover:bg-[#0e7490] text-white"
+              className="bg-slate-800 hover:bg-slate-900 text-white"
             >
               履歴に戻る
             </Button>
@@ -141,7 +141,7 @@ export default function OrderDetailPage() {
             <Button
               onClick={handleDownload}
               size="sm"
-              className="bg-[#0891b2] hover:bg-[#0e7490] text-white"
+              className="bg-slate-800 hover:bg-slate-900 text-white"
             >
               <Download className="h-4 w-4 mr-1" />
               発注書出力
@@ -163,8 +163,8 @@ export default function OrderDetailPage() {
         {/* 発注情報 */}
         <div className="bg-white rounded-2xl border border-[#e4e4e7] p-5 mb-4">
           <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 bg-[#eef2ff] rounded-lg flex items-center justify-center">
-              <User className="h-5 w-5 text-[#6366f1]" />
+            <div className="w-10 h-10 bg-[#ecfeff] rounded-lg flex items-center justify-center">
+              <User className="h-5 w-5 text-[#0891b2]" />
             </div>
             <h2 className="text-sm font-bold text-[#18181b]">発注情報</h2>
           </div>
@@ -201,8 +201,8 @@ export default function OrderDetailPage() {
         <div className="bg-white rounded-2xl border border-[#e4e4e7] overflow-hidden mb-4">
           <div className="p-5 pb-3">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-[#eef2ff] rounded-lg flex items-center justify-center">
-                <Package className="h-5 w-5 text-[#6366f1]" />
+              <div className="w-10 h-10 bg-[#ecfeff] rounded-lg flex items-center justify-center">
+                <Package className="h-5 w-5 text-[#0891b2]" />
               </div>
               <h2 className="text-sm font-bold text-[#18181b]">注文商品</h2>
             </div>

@@ -277,8 +277,8 @@ export default function CompanySettingsPage() {
         {/* 会社情報 */}
         <div className="bg-white rounded-2xl border border-[#e4e4e7] p-6 mb-4">
           <div className="flex items-center gap-3 mb-5">
-            <div className="w-10 h-10 bg-[#eef2ff] rounded-lg flex items-center justify-center">
-              <Building2 className="h-5 w-5 text-[#6366f1]" />
+            <div className="w-10 h-10 bg-[#ecfeff] rounded-lg flex items-center justify-center">
+              <Building2 className="h-5 w-5 text-[#0891b2]" />
             </div>
             <h2 className="text-base font-bold text-[#18181b]">会社情報</h2>
           </div>
@@ -294,10 +294,10 @@ export default function CompanySettingsPage() {
                       type="text"
                       value={newName}
                       onChange={(e) => setNewName(e.target.value)}
-                      className="flex-1 px-3 py-1.5 text-sm text-[#18181b] border border-[#d4d4d8] rounded-lg focus:ring-2 focus:ring-[#0891b2] focus:border-transparent outline-none"
+                      className="flex-1 px-3 py-1.5 text-sm text-[#18181b] border border-[#d4d4d8] rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent outline-none"
                       autoFocus
                     />
-                    <Button type="submit" size="sm" disabled={nameLoading} className="bg-[#0891b2] hover:bg-[#0e7490] text-white">
+                    <Button type="submit" size="sm" disabled={nameLoading} className="bg-slate-800 hover:bg-slate-900 text-white">
                       {nameLoading ? '...' : '保存'}
                     </Button>
                     <Button
@@ -321,7 +321,7 @@ export default function CompanySettingsPage() {
                   variant="ghost"
                   size="sm"
                   onClick={() => setEditingName(true)}
-                  className="text-[#6366f1] hover:text-[#0e7490]"
+                  className="text-slate-600 hover:text-slate-800"
                 >
                   編集
                 </Button>
@@ -337,13 +337,13 @@ export default function CompanySettingsPage() {
         </div>
 
         {/* メンバー管理 */}
-        <div className="bg-white rounded-2xl border border-[#e4e4e7] overflow-hidden">
+        <div className="bg-white rounded-2xl border border-[#e4e4e7] overflow-visible">
           {/* ヘッダー + 利用状況 */}
           <div className="p-6 border-b border-[#e4e4e7]">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-[#eef2ff] rounded-lg flex items-center justify-center">
-                  <Users className="h-5 w-5 text-[#6366f1]" />
+                <div className="w-10 h-10 bg-[#ecfeff] rounded-lg flex items-center justify-center">
+                  <Users className="h-5 w-5 text-[#0891b2]" />
                 </div>
                 <h2 className="text-base font-bold text-[#18181b]">メンバー</h2>
                 <span className="text-sm text-[#71717a]">({users.length}名)</span>
@@ -354,7 +354,7 @@ export default function CompanySettingsPage() {
                   setInviteSuccess(null);
                 }}
                 size="sm"
-                className="bg-[#0891b2] hover:bg-[#0e7490] text-white"
+                className="bg-slate-800 hover:bg-slate-900 text-white"
               >
                 <UserPlus className="h-4 w-4 mr-1" />
                 招待
@@ -396,12 +396,12 @@ export default function CompanySettingsPage() {
                     onChange={(e) => setInviteEmail(e.target.value)}
                     placeholder="メールアドレスを入力"
                     required
-                    className="flex-1 px-3 py-2 text-sm text-[#18181b] border border-[#d4d4d8] rounded-lg focus:ring-2 focus:ring-[#0891b2] focus:border-transparent outline-none placeholder:text-[#a1a1aa]"
+                    className="flex-1 px-3 py-2 text-sm text-[#18181b] border border-[#d4d4d8] rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent outline-none placeholder:text-[#a1a1aa]"
                   />
                   <select
                     value={inviteRole}
                     onChange={(e) => setInviteRole(e.target.value as 'ADMIN' | 'MEMBER')}
-                    className="sm:w-28 px-3 py-2 text-sm text-[#18181b] border border-[#d4d4d8] rounded-lg focus:ring-2 focus:ring-[#0891b2] focus:border-transparent outline-none bg-white"
+                    className="sm:w-28 px-3 py-2 text-sm text-[#18181b] border border-[#d4d4d8] rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent outline-none bg-white"
                   >
                     <option value="MEMBER">メンバー</option>
                     <option value="ADMIN">管理者</option>
@@ -410,7 +410,7 @@ export default function CompanySettingsPage() {
                     type="submit"
                     disabled={inviteLoading}
                     size="sm"
-                    className="bg-[#0891b2] hover:bg-[#0e7490] text-white"
+                    className="bg-slate-800 hover:bg-slate-900 text-white"
                   >
                     {inviteLoading ? '送信中...' : '送信'}
                   </Button>
@@ -447,7 +447,7 @@ export default function CompanySettingsPage() {
                         !user.isActive
                           ? 'bg-[#e4e4e7] text-[#a1a1aa]'
                           : user.role === 'ADMIN'
-                          ? 'bg-[#eef2ff] text-[#6366f1]'
+                          ? 'bg-[#ecfeff] text-[#0891b2]'
                           : 'bg-[#f4f4f5] text-[#71717a]'
                       }`}
                     >
@@ -457,7 +457,7 @@ export default function CompanySettingsPage() {
                       <div className="flex items-center gap-1.5">
                         <span className="text-sm font-medium text-[#18181b]">{user.name}</span>
                         {user.id === session?.user?.id && (
-                          <span className="text-[10px] text-[#6366f1] bg-[#eef2ff] px-1.5 py-0.5 rounded">自分</span>
+                          <span className="text-[10px] text-[#0891b2] bg-[#ecfeff] px-1.5 py-0.5 rounded">自分</span>
                         )}
                         {!user.isActive && (
                           <span className="text-[10px] text-red-500 bg-red-50 px-1.5 py-0.5 rounded">無効</span>
@@ -471,7 +471,7 @@ export default function CompanySettingsPage() {
                     <span
                       className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
                         user.role === 'ADMIN'
-                          ? 'bg-[#eef2ff] text-[#6366f1]'
+                          ? 'bg-[#ecfeff] text-[#0891b2]'
                           : 'bg-[#f4f4f5] text-[#71717a]'
                       }`}
                     >
@@ -489,7 +489,7 @@ export default function CompanySettingsPage() {
                           disabled={updateLoading === user.id}
                         >
                           {updateLoading === user.id ? (
-                            <div className="h-4 w-4 animate-spin rounded-full border-2 border-[#d4d4d8] border-t-[#0891b2]" />
+                            <div className="h-4 w-4 animate-spin rounded-full border-2 border-[#d4d4d8] border-t-slate-600" />
                           ) : (
                             <MoreVertical className="h-4 w-4 text-[#a1a1aa]" />
                           )}
@@ -505,7 +505,7 @@ export default function CompanySettingsPage() {
                                 onClick={() => handleUpdateUser(user.id, { role: 'ADMIN' })}
                                 className="w-full px-3 py-2 text-left text-sm hover:bg-[#fafafa] flex items-center gap-2 text-[#18181b]"
                               >
-                                <Shield className="h-4 w-4 text-[#6366f1]" />
+                                <Shield className="h-4 w-4 text-[#0891b2]" />
                                 管理者に変更
                               </button>
                             ) : (
@@ -573,7 +573,7 @@ export default function CompanySettingsPage() {
                       <span
                         className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
                           invitation.role === 'ADMIN'
-                            ? 'bg-[#eef2ff] text-[#6366f1]'
+                            ? 'bg-[#ecfeff] text-[#0891b2]'
                             : 'bg-[#f4f4f5] text-[#71717a]'
                         }`}
                       >

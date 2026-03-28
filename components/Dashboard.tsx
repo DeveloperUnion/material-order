@@ -36,8 +36,8 @@ export default function Dashboard() {
               onClick={navigateToOrderForm}
             >
               <div className="h-full flex flex-col justify-between">
-                <div className="w-12 h-12 bg-[#eef2ff] rounded-xl flex items-center justify-center">
-                  <FileText className="h-6 w-6 text-[#6366f1]" />
+                <div className="w-12 h-12 bg-[#ecfeff] rounded-xl flex items-center justify-center">
+                  <FileText className="h-6 w-6 text-[#0891b2]" />
                 </div>
                 <div className="mt-4">
                   <p className="text-lg font-bold text-[#18181b]">新規発注書作成</p>
@@ -51,8 +51,8 @@ export default function Dashboard() {
               onClick={navigateToOrderHistory}
             >
               <div className="h-full flex flex-col justify-between">
-                <div className="w-12 h-12 bg-[#eef2ff] rounded-xl flex items-center justify-center">
-                  <Clock className="h-6 w-6 text-[#6366f1]" />
+                <div className="w-12 h-12 bg-[#ecfeff] rounded-xl flex items-center justify-center">
+                  <Clock className="h-6 w-6 text-[#0891b2]" />
                 </div>
                 <div className="mt-4">
                   <p className="text-lg font-bold text-[#18181b]">発注書履歴</p>
@@ -79,8 +79,8 @@ export default function Dashboard() {
             onClick={navigateToOrderForm}
           >
             <div className="h-full flex flex-col justify-between">
-              <div className="w-12 h-12 bg-[#eef2ff] rounded-xl flex items-center justify-center">
-                <FileText className="h-6 w-6 text-[#6366f1]" />
+              <div className="w-12 h-12 bg-[#ecfeff] rounded-xl flex items-center justify-center">
+                <FileText className="h-6 w-6 text-[#0891b2]" />
               </div>
               <div>
                 <p className="text-xl font-bold text-[#18181b]">新規発注書作成</p>
@@ -95,14 +95,14 @@ export default function Dashboard() {
             onClick={navigateToOrderHistory}
           >
             <div className="h-full flex items-center gap-4">
-              <div className="w-12 h-12 bg-[#eef2ff] rounded-xl flex items-center justify-center flex-shrink-0">
-                <Clock className="h-6 w-6 text-[#6366f1]" />
+              <div className="w-12 h-12 bg-[#ecfeff] rounded-xl flex items-center justify-center flex-shrink-0">
+                <Clock className="h-6 w-6 text-[#0891b2]" />
               </div>
               <div className="flex-1">
                 <p className="text-base font-bold text-[#18181b]">発注書履歴</p>
                 <p className="text-xs text-[#71717a] mt-0.5">過去の発注書を確認・管理できます</p>
               </div>
-              <ChevronRight className="h-5 w-5 text-[#d4d4d8] group-hover:text-[#6366f1] transition-colors" />
+              <ChevronRight className="h-5 w-5 text-[#d4d4d8] group-hover:text-[#0891b2] transition-colors" />
             </div>
           </div>
 
@@ -111,8 +111,8 @@ export default function Dashboard() {
             className="group bg-white rounded-2xl border border-[#e4e4e7] px-5 py-4 cursor-pointer hover:shadow-md hover:bg-[#fafafa] transition-all flex items-center gap-3"
             onClick={navigateToCompanySettings}
           >
-            <div className="w-9 h-9 bg-[#eef2ff] rounded-lg flex items-center justify-center flex-shrink-0">
-              <Building2 className="h-4 w-4 text-[#6366f1]" />
+            <div className="w-9 h-9 bg-[#ecfeff] rounded-lg flex items-center justify-center flex-shrink-0">
+              <Building2 className="h-4 w-4 text-[#0891b2]" />
             </div>
             <p className="text-sm font-semibold text-[#18181b]">会社設定</p>
           </div>
@@ -121,8 +121,8 @@ export default function Dashboard() {
             className="group bg-white rounded-2xl border border-[#e4e4e7] px-5 py-4 cursor-pointer hover:shadow-md hover:bg-[#fafafa] transition-all flex items-center gap-3"
             onClick={navigateToMaterials}
           >
-            <div className="w-9 h-9 bg-[#eef2ff] rounded-lg flex items-center justify-center flex-shrink-0">
-              <Package className="h-4 w-4 text-[#6366f1]" />
+            <div className="w-9 h-9 bg-[#ecfeff] rounded-lg flex items-center justify-center flex-shrink-0">
+              <Package className="h-4 w-4 text-[#0891b2]" />
             </div>
             <p className="text-sm font-semibold text-[#18181b]">資材管理</p>
           </div>

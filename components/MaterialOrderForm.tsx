@@ -474,7 +474,7 @@ export default function MaterialOrderForm({ onSubmit, editMode = false, editOrde
             <input
               {...register("ordererName")}
               type="text"
-              className="w-full px-4 py-3 text-base text-[#18181b] border border-[#d4d4d8] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0891b2] focus:border-transparent transition-all placeholder:text-[#a1a1aa]"
+              className="w-full px-4 py-3 text-base text-[#18181b] border border-[#d4d4d8] rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-transparent transition-all placeholder:text-[#a1a1aa]"
               placeholder="山田太郎"
             />
             {errors.ordererName && (
@@ -489,7 +489,7 @@ export default function MaterialOrderForm({ onSubmit, editMode = false, editOrde
             <input
               {...register("siteName")}
               type="text"
-              className="w-full px-4 py-3 text-base text-[#18181b] border border-[#d4d4d8] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0891b2] focus:border-transparent transition-all placeholder:text-[#a1a1aa]"
+              className="w-full px-4 py-3 text-base text-[#18181b] border border-[#d4d4d8] rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-transparent transition-all placeholder:text-[#a1a1aa]"
               placeholder="〇〇ビル新築工事"
             />
             {errors.siteName && (
@@ -504,7 +504,7 @@ export default function MaterialOrderForm({ onSubmit, editMode = false, editOrde
             <input
               {...register("contactInfo")}
               type="text"
-              className="w-full px-4 py-3 text-base text-[#18181b] border border-[#d4d4d8] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0891b2] focus:border-transparent transition-all placeholder:text-[#a1a1aa]"
+              className="w-full px-4 py-3 text-base text-[#18181b] border border-[#d4d4d8] rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-transparent transition-all placeholder:text-[#a1a1aa]"
               placeholder="090-1234-5678"
             />
             {errors.contactInfo && (
@@ -520,7 +520,7 @@ export default function MaterialOrderForm({ onSubmit, editMode = false, editOrde
               {...register("loadingDate")}
               type="date"
               placeholder="積込予定日を選択"
-              className="w-full px-4 py-3 text-base text-[#18181b] border border-[#d4d4d8] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0891b2] focus:border-transparent transition-all placeholder:text-[#a1a1aa]"
+              className="w-full px-4 py-3 text-base text-[#18181b] border border-[#d4d4d8] rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-transparent transition-all placeholder:text-[#a1a1aa]"
             />
             {errors.loadingDate && (
               <p className="text-red-500 mt-2 text-sm font-medium">{errors.loadingDate.message}</p>
@@ -534,7 +534,7 @@ export default function MaterialOrderForm({ onSubmit, editMode = false, editOrde
             </label>
             <textarea
               {...register("note")}
-              className="w-full px-4 py-3 text-base text-[#18181b] border border-[#d4d4d8] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0891b2] focus:border-transparent transition-all placeholder:text-[#a1a1aa] resize-none"
+              className="w-full px-4 py-3 text-base text-[#18181b] border border-[#d4d4d8] rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-transparent transition-all placeholder:text-[#a1a1aa] resize-none"
               rows={3}
               placeholder="特記事項があれば入力"
             />
@@ -554,7 +554,7 @@ export default function MaterialOrderForm({ onSubmit, editMode = false, editOrde
                 onClick={() => setSelectedCategoryId(category.id)}
                 className={`px-5 py-3 rounded-xl font-medium text-base transition-all ${
                   selectedCategoryId === category.id
-                    ? "bg-[#0891b2] text-white"
+                    ? "bg-slate-800 text-white"
                     : "bg-white text-[#18181b] border border-[#e4e4e7] hover:bg-[#fafafa]"
                 }`}
               >
@@ -573,7 +573,7 @@ export default function MaterialOrderForm({ onSubmit, editMode = false, editOrde
               <button
                 type="button"
                 onClick={handleAddMaterialClick}
-                className="px-4 py-2 bg-[#0891b2] text-white rounded-lg hover:bg-[#0e7490] transition-all font-medium text-sm"
+                className="px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-900 transition-all font-medium text-sm"
               >
                 <span>材料を追加</span>
               </button>
@@ -589,7 +589,7 @@ export default function MaterialOrderForm({ onSubmit, editMode = false, editOrde
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full px-4 py-3 text-base text-[#18181b] border border-[#d4d4d8] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0891b2] focus:border-transparent transition-all placeholder:text-[#a1a1aa] pr-12"
+                className="w-full px-4 py-3 text-base text-[#18181b] border border-[#d4d4d8] rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-transparent transition-all placeholder:text-[#a1a1aa] pr-12"
                 placeholder="資材名で検索..."
               />
               <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
@@ -633,7 +633,7 @@ export default function MaterialOrderForm({ onSubmit, editMode = false, editOrde
                 <button
                   type="button"
                   onClick={() => handleQuantityChange(material.id, -1)}
-                  className="w-12 h-12 bg-white border border-[#6366f1] text-[#6366f1] rounded-lg text-xl font-bold hover:bg-[#eef2ff] transition-all active:scale-95"
+                  className="w-12 h-12 bg-white border border-slate-600 text-slate-600 rounded-lg text-xl font-bold hover:bg-slate-50 transition-all active:scale-95"
                 >
                   −
                 </button>
@@ -673,14 +673,14 @@ export default function MaterialOrderForm({ onSubmit, editMode = false, editOrde
                           field.onChange(0);
                         }
                       }}
-                      className="w-16 md:w-20 text-center text-lg bg-white border border-[#d4d4d8] rounded-lg p-2 font-bold text-[#18181b] focus:outline-none focus:ring-2 focus:ring-[#0891b2] focus:border-transparent transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      className="w-16 md:w-20 text-center text-lg bg-white border border-[#d4d4d8] rounded-lg p-2 font-bold text-[#18181b] focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-transparent transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     />
                   )}
                 />
                 <button
                   type="button"
                   onClick={() => handleQuantityChange(material.id, 1)}
-                  className="w-12 h-12 bg-white border border-[#6366f1] text-[#6366f1] rounded-lg text-xl font-bold hover:bg-[#eef2ff] transition-all active:scale-95"
+                  className="w-12 h-12 bg-white border border-slate-600 text-slate-600 rounded-lg text-xl font-bold hover:bg-slate-50 transition-all active:scale-95"
                 >
                   +
                 </button>
@@ -721,7 +721,7 @@ export default function MaterialOrderForm({ onSubmit, editMode = false, editOrde
           ref={submitButtonRef}
           type="submit"
           disabled={orderItems.items.length === 0}
-          className="w-full py-4 bg-[#0891b2] text-white text-lg font-bold rounded-xl hover:bg-[#0e7490] disabled:bg-[#a1a1aa] disabled:cursor-not-allowed transition-all"
+          className="w-full py-4 bg-slate-800 text-white text-lg font-bold rounded-xl hover:bg-slate-900 disabled:bg-[#a1a1aa] disabled:cursor-not-allowed transition-all"
         >
           {editMode ? '発注書を更新' : '発注書を作成'}
         </button>
@@ -731,14 +731,14 @@ export default function MaterialOrderForm({ onSubmit, editMode = false, editOrde
       <div className="fixed bottom-6 right-6 flex flex-col space-y-3 z-50">
         <button
           onClick={scrollToTop}
-          className="w-14 h-14 bg-white border border-[#6366f1] text-[#6366f1] hover:bg-[#eef2ff] rounded-full shadow-lg transition-all active:scale-95 flex items-center justify-center"
+          className="w-14 h-14 bg-white border border-slate-600 text-slate-600 hover:bg-slate-50 rounded-full shadow-lg transition-all active:scale-95 flex items-center justify-center"
           title="一番上まで移動"
         >
           <ChevronUp className="h-7 w-7" />
         </button>
         <button
           onClick={scrollToSubmit}
-          className="w-14 h-14 bg-white border border-[#6366f1] text-[#6366f1] hover:bg-[#eef2ff] rounded-full shadow-lg transition-all active:scale-95 flex items-center justify-center"
+          className="w-14 h-14 bg-white border border-slate-600 text-slate-600 hover:bg-slate-50 rounded-full shadow-lg transition-all active:scale-95 flex items-center justify-center"
           title="注文ボタンまで移動"
         >
           <ChevronDown className="h-6 w-6" />

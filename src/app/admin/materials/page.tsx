@@ -207,7 +207,7 @@ export default function MaterialsPage() {
               setSuccess(null);
             }}
             size="sm"
-            className="bg-[#0891b2] hover:bg-[#0e7490] text-white"
+            className="bg-slate-800 hover:bg-slate-900 text-white"
           >
             <Plus className="h-4 w-4 mr-1" />
             資材追加
@@ -247,7 +247,7 @@ export default function MaterialsPage() {
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     required
-                    className="w-full px-3 py-2 text-sm text-[#18181b] border border-[#d4d4d8] rounded-lg focus:ring-2 focus:ring-[#0891b2] focus:border-transparent outline-none"
+                    className="w-full px-3 py-2 text-sm text-[#18181b] border border-[#d4d4d8] rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent outline-none"
                   />
                 </div>
                 <div>
@@ -256,7 +256,7 @@ export default function MaterialsPage() {
                     value={formData.categoryId}
                     onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
                     required
-                    className="w-full px-3 py-2 text-sm border border-[#d4d4d8] rounded-lg focus:ring-2 focus:ring-[#0891b2] focus:border-transparent outline-none bg-white"
+                    className="w-full px-3 py-2 text-sm border border-[#d4d4d8] rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent outline-none bg-white"
                   >
                     <option value="">選択してください</option>
                     {categories.map(cat => (
@@ -270,7 +270,7 @@ export default function MaterialsPage() {
                     type="text"
                     value={formData.size}
                     onChange={(e) => setFormData({ ...formData, size: e.target.value })}
-                    className="w-full px-3 py-2 text-sm text-[#18181b] border border-[#d4d4d8] rounded-lg focus:ring-2 focus:ring-[#0891b2] focus:border-transparent outline-none"
+                    className="w-full px-3 py-2 text-sm text-[#18181b] border border-[#d4d4d8] rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent outline-none"
                   />
                 </div>
                 <div>
@@ -281,7 +281,7 @@ export default function MaterialsPage() {
                     value={formData.weightKg}
                     onChange={(e) => setFormData({ ...formData, weightKg: e.target.value })}
                     required
-                    className="w-full px-3 py-2 text-sm text-[#18181b] border border-[#d4d4d8] rounded-lg focus:ring-2 focus:ring-[#0891b2] focus:border-transparent outline-none"
+                    className="w-full px-3 py-2 text-sm text-[#18181b] border border-[#d4d4d8] rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent outline-none"
                   />
                 </div>
               </div>
@@ -293,7 +293,7 @@ export default function MaterialsPage() {
                   type="submit"
                   size="sm"
                   disabled={formLoading}
-                  className="bg-[#0891b2] hover:bg-[#0e7490] text-white"
+                  className="bg-slate-800 hover:bg-slate-900 text-white"
                 >
                   {formLoading ? '保存中...' : editingId ? '更新' : '追加'}
                 </Button>
@@ -308,7 +308,7 @@ export default function MaterialsPage() {
             onClick={() => setFilterCategory('all')}
             className={`px-3 py-1.5 text-xs font-medium rounded-lg whitespace-nowrap transition-colors ${
               filterCategory === 'all'
-                ? 'bg-[#0891b2] text-white'
+                ? 'bg-slate-800 text-white'
                 : 'bg-white border border-[#e4e4e7] text-[#71717a] hover:bg-[#fafafa]'
             }`}
           >
@@ -322,7 +322,7 @@ export default function MaterialsPage() {
                 onClick={() => setFilterCategory(cat.id)}
                 className={`px-3 py-1.5 text-xs font-medium rounded-lg whitespace-nowrap transition-colors ${
                   filterCategory === cat.id
-                    ? 'bg-[#0891b2] text-white'
+                    ? 'bg-slate-800 text-white'
                     : 'bg-white border border-[#e4e4e7] text-[#71717a] hover:bg-[#fafafa]'
                 }`}
               >
@@ -352,7 +352,7 @@ export default function MaterialsPage() {
                   >
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-mono text-[#a1a1aa] bg-[#f4f4f5] px-1.5 py-0.5 rounded">
+                        <span className="text-[10px] font-mono text-[#0891b2] bg-[#ecfeff] px-1.5 py-0.5 rounded">
                           {material.materialCode}
                         </span>
                         <span className="text-sm font-medium text-[#18181b] truncate">{material.name}</span>
@@ -367,7 +367,7 @@ export default function MaterialsPage() {
                     <div className="flex items-center gap-1 ml-3">
                       <button
                         onClick={() => handleEdit(material)}
-                        className="p-1.5 rounded-lg text-[#a1a1aa] hover:text-[#0891b2] hover:bg-[#ecfeff] transition-colors"
+                        className="p-1.5 rounded-lg text-[#a1a1aa] hover:text-slate-800 hover:bg-slate-100 transition-colors"
                         title="編集"
                       >
                         <Pencil className="h-3.5 w-3.5" />

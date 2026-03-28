@@ -261,7 +261,7 @@ export default function OrderHistory() {
                 placeholder="現場名、担当者名で検索..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-3 py-2 text-sm text-[#18181b] border border-[#d4d4d8] rounded-lg focus:ring-2 focus:ring-[#0891b2] focus:border-transparent outline-none placeholder:text-[#a1a1aa]"
+                className="w-full pl-10 pr-3 py-2 text-sm text-[#18181b] border border-[#d4d4d8] rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent outline-none placeholder:text-[#a1a1aa]"
               />
             </div>
 
@@ -272,7 +272,7 @@ export default function OrderHistory() {
                 <select
                   value={monthFilter}
                   onChange={(e) => setMonthFilter(e.target.value)}
-                  className="pl-9 pr-3 py-2 text-sm text-[#18181b] border border-[#d4d4d8] rounded-lg focus:ring-2 focus:ring-[#0891b2] focus:border-transparent outline-none bg-white appearance-none cursor-pointer"
+                  className="pl-9 pr-3 py-2 text-sm text-[#18181b] border border-[#d4d4d8] rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent outline-none bg-white appearance-none cursor-pointer"
                 >
                   <option value="all">すべての月</option>
                   {monthOptions.map((option) => (
@@ -286,7 +286,7 @@ export default function OrderHistory() {
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="px-3 py-2 text-sm text-[#18181b] border border-[#d4d4d8] rounded-lg focus:ring-2 focus:ring-[#0891b2] focus:border-transparent outline-none bg-white appearance-none cursor-pointer"
+                className="px-3 py-2 text-sm text-[#18181b] border border-[#d4d4d8] rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent outline-none bg-white appearance-none cursor-pointer"
               >
                 <option value="all">すべて</option>
                 <option value="pending">処理中</option>
@@ -344,21 +344,21 @@ export default function OrderHistory() {
                         <div className="flex justify-end gap-1.5">
                           <button
                             onClick={() => handleCopy(order.id, order.orderNumber)}
-                            className="p-2 rounded-lg text-[#71717a] hover:text-[#0891b2] hover:bg-[#ecfeff] transition-colors"
+                            className="p-2 rounded-lg text-[#71717a] hover:text-slate-800 hover:bg-slate-100 transition-colors"
                             title="コピー"
                           >
                             <Copy className="h-4 w-4" />
                           </button>
                           <button
                             onClick={() => handleView(order.id)}
-                            className="p-2 rounded-lg text-[#71717a] hover:text-[#0891b2] hover:bg-[#ecfeff] transition-colors"
+                            className="p-2 rounded-lg text-[#71717a] hover:text-slate-800 hover:bg-slate-100 transition-colors"
                             title="詳細表示"
                           >
                             <Eye className="h-4 w-4" />
                           </button>
                           <button
                             onClick={() => handleDownload(order.id)}
-                            className="p-2 rounded-lg text-[#71717a] hover:text-[#0891b2] hover:bg-[#ecfeff] transition-colors"
+                            className="p-2 rounded-lg text-[#71717a] hover:text-slate-800 hover:bg-slate-100 transition-colors"
                             title="発注書出力"
                           >
                             <Printer className="h-4 w-4" />
@@ -406,7 +406,7 @@ export default function OrderHistory() {
               type="button"
               size="sm"
               onClick={confirmCopy}
-              className="bg-[#0891b2] hover:bg-[#0e7490] text-white"
+              className="bg-slate-800 hover:bg-slate-900 text-white"
             >
               コピー
             </Button>
