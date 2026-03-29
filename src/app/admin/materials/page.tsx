@@ -256,7 +256,7 @@ export default function MaterialsPage() {
                     value={formData.categoryId}
                     onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
                     required
-                    className="w-full px-3 py-2 text-sm border border-[#d4d4d8] rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent outline-none bg-white"
+                    className="w-full px-3 py-2 text-sm text-[#18181b] border border-[#d4d4d8] rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent outline-none bg-white"
                   >
                     <option value="">選択してください</option>
                     {categories.map(cat => (
