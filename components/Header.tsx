@@ -34,7 +34,7 @@ export default function Header() {
             onClick={handleLogoClick}
           >
             <Image src={config.icon} alt={config.title} width={40} height={40} />
-            <h1 className='text-black text-2xl ml-4 font-bold'>スマート資材発注</h1>
+            <h1 className='text-black text-2xl ml-4 font-bold'>union資材発注</h1>
           </div>
           {pathname !== '/' && (
             <div className="flex items-center gap-2 md:gap-4">

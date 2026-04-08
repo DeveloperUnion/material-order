@@ -36,9 +36,9 @@ export async function sendInvitationEmail({
 
   try {
     const { error } = await resend.emails.send({
-      from: `スマート資材発注 <${fromEmail}>`,
+      from: `union資材発注 <${fromEmail}>`,
       to: [to],
-      subject: `【${tenantName}】スマート資材発注への招待`,
+      subject: `【${tenantName}】union資材発注への招待`,
       html: `
         <!DOCTYPE html>
         <html lang="ja">
@@ -55,7 +55,7 @@ export async function sendInvitationEmail({
                   <tr>
                     <td style="background-color: #334155; padding: 30px 40px; text-align: center;">
                       <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 600;">
-                        スマート資材発注
+                        union資材発注
                       </h1>
                     </td>
                   </tr>
@@ -68,7 +68,7 @@ export async function sendInvitationEmail({
                       </h2>
 
                       <p style="color: #475569; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">
-                        ${inviterName}さんから、${tenantName}のスマート資材発注に招待されました。
+                        ${inviterName}さんから、${tenantName}のunion資材発注に招待されました。
                       </p>
 
                       <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f8fafc; border-radius: 6px; margin: 20px 0;">
