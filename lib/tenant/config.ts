@@ -8,8 +8,8 @@ export interface AppConfig {
 // デフォルトアプリ設定（ログイン前に表示）
 export const defaultAppConfig: AppConfig = {
   icon: '/icons/icon.jpeg',
-  title: 'スマート資材発注',
-  appTitle: 'スマート資材発注',
+  title: 'union資材発注',
+  appTitle: 'union資材発注',
 }
 
 // テナント設定を取得（セッションのtenantNameで上書き可能）
@@ -18,7 +18,7 @@ export function getAppConfig(tenantName?: string): AppConfig {
     return {
       icon: defaultAppConfig.icon,
       title: tenantName,
-      appTitle: `${tenantName} - スマート資材発注`,
+      appTitle: `${tenantName} - union資材発注`,
     }
   }
   return defaultAppConfig

@@ -38,7 +38,7 @@ export default function Home() {
       <div className="max-w-md w-full space-y-8">
         <div className="text-center">
           <h2 className="text-3xl font-bold text-[#18181b]">
-            スマート資材発注
+            union資材発注
           </h2>
           <p className="mt-2 text-sm text-[#71717a]">
             ログインしてください
