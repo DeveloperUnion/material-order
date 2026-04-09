@@ -30,34 +30,30 @@ export default function Dashboard() {
     return (
       <div className="min-h-screen bg-[#f4f4f5]">
         <div className="container mx-auto px-4 py-6 max-w-3xl">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4">
             <div
-              className="group bg-white rounded-2xl border border-[#e4e4e7] p-6 cursor-pointer hover:shadow-lg hover:scale-[1.01] transition-all md:min-h-[180px]"
+              className="group bg-white rounded-2xl border border-[#e4e4e7] p-4 sm:p-6 cursor-pointer hover:shadow-lg hover:scale-[1.01] transition-all min-h-[100px] sm:min-h-[140px]"
               onClick={navigateToOrderForm}
             >
-              <div className="h-full flex flex-col justify-between">
-                <div className="w-12 h-12 bg-[#ecfeff] rounded-xl flex items-center justify-center">
-                  <FileText className="h-6 w-6 text-[#0891b2]" />
+              <div className="h-full flex items-center gap-3 sm:gap-5">
+                <div className="w-10 h-10 sm:w-14 sm:h-14 bg-[#ecfeff] rounded-xl flex items-center justify-center flex-shrink-0">
+                  <FileText className="h-5 w-5 sm:h-7 sm:w-7 text-[#0891b2]" />
                 </div>
-                <div className="mt-4">
-                  <p className="text-lg font-bold text-[#18181b]">新規発注書作成</p>
-                  <p className="text-xs text-[#71717a] mt-1">新しい発注書を作成します</p>
-                </div>
+                <p className="text-base sm:text-lg font-bold text-[#18181b]">発注</p>
+                <ChevronRight className="h-5 w-5 text-[#d4d4d8] group-hover:text-[#0891b2] transition-colors ml-auto" />
               </div>
             </div>
 
             <div
-              className="group bg-white rounded-2xl border border-[#e4e4e7] p-6 cursor-pointer hover:shadow-lg hover:scale-[1.01] transition-all md:min-h-[180px]"
+              className="group bg-white rounded-2xl border border-[#e4e4e7] p-4 sm:p-6 cursor-pointer hover:shadow-lg hover:scale-[1.01] transition-all min-h-[100px] sm:min-h-[140px]"
               onClick={navigateToOrderHistory}
             >
-              <div className="h-full flex flex-col justify-between">
-                <div className="w-12 h-12 bg-[#ecfeff] rounded-xl flex items-center justify-center">
-                  <Clock className="h-6 w-6 text-[#0891b2]" />
+              <div className="h-full flex items-center gap-3 sm:gap-5">
+                <div className="w-10 h-10 sm:w-14 sm:h-14 bg-[#ecfeff] rounded-xl flex items-center justify-center flex-shrink-0">
+                  <Clock className="h-5 w-5 sm:h-7 sm:w-7 text-[#0891b2]" />
                 </div>
-                <div className="mt-4">
-                  <p className="text-lg font-bold text-[#18181b]">発注書履歴</p>
-                  <p className="text-xs text-[#71717a] mt-1">過去の発注書を確認・管理できます</p>
-                </div>
+                <p className="text-base sm:text-lg font-bold text-[#18181b]">履歴</p>
+                <ChevronRight className="h-5 w-5 text-[#d4d4d8] group-hover:text-[#0891b2] transition-colors ml-auto" />
               </div>
             </div>
           </div>
@@ -66,67 +62,60 @@ export default function Dashboard() {
     );
   }
 
-  // 管理者レイアウト: Bento Grid
+  // 管理者レイアウト
   return (
     <div className="min-h-screen bg-[#f4f4f5]">
-      <div className="container mx-auto px-4 py-6 max-w-5xl">
-        {/* Bento Grid - モバイル1列 / タブレット2列 / デスクトップ4列 */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 md:grid-rows-[180px_100px] gap-3">
-
-          {/* 新規発注書作成 - 大きいセル */}
+      <div className="container mx-auto px-4 py-6 max-w-3xl">
+        {/* メインメニュー: 発注・履歴（同サイズ） */}
+        <div className="grid grid-cols-2 gap-3 sm:gap-4">
           <div
-            className="group col-span-1 sm:col-span-2 md:row-span-2 bg-white rounded-2xl border border-[#e4e4e7] p-6 cursor-pointer hover:shadow-lg hover:scale-[1.01] transition-all min-h-[200px] sm:min-h-0"
+            className="group bg-white rounded-2xl border border-[#e4e4e7] p-4 sm:p-6 cursor-pointer hover:shadow-lg hover:scale-[1.01] transition-all min-h-[100px] sm:min-h-[140px]"
             onClick={navigateToOrderForm}
           >
-            <div className="h-full flex flex-col justify-between">
-              <div className="w-12 h-12 bg-[#ecfeff] rounded-xl flex items-center justify-center">
-                <FileText className="h-6 w-6 text-[#0891b2]" />
+            <div className="h-full flex items-center gap-3 sm:gap-5">
+              <div className="w-10 h-10 sm:w-14 sm:h-14 bg-[#ecfeff] rounded-xl flex items-center justify-center flex-shrink-0">
+                <FileText className="h-5 w-5 sm:h-7 sm:w-7 text-[#0891b2]" />
               </div>
-              <div>
-                <p className="text-xl font-bold text-[#18181b]">新規発注書作成</p>
-                <p className="text-sm text-[#71717a] mt-1">新しい発注書を作成します</p>
-              </div>
-            </div>
-          </div>
-
-          {/* 発注書履歴 */}
-          <div
-            className="group col-span-1 sm:col-span-2 bg-white rounded-2xl border border-[#e4e4e7] p-5 cursor-pointer hover:shadow-lg hover:scale-[1.01] transition-all"
-            onClick={navigateToOrderHistory}
-          >
-            <div className="h-full flex items-center gap-4">
-              <div className="w-12 h-12 bg-[#ecfeff] rounded-xl flex items-center justify-center flex-shrink-0">
-                <Clock className="h-6 w-6 text-[#0891b2]" />
-              </div>
-              <div className="flex-1">
-                <p className="text-base font-bold text-[#18181b]">発注書履歴</p>
-                <p className="text-xs text-[#71717a] mt-0.5">過去の発注書を確認・管理できます</p>
-              </div>
+              <p className="flex-1 text-base sm:text-lg font-bold text-[#18181b]">発注</p>
               <ChevronRight className="h-5 w-5 text-[#d4d4d8] group-hover:text-[#0891b2] transition-colors" />
             </div>
           </div>
 
-          {/* 管理者メニュー */}
           <div
-            className="group bg-white rounded-2xl border border-[#e4e4e7] px-5 py-4 cursor-pointer hover:shadow-md hover:bg-[#fafafa] transition-all flex items-center gap-3"
+            className="group bg-white rounded-2xl border border-[#e4e4e7] p-4 sm:p-6 cursor-pointer hover:shadow-lg hover:scale-[1.01] transition-all min-h-[100px] sm:min-h-[140px]"
+            onClick={navigateToOrderHistory}
+          >
+            <div className="h-full flex items-center gap-3 sm:gap-5">
+              <div className="w-10 h-10 sm:w-14 sm:h-14 bg-[#ecfeff] rounded-xl flex items-center justify-center flex-shrink-0">
+                <Clock className="h-5 w-5 sm:h-7 sm:w-7 text-[#0891b2]" />
+              </div>
+              <p className="flex-1 text-base sm:text-lg font-bold text-[#18181b]">履歴</p>
+              <ChevronRight className="h-5 w-5 text-[#d4d4d8] group-hover:text-[#0891b2] transition-colors" />
+            </div>
+          </div>
+        </div>
+
+        {/* 管理者メニュー: 会社設定・資材管理（同サイズ） */}
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 mt-3 sm:mt-4">
+          <div
+            className="group bg-white rounded-2xl border border-[#e4e4e7] p-4 sm:px-5 sm:py-5 cursor-pointer hover:shadow-md hover:bg-[#fafafa] transition-all flex items-center gap-3 sm:gap-5"
             onClick={navigateToCompanySettings}
           >
-            <div className="w-9 h-9 bg-[#ecfeff] rounded-lg flex items-center justify-center flex-shrink-0">
-              <Building2 className="h-4 w-4 text-[#0891b2]" />
+            <div className="w-10 h-10 sm:w-14 sm:h-14 bg-[#ecfeff] rounded-xl flex items-center justify-center flex-shrink-0">
+              <Building2 className="h-5 w-5 sm:h-7 sm:w-7 text-[#0891b2]" />
             </div>
-            <p className="text-sm font-semibold text-[#18181b]">会社設定</p>
+            <p className="text-base sm:text-lg font-bold text-[#18181b]">会社設定</p>
           </div>
 
           <div
-            className="group bg-white rounded-2xl border border-[#e4e4e7] px-5 py-4 cursor-pointer hover:shadow-md hover:bg-[#fafafa] transition-all flex items-center gap-3"
+            className="group bg-white rounded-2xl border border-[#e4e4e7] p-4 sm:px-5 sm:py-5 cursor-pointer hover:shadow-md hover:bg-[#fafafa] transition-all flex items-center gap-3 sm:gap-5"
             onClick={navigateToMaterials}
           >
-            <div className="w-9 h-9 bg-[#ecfeff] rounded-lg flex items-center justify-center flex-shrink-0">
-              <Package className="h-4 w-4 text-[#0891b2]" />
+            <div className="w-10 h-10 sm:w-14 sm:h-14 bg-[#ecfeff] rounded-xl flex items-center justify-center flex-shrink-0">
+              <Package className="h-5 w-5 sm:h-7 sm:w-7 text-[#0891b2]" />
             </div>
-            <p className="text-sm font-semibold text-[#18181b]">資材管理</p>
+            <p className="text-base sm:text-lg font-bold text-[#18181b]">資材管理</p>
           </div>
-
         </div>
       </div>
     </div>
