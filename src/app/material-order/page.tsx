@@ -80,7 +80,7 @@ export default function MaterialOrderPage() {
         // ignore
       }
 
-      router.push(`/orders/${result.order.id}/print`);
+      router.replace(`/orders/${result.order.id}/print`);
     } catch (error) {
       console.error("発注書作成エラー:", error);
       alert("発注書の作成に失敗しました");

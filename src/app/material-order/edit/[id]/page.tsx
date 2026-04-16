@@ -127,7 +127,7 @@ export default function MaterialOrderEditPage() {
         // ignore
       }
 
-      router.push(`/orders/${orderId}/print`);
+      router.replace(`/orders/${orderId}/print`);
     } catch (error) {
       console.error("発注書更新エラー:", error);
       alert("発注書の更新に失敗しました");

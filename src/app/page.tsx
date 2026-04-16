@@ -112,7 +112,7 @@ export default function Home() {
         </form>
 
         <p className="mt-6 text-center text-[10px] tracking-[0.18em] text-subtle font-mono uppercase">
-          UNION · Material Order
+          UNION
         </p>
       </div>
     </div>
