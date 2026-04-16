@@ -3,8 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { generatePDFContent } from '@/components/OrderDocumentHTML';
-import { Button } from '@/components/ui/button';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Printer } from 'lucide-react';
 import { useTenant } from '@/lib/tenant/context';
 
 interface OrderDetail {
@@ -52,7 +51,6 @@ export default function OrderPrintPage() {
       const data = await response.json();
       setOrder(data.order);
 
-      // OrderDocument形式に変換
       const orderDocument = {
         orderDate: data.order.deliveryDate || data.order.createdAt,
         ordererName: data.order.customerAddress || '担当者',
@@ -71,17 +69,14 @@ export default function OrderPrintPage() {
         note: data.order.shippingAddress || ''
       };
 
-      // HTML生成（印刷ボタンを非表示に、透かしはテナント設定から）
       const content = generatePDFContent(orderDocument, {
         hidePrintButton: true,
         watermarkText: config.title
       });
       setHtmlContent(content);
 
-      // PDF保存時のファイル名を設定
       document.title = `${orderDocument.siteName || '現場名未設定'}-${orderDocument.orderDate.split('T')[0].replace(/-/g, '')}`;
 
-      // ステータスを処理済みに更新
       if (data.order.status !== 'completed') {
         await fetch(`/api/orders/${data.order.id}`, {
           method: 'PUT',
@@ -121,7 +116,6 @@ export default function OrderPrintPage() {
     }
   }, [params.id, fetchOrderDetail]);
 
-  // iframeにHTMLコンテンツを挿入
   useEffect(() => {
     if (htmlContent && iframeRef.current && iframeRef.current.contentDocument) {
       const iframeDoc = iframeRef.current.contentDocument;
@@ -143,10 +137,10 @@ export default function OrderPrintPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen bg-[#f4f4f5]">
+      <div className="flex items-center justify-center h-screen bg-background">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#0891b2] mx-auto"></div>
-          <p className="mt-4 text-sm text-[#71717a]">読み込み中...</p>
+          <div className="animate-spin rounded-full h-9 w-9 border-2 border-border border-t-accent mx-auto" />
+          <p className="mt-4 text-sm text-muted">読み込み中...</p>
         </div>
       </div>
     );
@@ -154,41 +148,48 @@ export default function OrderPrintPage() {
 
   if (!order || !htmlContent) {
     return (
-      <div className="flex items-center justify-center h-screen bg-white">
-        <div className="text-center">
-          <p className="text-sm text-[#71717a] mb-4">発注書が見つかりません</p>
-          <Button onClick={handleBack} size="sm" className="bg-slate-800 hover:bg-slate-900 text-white">
+      <div className="flex items-center justify-center h-screen bg-background px-4">
+        <div className="text-center max-w-sm">
+          <p className="text-sm text-muted mb-5">発注書が見つかりません</p>
+          <button
+            type="button"
+            onClick={handleBack}
+            className="px-4 py-2 bg-foreground text-background font-semibold text-sm rounded-md hover:bg-foreground/90 transition-colors"
+          >
             戻る
-          </Button>
+          </button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* 印刷時に非表示になるボタン */}
-      <div className="print:hidden fixed top-20 left-4 z-50 flex gap-2">
-        <Button
-          onClick={handleBack}
-          variant="outline"
-          className="flex items-center gap-2 border border-[#d4d4d8] bg-white text-[#18181b] hover:bg-[#f4f4f5] shadow-lg"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          戻る
-        </Button>
-        <Button
-          onClick={handlePrint}
-          className="bg-slate-800 hover:bg-slate-900 text-white shadow-lg"
-        >
-          印刷 / PDFに保存
-        </Button>
+    <div className="min-h-screen bg-surface-muted">
+      {/* Print toolbar (hidden on print) */}
+      <div className="print:hidden fixed top-[76px] sm:top-[92px] left-0 right-0 z-40 pointer-events-none">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between pointer-events-none">
+          <button
+            type="button"
+            onClick={handleBack}
+            className="pointer-events-auto flex items-center gap-1.5 px-3 py-2 border border-border bg-surface/95 backdrop-blur text-foreground text-sm font-medium rounded-md hover:bg-surface-muted hover:border-border-strong transition-all shadow-sm"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            戻る
+          </button>
+          <button
+            type="button"
+            onClick={handlePrint}
+            className="pointer-events-auto flex items-center gap-2 px-4 py-2 bg-foreground text-background text-sm font-semibold rounded-md hover:bg-foreground/90 transition-colors shadow-md"
+          >
+            <Printer className="h-4 w-4" />
+            <span>印刷 / PDFに保存</span>
+          </button>
+        </div>
       </div>
 
-      {/* 印刷用コンテンツをiframeで表示 */}
       <iframe
         ref={iframeRef}
-        className="w-full h-screen border-none"
+        className="w-full h-screen border-none bg-surface"
         title="発注書印刷プレビュー"
       />
     </div>

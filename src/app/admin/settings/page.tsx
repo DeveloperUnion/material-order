@@ -3,8 +3,25 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { Button } from '@/components/ui/button';
-import { ArrowLeft, Building2, UserPlus, Check, Users, Mail, MoreVertical, Shield, ShieldOff, UserX, UserCheck, Clock, Trash2 } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  ArrowLeft,
+  UserPlus,
+  Check,
+  MoreVertical,
+  Shield,
+  ShieldOff,
+  UserX,
+  UserCheck,
+  Trash2,
+  Mail,
+} from 'lucide-react';
 
 interface TenantInfo {
   id: string;
@@ -36,31 +53,30 @@ export default function CompanySettingsPage() {
   const router = useRouter();
   const { data: session } = useSession();
 
-  // テナント情報
   const [tenant, setTenant] = useState<TenantInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  // 会社名編集
   const [editingName, setEditingName] = useState(false);
   const [newName, setNewName] = useState('');
   const [nameLoading, setNameLoading] = useState(false);
 
-  // ユーザー管理
   const [users, setUsers] = useState<User[]>([]);
   const [invitations, setInvitations] = useState<Invitation[]>([]);
 
-  // 招待フォーム
   const [showInviteForm, setShowInviteForm] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState<'ADMIN' | 'MEMBER'>('MEMBER');
   const [inviteLoading, setInviteLoading] = useState(false);
   const [inviteSuccess, setInviteSuccess] = useState<string | null>(null);
 
-  // ユーザー編集
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [updateLoading, setUpdateLoading] = useState<string | null>(null);
+
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedInvitation, setSelectedInvitation] = useState<Invitation | null>(null);
+  const [isDeletingInvitation, setIsDeletingInvitation] = useState(false);
 
   const fetchData = useCallback(async () => {
     try {
@@ -108,7 +124,6 @@ export default function CompanySettingsPage() {
     fetchData();
   }, [session, router, fetchData]);
 
-  // メニュー外クリックで閉じる
   useEffect(() => {
     const handleClickOutside = () => setOpenMenuId(null);
     if (openMenuId) {
@@ -136,7 +151,7 @@ export default function CompanySettingsPage() {
         throw new Error(data.error || '会社名の更新に失敗しました');
       }
 
-      setTenant((prev) => prev ? { ...prev, name: data.tenant.name } : null);
+      setTenant((prev) => (prev ? { ...prev, name: data.tenant.name } : null));
       setEditingName(false);
       setSuccess('会社名を更新しました');
     } catch (err) {
@@ -179,11 +194,16 @@ export default function CompanySettingsPage() {
     }
   };
 
-  const handleDeleteInvitation = async (invitationId: string) => {
-    if (!confirm('この招待を削除しますか？')) return;
+  const handleDeleteInvitationClick = (invitation: Invitation) => {
+    setSelectedInvitation(invitation);
+    setDeleteDialogOpen(true);
+  };
 
+  const confirmDeleteInvitation = async () => {
+    if (!selectedInvitation) return;
+    setIsDeletingInvitation(true);
     try {
-      const res = await fetch(`/api/invitations/${invitationId}`, {
+      const res = await fetch(`/api/invitations/${selectedInvitation.id}`, {
         method: 'DELETE',
       });
 
@@ -192,13 +212,20 @@ export default function CompanySettingsPage() {
         throw new Error(data.error || '招待の削除に失敗しました');
       }
 
-      setInvitations(invitations.filter(inv => inv.id !== invitationId));
+      setInvitations(invitations.filter((inv) => inv.id !== selectedInvitation.id));
+      setDeleteDialogOpen(false);
+      setSelectedInvitation(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'エラーが発生しました');
+    } finally {
+      setIsDeletingInvitation(false);
     }
   };
 
-  const handleUpdateUser = async (userId: string, data: { role?: 'ADMIN' | 'MEMBER'; isActive?: boolean }) => {
+  const handleUpdateUser = async (
+    userId: string,
+    data: { role?: 'ADMIN' | 'MEMBER'; isActive?: boolean }
+  ) => {
     setUpdateLoading(userId);
     setError(null);
     setOpenMenuId(null);
@@ -216,7 +243,7 @@ export default function CompanySettingsPage() {
         throw new Error(result.error || 'ユーザーの更新に失敗しました');
       }
 
-      setUsers(users.map(u => u.id === userId ? { ...u, ...result.user } : u));
+      setUsers(users.map((u) => (u.id === userId ? { ...u, ...result.user } : u)));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'エラーが発生しました');
     } finally {
@@ -225,7 +252,7 @@ export default function CompanySettingsPage() {
   };
 
   const formatDate = (dateStr: string | null) => {
-    if (!dateStr) return '-';
+    if (!dateStr) return '—';
     return new Date(dateStr).toLocaleDateString('ja-JP', {
       year: 'numeric',
       month: 'short',
@@ -235,147 +262,164 @@ export default function CompanySettingsPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-[#f4f4f5]">
+      <div className="flex items-center justify-center min-h-screen bg-background">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#0891b2] mx-auto"></div>
-          <p className="mt-4 text-sm text-[#71717a]">読み込み中...</p>
+          <div className="animate-spin rounded-full h-9 w-9 border-2 border-border border-t-accent mx-auto" />
+          <p className="mt-4 text-sm text-muted">読み込み中...</p>
         </div>
       </div>
     );
   }
 
+  const usagePercent = tenant
+    ? Math.min((tenant.currentUsers / tenant.maxUsers) * 100, 100)
+    : 0;
+  const usageFull = tenant ? tenant.currentUsers >= tenant.maxUsers : false;
+
   return (
-    <div className="min-h-screen bg-[#f4f4f5]">
-      <div className="max-w-3xl mx-auto px-4 py-8">
+    <div className="min-h-screen bg-background">
+      <div className="max-w-3xl mx-auto px-4 py-6 sm:py-8">
         {/* ヘッダー */}
-        <div className="flex items-center gap-4 mb-6">
-          <Button
-            variant="ghost"
-            size="sm"
+        <div className="flex items-center gap-3 mb-5">
+          <button
+            type="button"
             onClick={() => router.push('/dashboard')}
-            className="text-[#71717a] hover:text-[#18181b]"
+            className="flex items-center gap-1 px-2 py-1.5 -ml-2 text-sm text-muted hover:text-foreground hover:bg-surface-muted rounded-md transition-colors"
           >
-            <ArrowLeft className="h-4 w-4 mr-1" />
+            <ArrowLeft className="h-4 w-4" />
             戻る
-          </Button>
-          <h1 className="text-xl font-bold text-[#18181b]">会社設定</h1>
+          </button>
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">
+            会社設定
+          </h1>
         </div>
 
-        {/* メッセージ表示 */}
+        {/* メッセージ */}
         {error && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">
+          <div className="mb-4 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">
             {error}
           </div>
         )}
         {success && (
-          <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-xl text-sm text-green-700 flex items-center gap-2">
+          <div className="mb-4 px-4 py-3 bg-emerald-50 border border-emerald-200 rounded-xl text-sm text-emerald-700 flex items-center gap-2">
             <Check className="h-4 w-4" />
             {success}
           </div>
         )}
 
         {/* 会社情報 */}
-        <div className="bg-white rounded-2xl border border-[#e4e4e7] p-6 mb-4">
-          <div className="flex items-center gap-3 mb-5">
-            <div className="w-10 h-10 bg-[#ecfeff] rounded-lg flex items-center justify-center">
-              <Building2 className="h-5 w-5 text-[#0891b2]" />
-            </div>
-            <h2 className="text-base font-bold text-[#18181b]">会社情報</h2>
+        <section className="bg-surface rounded-xl border border-border p-5 sm:p-6 mb-4">
+          <div className="flex items-baseline justify-between mb-4">
+            <h2 className="text-xs font-semibold text-foreground tracking-tight">
+              会社情報
+            </h2>
           </div>
 
           <div className="space-y-4">
             {/* 会社名 */}
-            <div className="flex items-center justify-between py-3 border-b border-[#e4e4e7]">
-              <div className="flex-1">
-                <p className="text-xs text-[#71717a] mb-1">会社名</p>
+            <div className="flex items-start justify-between gap-3 py-3 border-b border-border">
+              <div className="flex-1 min-w-0">
+                <p className="font-mono text-[10px] uppercase tracking-wider text-subtle mb-1.5">
+                  会社名
+                </p>
                 {editingName ? (
-                  <form onSubmit={handleUpdateName} className="flex items-center gap-2">
+                  <form onSubmit={handleUpdateName} className="flex flex-wrap items-center gap-2">
                     <input
                       type="text"
                       value={newName}
                       onChange={(e) => setNewName(e.target.value)}
-                      className="flex-1 px-3 py-1.5 text-sm text-[#18181b] border border-[#d4d4d8] rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent outline-none"
+                      className="flex-1 min-w-0 px-3 py-2 text-sm text-foreground border border-border rounded-md bg-surface focus:border-accent focus:ring-4 focus:ring-accent/15 outline-none transition-all"
                       autoFocus
                     />
-                    <Button type="submit" size="sm" disabled={nameLoading} className="bg-slate-800 hover:bg-slate-900 text-white">
+                    <button
+                      type="submit"
+                      disabled={nameLoading}
+                      className="px-3 py-2 text-sm font-semibold bg-foreground text-background hover:bg-foreground/90 rounded-md transition-colors disabled:opacity-50"
+                    >
                       {nameLoading ? '...' : '保存'}
-                    </Button>
-                    <Button
+                    </button>
+                    <button
                       type="button"
-                      size="sm"
-                      className="border border-[#d4d4d8] bg-white text-[#18181b] hover:bg-[#f4f4f5]"
                       onClick={() => {
                         setEditingName(false);
                         setNewName(tenant?.name || '');
                       }}
+                      className="px-3 py-2 text-sm font-medium border border-border bg-surface text-foreground hover:bg-surface-muted rounded-md transition-colors"
                     >
                       キャンセル
-                    </Button>
+                    </button>
                   </form>
                 ) : (
-                  <p className="text-sm font-medium text-[#18181b]">{tenant?.name}</p>
+                  <p className="text-sm font-medium text-foreground">{tenant?.name}</p>
                 )}
               </div>
               {!editingName && (
-                <Button
-                  variant="ghost"
-                  size="sm"
+                <button
+                  type="button"
                   onClick={() => setEditingName(true)}
-                  className="text-slate-600 hover:text-slate-800"
+                  className="text-sm text-muted hover:text-foreground transition-colors"
                 >
                   編集
-                </Button>
+                </button>
               )}
             </div>
 
             {/* 登録日 */}
-            <div className="py-3">
-              <p className="text-xs text-[#71717a] mb-1">登録日</p>
-              <p className="text-sm text-[#18181b]">{tenant ? formatDate(tenant.createdAt) : '-'}</p>
+            <div className="py-1">
+              <p className="font-mono text-[10px] uppercase tracking-wider text-subtle mb-1.5">
+                登録日
+              </p>
+              <p className="text-sm font-medium text-foreground font-mono tabular-nums">
+                {tenant ? formatDate(tenant.createdAt) : '—'}
+              </p>
             </div>
           </div>
-        </div>
+        </section>
 
         {/* メンバー管理 */}
-        <div className="bg-white rounded-2xl border border-[#e4e4e7] overflow-visible">
+        <section className="bg-surface rounded-xl border border-border overflow-visible">
           {/* ヘッダー + 利用状況 */}
-          <div className="p-6 border-b border-[#e4e4e7]">
+          <div className="p-5 sm:p-6 border-b border-border">
             <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-[#ecfeff] rounded-lg flex items-center justify-center">
-                  <Users className="h-5 w-5 text-[#0891b2]" />
-                </div>
-                <h2 className="text-base font-bold text-[#18181b]">メンバー</h2>
-                <span className="text-sm text-[#71717a]">({users.length}名)</span>
+              <div className="flex items-baseline gap-2">
+                <h2 className="text-xs font-semibold text-foreground tracking-tight">
+                  メンバー
+                </h2>
+                <span className="font-mono text-[10px] tracking-wider text-subtle uppercase tabular-nums">
+                  {users.length} 名
+                </span>
               </div>
-              <Button
+              <button
+                type="button"
                 onClick={() => {
                   setShowInviteForm(!showInviteForm);
                   setInviteSuccess(null);
                 }}
-                size="sm"
-                className="bg-slate-800 hover:bg-slate-900 text-white"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold bg-foreground text-background hover:bg-foreground/90 rounded-md transition-colors"
               >
-                <UserPlus className="h-4 w-4 mr-1" />
+                <UserPlus className="h-4 w-4" />
                 招待
-              </Button>
+              </button>
             </div>
 
             {/* 利用状況バー */}
-            <div className="flex items-center justify-between text-xs text-[#71717a] mb-1.5">
+            <div className="flex items-center justify-between text-xs text-muted mb-1.5">
               <span>利用状況</span>
-              <span>{tenant?.currentUsers} / {tenant?.maxUsers} 名</span>
+              <span className="font-mono tabular-nums">
+                {tenant?.currentUsers} / {tenant?.maxUsers} 名
+              </span>
             </div>
-            <div className="w-full bg-[#e4e4e7] rounded-full h-1.5">
+            <div className="w-full bg-surface-muted rounded-full h-1.5 overflow-hidden">
               <div
-                className="bg-[#0891b2] h-1.5 rounded-full transition-all"
-                style={{
-                  width: `${Math.min((tenant?.currentUsers || 0) / (tenant?.maxUsers || 1) * 100, 100)}%`,
-                }}
+                className={`h-1.5 rounded-full transition-all ${
+                  usageFull ? 'bg-amber-500' : 'bg-accent'
+                }`}
+                style={{ width: `${usagePercent}%` }}
               />
             </div>
-            {tenant && tenant.currentUsers >= tenant.maxUsers && (
-              <p className="text-xs text-orange-600 mt-1.5">
+            {usageFull && (
+              <p className="text-xs text-amber-700 mt-2 flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
                 ユーザー数の上限に達しています
               </p>
             )}
@@ -383,10 +427,10 @@ export default function CompanySettingsPage() {
 
           {/* 招待フォーム */}
           {showInviteForm && (
-            <div className="px-6 py-4 border-b border-[#e4e4e7] bg-[#fafafa]">
+            <div className="px-5 sm:px-6 py-4 border-b border-border bg-surface-muted">
               <div className="flex items-center gap-2 mb-3">
-                <Mail className="h-4 w-4 text-[#71717a]" />
-                <p className="text-sm font-medium text-[#18181b]">新規メンバーを招待</p>
+                <Mail className="h-4 w-4 text-muted" />
+                <p className="text-sm font-medium text-foreground">新規メンバーを招待</p>
               </div>
               <form onSubmit={handleInvite}>
                 <div className="flex flex-col sm:flex-row gap-2">
@@ -396,29 +440,28 @@ export default function CompanySettingsPage() {
                     onChange={(e) => setInviteEmail(e.target.value)}
                     placeholder="メールアドレスを入力"
                     required
-                    className="flex-1 px-3 py-2 text-sm text-[#18181b] border border-[#d4d4d8] rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent outline-none placeholder:text-[#a1a1aa]"
+                    className="flex-1 min-w-0 px-3 py-2 text-sm text-foreground border border-border rounded-md bg-surface focus:border-accent focus:ring-4 focus:ring-accent/15 outline-none placeholder:text-subtle transition-all"
                   />
                   <select
                     value={inviteRole}
                     onChange={(e) => setInviteRole(e.target.value as 'ADMIN' | 'MEMBER')}
-                    className="sm:w-28 px-3 py-2 text-sm text-[#18181b] border border-[#d4d4d8] rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent outline-none bg-white"
+                    className="sm:w-32 px-3 py-2 text-sm text-foreground border border-border rounded-md bg-surface focus:border-accent focus:ring-4 focus:ring-accent/15 outline-none cursor-pointer transition-all"
                   >
                     <option value="MEMBER">メンバー</option>
                     <option value="ADMIN">管理者</option>
                   </select>
-                  <Button
+                  <button
                     type="submit"
                     disabled={inviteLoading}
-                    size="sm"
-                    className="bg-slate-800 hover:bg-slate-900 text-white"
+                    className="px-4 py-2 text-sm font-semibold bg-foreground text-background hover:bg-foreground/90 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {inviteLoading ? '送信中...' : '送信'}
-                  </Button>
+                  </button>
                 </div>
               </form>
               {inviteSuccess && (
-                <div className="mt-3 p-2 bg-green-50 border border-green-200 rounded-lg">
-                  <p className="text-xs text-green-700 flex items-center gap-1">
+                <div className="mt-3 px-3 py-2 bg-emerald-50 border border-emerald-200 rounded-md">
+                  <p className="text-xs text-emerald-700 flex items-center gap-1">
                     <Check className="h-3 w-3" />
                     {inviteSuccess}
                   </p>
@@ -428,98 +471,93 @@ export default function CompanySettingsPage() {
           )}
 
           {/* ユーザー一覧 */}
-          <div className="divide-y divide-[#f4f4f5]">
+          <div className="divide-y divide-border">
             {users.length === 0 ? (
-              <div className="px-6 py-8 text-center text-sm text-[#71717a]">
+              <div className="px-6 py-10 text-center text-sm text-muted">
                 メンバーがいません
               </div>
             ) : (
               users.map((user) => (
                 <div
                   key={user.id}
-                  className={`px-6 py-3.5 flex items-center justify-between hover:bg-[#fafafa] transition-colors ${
-                    !user.isActive ? 'opacity-50' : ''
+                  className={`px-5 sm:px-6 py-3.5 flex items-center justify-between gap-3 hover:bg-surface-muted transition-colors ${
+                    !user.isActive ? 'opacity-60' : ''
                   }`}
                 >
-                  <div className="flex items-center gap-3">
-                    <div
-                      className={`h-8 w-8 rounded-full flex items-center justify-center text-xs font-medium ${
-                        !user.isActive
-                          ? 'bg-[#e4e4e7] text-[#a1a1aa]'
-                          : user.role === 'ADMIN'
-                          ? 'bg-[#ecfeff] text-[#0891b2]'
-                          : 'bg-[#f4f4f5] text-[#71717a]'
-                      }`}
-                    >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="h-9 w-9 rounded-full bg-surface-muted text-muted flex items-center justify-center text-sm font-semibold flex-shrink-0">
                       {user.name.charAt(0).toUpperCase()}
                     </div>
-                    <div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-sm font-medium text-[#18181b]">{user.name}</span>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-sm font-medium text-foreground truncate">
+                          {user.name}
+                        </span>
                         {user.id === session?.user?.id && (
-                          <span className="text-[10px] text-[#0891b2] bg-[#ecfeff] px-1.5 py-0.5 rounded">自分</span>
+                          <span className="text-[10px] font-mono uppercase tracking-wider text-subtle">
+                            自分
+                          </span>
                         )}
                         {!user.isActive && (
-                          <span className="text-[10px] text-red-500 bg-red-50 px-1.5 py-0.5 rounded">無効</span>
+                          <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-red-50 text-red-700 border border-red-200">
+                            無効
+                          </span>
                         )}
                       </div>
-                      <p className="text-xs text-[#71717a]">{user.email}</p>
+                      <p className="text-xs text-muted truncate">{user.email}</p>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-3">
-                    <span
-                      className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
-                        user.role === 'ADMIN'
-                          ? 'bg-[#ecfeff] text-[#0891b2]'
-                          : 'bg-[#f4f4f5] text-[#71717a]'
-                      }`}
-                    >
-                      {user.role === 'ADMIN' ? '管理者' : 'メンバー'}
-                    </span>
+                  <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+                    <RoleBadge role={user.role} />
 
                     {user.id !== session?.user?.id && (
                       <div className="relative">
                         <button
+                          type="button"
                           onClick={(e) => {
                             e.stopPropagation();
                             setOpenMenuId(openMenuId === user.id ? null : user.id);
                           }}
-                          className="p-1.5 rounded-lg hover:bg-[#f4f4f5] transition-colors"
+                          className="p-1.5 rounded-md hover:bg-surface-muted transition-colors"
                           disabled={updateLoading === user.id}
+                          aria-label="ユーザー操作メニュー"
                         >
                           {updateLoading === user.id ? (
-                            <div className="h-4 w-4 animate-spin rounded-full border-2 border-[#d4d4d8] border-t-slate-600" />
+                            <div className="h-4 w-4 animate-spin rounded-full border-2 border-border border-t-accent" />
                           ) : (
-                            <MoreVertical className="h-4 w-4 text-[#a1a1aa]" />
+                            <MoreVertical className="h-4 w-4 text-subtle" />
                           )}
                         </button>
 
                         {openMenuId === user.id && (
                           <div
-                            className="absolute right-0 mt-1 w-44 bg-white rounded-xl shadow-lg border border-[#e4e4e7] py-1 z-20"
+                            className="absolute right-0 mt-1 w-44 bg-surface rounded-xl shadow-lg border border-border py-1 z-20"
                             onClick={(e) => e.stopPropagation()}
                           >
                             {user.role === 'MEMBER' ? (
                               <button
+                                type="button"
                                 onClick={() => handleUpdateUser(user.id, { role: 'ADMIN' })}
-                                className="w-full px-3 py-2 text-left text-sm hover:bg-[#fafafa] flex items-center gap-2 text-[#18181b]"
+                                className="w-full px-3 py-2 text-left text-sm hover:bg-surface-muted flex items-center gap-2 text-foreground"
                               >
-                                <Shield className="h-4 w-4 text-[#0891b2]" />
+                                <Shield className="h-4 w-4 text-accent" />
                                 管理者に変更
                               </button>
                             ) : (
                               <button
+                                type="button"
                                 onClick={() => handleUpdateUser(user.id, { role: 'MEMBER' })}
-                                className="w-full px-3 py-2 text-left text-sm hover:bg-[#fafafa] flex items-center gap-2 text-[#18181b]"
+                                className="w-full px-3 py-2 text-left text-sm hover:bg-surface-muted flex items-center gap-2 text-foreground"
                               >
-                                <ShieldOff className="h-4 w-4 text-[#71717a]" />
+                                <ShieldOff className="h-4 w-4 text-muted" />
                                 メンバーに変更
                               </button>
                             )}
-                            <div className="border-t border-[#f4f4f5] my-1" />
+                            <div className="border-t border-border my-1" />
                             {user.isActive ? (
                               <button
+                                type="button"
                                 onClick={() => handleUpdateUser(user.id, { isActive: false })}
                                 className="w-full px-3 py-2 text-left text-sm hover:bg-red-50 flex items-center gap-2 text-red-600"
                               >
@@ -528,8 +566,9 @@ export default function CompanySettingsPage() {
                               </button>
                             ) : (
                               <button
+                                type="button"
                                 onClick={() => handleUpdateUser(user.id, { isActive: true })}
-                                className="w-full px-3 py-2 text-left text-sm hover:bg-green-50 flex items-center gap-2 text-green-600"
+                                className="w-full px-3 py-2 text-left text-sm hover:bg-emerald-50 flex items-center gap-2 text-emerald-700"
                               >
                                 <UserCheck className="h-4 w-4" />
                                 有効化
@@ -547,41 +586,39 @@ export default function CompanySettingsPage() {
 
           {/* 保留中の招待 */}
           {invitations.length > 0 && (
-            <div className="border-t border-[#e4e4e7]">
-              <div className="px-6 py-3 flex items-center gap-2 bg-[#fafafa]">
-                <Clock className="h-4 w-4 text-[#71717a]" />
-                <p className="text-xs font-medium text-[#71717a]">保留中の招待 ({invitations.length}件)</p>
+            <div className="border-t border-border">
+              <div className="px-5 sm:px-6 py-3 flex items-center gap-2 bg-surface-muted">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                <p className="text-xs font-medium text-muted">
+                  保留中の招待{' '}
+                  <span className="font-mono tabular-nums">({invitations.length}件)</span>
+                </p>
               </div>
-              <div className="divide-y divide-[#f4f4f5]">
+              <div className="divide-y divide-border">
                 {invitations.map((invitation) => (
                   <div
                     key={invitation.id}
-                    className="px-6 py-3.5 flex items-center justify-between"
+                    className="px-5 sm:px-6 py-3.5 flex items-center justify-between gap-3"
                   >
-                    <div className="flex items-center gap-3">
-                      <div className="h-8 w-8 rounded-full bg-amber-50 flex items-center justify-center">
-                        <Mail className="h-3.5 w-3.5 text-amber-500" />
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="h-9 w-9 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center flex-shrink-0">
+                        <Mail className="h-4 w-4 text-amber-600" />
                       </div>
-                      <div>
-                        <p className="text-sm font-medium text-[#18181b]">{invitation.email}</p>
-                        <p className="text-xs text-[#a1a1aa]">
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-foreground truncate">
+                          {invitation.email}
+                        </p>
+                        <p className="text-xs text-muted font-mono tabular-nums">
                           有効期限: {formatDate(invitation.expiresAt)}
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
-                          invitation.role === 'ADMIN'
-                            ? 'bg-[#ecfeff] text-[#0891b2]'
-                            : 'bg-[#f4f4f5] text-[#71717a]'
-                        }`}
-                      >
-                        {invitation.role === 'ADMIN' ? '管理者' : 'メンバー'}
-                      </span>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <RoleBadge role={invitation.role} />
                       <button
-                        onClick={() => handleDeleteInvitation(invitation.id)}
-                        className="p-1.5 rounded-lg text-[#a1a1aa] hover:text-red-500 hover:bg-red-50 transition-colors"
+                        type="button"
+                        onClick={() => handleDeleteInvitationClick(invitation)}
+                        className="p-1.5 rounded-md text-red-500 hover:text-red-600 hover:bg-red-50 transition-colors"
                         title="招待を削除"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
@@ -592,8 +629,61 @@ export default function CompanySettingsPage() {
               </div>
             </div>
           )}
-        </div>
+        </section>
       </div>
+
+      {/* 招待削除確認ダイアログ */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-md bg-surface rounded-xl">
+          <DialogHeader>
+            <DialogTitle className="text-foreground">招待を削除</DialogTitle>
+          </DialogHeader>
+          {selectedInvitation && (
+            <div className="space-y-2 text-sm">
+              <p className="text-foreground">
+                「<span className="font-semibold">{selectedInvitation.email}</span>」への招待を削除しますか？
+              </p>
+              <p className="text-xs text-red-700 font-medium">
+                この操作は元に戻せません。
+              </p>
+            </div>
+          )}
+          <DialogFooter className="flex-col-reverse sm:flex-row sm:justify-end gap-2">
+            <button
+              type="button"
+              disabled={isDeletingInvitation}
+              onClick={() => setDeleteDialogOpen(false)}
+              className="px-4 py-2 text-sm font-medium border border-border bg-surface text-foreground hover:bg-surface-muted rounded-md transition-colors disabled:opacity-50"
+            >
+              キャンセル
+            </button>
+            <button
+              type="button"
+              disabled={isDeletingInvitation}
+              onClick={confirmDeleteInvitation}
+              className="px-4 py-2 text-sm font-semibold bg-red-600 text-white hover:bg-red-700 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isDeletingInvitation ? '削除中...' : '削除'}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
+  );
+}
+
+function RoleBadge({ role }: { role: 'ADMIN' | 'MEMBER' }) {
+  if (role === 'ADMIN') {
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-accent-soft text-accent border border-accent/20">
+        <Shield className="h-3 w-3" />
+        管理者
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-surface-muted text-muted border border-border">
+      メンバー
+    </span>
   );
 }
