@@ -6,7 +6,7 @@ const formatDate = (dateString: string) => {
   return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
 };
 
-export const generatePDFContent = (data: OrderDocument, options?: { hidePrintButton?: boolean; watermarkText?: string }): string => {
+export const generatePDFContent = (data: OrderDocument, options?: { hidePrintButton?: boolean; watermarkText?: string; hideWatermark?: boolean }): string => {
   // 行のタイプ定義
   type TableRow = {
     type: 'category-header';
@@ -572,7 +572,7 @@ export const generatePDFContent = (data: OrderDocument, options?: { hidePrintBut
 
       ${pages.map((pageColumns, pageIndex) => `
       <div class="print-content ${pageIndex < pages.length - 1 ? 'page-break' : ''}">
-        <div class="watermark-container">
+        ${options?.hideWatermark ? '' : `<div class="watermark-container">
           ${(() => {
             const watermarks = [];
             const rows = 8;
@@ -590,7 +590,7 @@ export const generatePDFContent = (data: OrderDocument, options?: { hidePrintBut
 
             return watermarks.join('');
           })()}
-        </div>
+        </div>`}
         <div class="title">
           <h1>資材発注書</h1>
           ${pages.length > 1 ? `<span class="page-indicator">${pageIndex + 1} / ${pages.length}</span>` : ''}

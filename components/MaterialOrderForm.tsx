@@ -633,7 +633,7 @@ export default function MaterialOrderForm({ onSubmit, editMode = false, editOrde
                       className={`px-4 py-3 flex items-center gap-3 sm:gap-4 ${!isLast ? "border-b border-border" : ""}`}
                     >
                       <div className="flex-1 min-w-0">
-                        <div className="text-sm font-semibold text-foreground leading-tight truncate">
+                        <div className="text-sm font-semibold text-foreground leading-tight line-clamp-2 break-words">
                           {material.name}
                         </div>
                         <div className="mt-0.5 text-xs font-mono tabular-nums text-muted">

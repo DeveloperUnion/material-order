@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { generatePDFContent } from '@/components/OrderDocumentHTML';
 import { ArrowLeft, Printer } from 'lucide-react';
 import { useTenant } from '@/lib/tenant/context';
+import { OrderDocument } from '@/types/material-order';
 
 interface OrderDetail {
   id: string;
@@ -36,6 +37,8 @@ export default function OrderPrintPage() {
   const [order, setOrder] = useState<OrderDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [htmlContent, setHtmlContent] = useState<string>('');
+  const [orderDocument, setOrderDocument] = useState<OrderDocument | null>(null);
+  const [showWatermark, setShowWatermark] = useState(true);
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
   const fetchOrderDetail = useCallback(async (id: string) => {
@@ -51,7 +54,7 @@ export default function OrderPrintPage() {
       const data = await response.json();
       setOrder(data.order);
 
-      const orderDocument = {
+      const nextOrderDocument: OrderDocument = {
         orderDate: data.order.deliveryDate || data.order.createdAt,
         ordererName: data.order.customerAddress || '担当者',
         siteName: data.order.customerName,
@@ -66,16 +69,10 @@ export default function OrderPrintPage() {
           totalWeight: item.totalWeight
         })),
         totalWeight: data.order.totalWeight,
-        note: data.order.shippingAddress || ''
       };
+      setOrderDocument(nextOrderDocument);
 
-      const content = generatePDFContent(orderDocument, {
-        hidePrintButton: true,
-        watermarkText: config.title
-      });
-      setHtmlContent(content);
-
-      document.title = `${orderDocument.siteName || '現場名未設定'}-${orderDocument.orderDate.split('T')[0].replace(/-/g, '')}`;
+      document.title = `${nextOrderDocument.siteName || '現場名未設定'}-${nextOrderDocument.orderDate.split('T')[0].replace(/-/g, '')}`;
 
       if (data.order.status !== 'completed') {
         await fetch(`/api/orders/${data.order.id}`, {
@@ -108,13 +105,23 @@ export default function OrderPrintPage() {
     } finally {
       setLoading(false);
     }
-  }, [router, config.title]);
+  }, [router]);
 
   useEffect(() => {
     if (params.id) {
       fetchOrderDetail(params.id as string);
     }
   }, [params.id, fetchOrderDetail]);
+
+  useEffect(() => {
+    if (!orderDocument) return;
+    const content = generatePDFContent(orderDocument, {
+      hidePrintButton: true,
+      watermarkText: config.title,
+      hideWatermark: !showWatermark,
+    });
+    setHtmlContent(content);
+  }, [orderDocument, showWatermark, config.title]);
 
   useEffect(() => {
     if (htmlContent && iframeRef.current && iframeRef.current.contentDocument) {
@@ -132,7 +139,11 @@ export default function OrderPrintPage() {
   };
 
   const handleBack = () => {
-    router.push('/dashboard');
+    if (window.history.length > 1) {
+      router.back();
+    } else {
+      router.push('/dashboard');
+    }
   };
 
   if (loading) {
@@ -166,30 +177,51 @@ export default function OrderPrintPage() {
   return (
     <div className="min-h-screen bg-surface-muted">
       {/* Print toolbar (hidden on print) */}
-      <div className="print:hidden fixed top-[76px] sm:top-[92px] left-0 right-0 z-40 pointer-events-none">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between pointer-events-none">
+      <div className="print:hidden bg-surface border-b border-border">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 flex items-center justify-between gap-3">
           <button
             type="button"
             onClick={handleBack}
-            className="pointer-events-auto flex items-center gap-1.5 px-3 py-2 border border-border bg-surface/95 backdrop-blur text-foreground text-sm font-medium rounded-md hover:bg-surface-muted hover:border-border-strong transition-all shadow-sm"
+            className="flex items-center gap-1 px-2 py-1.5 -ml-2 text-sm text-muted hover:text-foreground hover:bg-surface-muted rounded-md transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
             戻る
           </button>
-          <button
-            type="button"
-            onClick={handlePrint}
-            className="pointer-events-auto flex items-center gap-2 px-4 py-2 bg-foreground text-background text-sm font-semibold rounded-md hover:bg-foreground/90 transition-colors shadow-md"
-          >
-            <Printer className="h-4 w-4" />
-            <span>印刷 / PDFに保存</span>
-          </button>
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="flex items-center gap-2 px-3 h-10 border border-border bg-surface rounded-md">
+              <span className="text-sm font-medium text-foreground select-none">透かし</span>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={showWatermark}
+                aria-label="透かしの表示切替"
+                onClick={() => setShowWatermark((v) => !v)}
+                className={`relative inline-flex h-6 w-10 items-center rounded-full transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface ${
+                  showWatermark ? 'bg-accent' : 'bg-border-strong'
+                }`}
+              >
+                <span
+                  className={`inline-block h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-200 ${
+                    showWatermark ? 'translate-x-[18px]' : 'translate-x-0.5'
+                  }`}
+                />
+              </button>
+            </div>
+            <button
+              type="button"
+              onClick={handlePrint}
+              className="flex items-center justify-center gap-2 h-10 px-3 sm:px-4 bg-foreground text-background text-sm font-semibold rounded-md hover:bg-foreground/90 transition-colors whitespace-nowrap"
+            >
+              <Printer className="h-4 w-4" />
+              <span>印刷 / PDFに保存</span>
+            </button>
+          </div>
         </div>
       </div>
 
       <iframe
         ref={iframeRef}
-        className="w-full h-screen border-none bg-surface"
+        className="block w-full h-[calc(100vh-120px)] sm:h-[calc(100vh-136px)] border-none bg-surface"
         title="発注書印刷プレビュー"
       />
     </div>
