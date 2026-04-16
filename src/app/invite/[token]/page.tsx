@@ -1,8 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Image from 'next/image';
 import { useParams, useRouter } from 'next/navigation';
 import { signIn } from 'next-auth/react';
+import { defaultAppConfig } from '@/lib/tenant/config';
+import { ArrowRight, X, Check, Shield } from 'lucide-react';
 
 interface InvitationInfo {
   email: string;
@@ -20,7 +23,6 @@ export default function InviteRegistrationPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // フォーム
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -53,7 +55,6 @@ export default function InviteRegistrationPage() {
     e.preventDefault();
     setError(null);
 
-    // バリデーション
     if (!name.trim()) {
       setError('名前を入力してください');
       return;
@@ -87,7 +88,6 @@ export default function InviteRegistrationPage() {
 
       setSuccess(true);
 
-      // 自動ログイン
       const signInResult = await signIn('credentials', {
         email: invitation?.email,
         password,
@@ -97,7 +97,6 @@ export default function InviteRegistrationPage() {
       if (signInResult?.ok) {
         router.push('/dashboard');
       } else {
-        // ログインに失敗した場合はログインページへ
         setTimeout(() => router.push('/'), 2000);
       }
     } catch {
@@ -109,10 +108,10 @@ export default function InviteRegistrationPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-slate-700 mx-auto"></div>
-          <p className="mt-4 text-gray-600">招待を確認中...</p>
+          <div className="animate-spin rounded-full h-9 w-9 border-2 border-border border-t-accent mx-auto" />
+          <p className="mt-4 text-sm text-muted">招待を確認中...</p>
         </div>
       </div>
     );
@@ -120,21 +119,21 @@ export default function InviteRegistrationPage() {
 
   if (error && !invitation) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
-        <div className="max-w-md w-full mx-4">
-          <div className="bg-white p-8 rounded-2xl shadow-xl text-center">
-            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
+      <div className="min-h-screen flex items-start justify-center bg-background pt-16 sm:pt-24 px-4">
+        <div className="w-full max-w-md">
+          <div className="bg-surface border border-border rounded-2xl p-7 sm:p-8 shadow-sm text-center">
+            <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-red-50 border border-red-200 flex items-center justify-center">
+              <X className="h-6 w-6 text-red-600" />
             </div>
-            <h2 className="text-xl font-bold text-gray-900 mb-2">招待が無効です</h2>
-            <p className="text-gray-600 mb-6">{error}</p>
+            <h2 className="text-lg font-bold text-foreground mb-2 tracking-tight">招待が無効です</h2>
+            <p className="text-sm text-muted mb-6">{error}</p>
             <button
+              type="button"
               onClick={() => router.push('/')}
-              className="px-6 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-800 transition"
+              className="w-full flex items-center justify-center gap-2 py-3 px-4 text-sm font-semibold rounded-lg text-primary-foreground bg-primary hover:bg-primary/90 transition-colors"
             >
               ログインページへ
+              <ArrowRight className="h-4 w-4" />
             </button>
           </div>
         </div>
@@ -144,16 +143,14 @@ export default function InviteRegistrationPage() {
 
   if (success) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
-        <div className="max-w-md w-full mx-4">
-          <div className="bg-white p-8 rounded-2xl shadow-xl text-center">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
+      <div className="min-h-screen flex items-start justify-center bg-background pt-16 sm:pt-24 px-4">
+        <div className="w-full max-w-md">
+          <div className="bg-surface border border-border rounded-2xl p-7 sm:p-8 shadow-sm text-center">
+            <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center">
+              <Check className="h-6 w-6 text-emerald-600" />
             </div>
-            <h2 className="text-xl font-bold text-gray-900 mb-2">登録完了</h2>
-            <p className="text-gray-600">ダッシュボードへ移動します...</p>
+            <h2 className="text-lg font-bold text-foreground mb-2 tracking-tight">登録完了</h2>
+            <p className="text-sm text-muted">ダッシュボードへ移動します...</p>
           </div>
         </div>
       </div>
@@ -161,38 +158,63 @@ export default function InviteRegistrationPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-start justify-center bg-gradient-to-br from-slate-50 to-slate-100 pt-12 pb-12">
-      <div className="max-w-md w-full mx-4">
+    <div className="min-h-screen flex items-start justify-center bg-background pt-12 sm:pt-16 pb-12 px-4">
+      <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-slate-800">アカウント登録</h1>
-          <p className="mt-2 text-gray-600">
-            {invitation?.tenantName}への招待
+          <Image
+            src={defaultAppConfig.icon}
+            alt={defaultAppConfig.title}
+            width={486}
+            height={823}
+            priority
+            className="mx-auto h-16 sm:h-20 w-auto mb-5"
+          />
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">
+            アカウント登録
+          </h1>
+          <p className="mt-2 text-sm text-muted">
+            <span className="font-semibold text-foreground">{invitation?.tenantName}</span>
+            への招待
           </p>
         </div>
 
-        <div className="bg-white p-8 rounded-2xl shadow-xl">
+        <div className="bg-surface border border-border rounded-2xl p-7 sm:p-8 shadow-sm">
           {/* 招待情報 */}
-          <div className="mb-6 p-4 bg-slate-50 rounded-lg">
-            <div className="text-sm text-gray-600 space-y-1">
-              <p>
-                <span className="font-medium">メールアドレス:</span> {invitation?.email}
-              </p>
-              <p>
-                <span className="font-medium">権限:</span>{' '}
-                {invitation?.role === 'ADMIN' ? '管理者' : 'メンバー'}
-              </p>
+          <div className="mb-5 pb-5 border-b border-border space-y-2.5">
+            <div className="flex items-start gap-3">
+              <span className="font-mono text-[10px] uppercase tracking-wider text-subtle pt-0.5 w-16 flex-shrink-0">
+                メール
+              </span>
+              <span className="text-sm font-medium text-foreground break-all">
+                {invitation?.email}
+              </span>
+            </div>
+            <div className="flex items-start gap-3">
+              <span className="font-mono text-[10px] uppercase tracking-wider text-subtle pt-0.5 w-16 flex-shrink-0">
+                権限
+              </span>
+              {invitation?.role === 'ADMIN' ? (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-accent-soft text-accent border border-accent/20">
+                  <Shield className="h-3 w-3" />
+                  管理者
+                </span>
+              ) : (
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-surface-muted text-muted border border-border">
+                  メンバー
+                </span>
+              )}
             </div>
           </div>
 
           {error && (
-            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
+            <div className="mb-4 px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
               {error}
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="name" className="block text-xs font-medium text-muted mb-2">
                 名前
               </label>
               <input
@@ -202,12 +224,12 @@ export default function InviteRegistrationPage() {
                 onChange={(e) => setName(e.target.value)}
                 required
                 placeholder="山田 太郎"
-                className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-transparent"
+                className="w-full px-4 py-3 border border-border rounded-lg bg-surface text-foreground text-sm placeholder:text-subtle focus:border-accent focus:ring-4 focus:ring-accent/15 transition-all outline-none"
               />
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="password" className="block text-xs font-medium text-muted mb-2">
                 パスワード
               </label>
               <input
@@ -217,12 +239,12 @@ export default function InviteRegistrationPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 placeholder="8文字以上"
-                className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-transparent"
+                className="w-full px-4 py-3 border border-border rounded-lg bg-surface text-foreground text-sm placeholder:text-subtle focus:border-accent focus:ring-4 focus:ring-accent/15 transition-all outline-none"
               />
             </div>
 
             <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="confirmPassword" className="block text-xs font-medium text-muted mb-2">
                 パスワード（確認）
               </label>
               <input
@@ -232,16 +254,17 @@ export default function InviteRegistrationPage() {
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 required
                 placeholder="パスワードを再入力"
-                className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-transparent"
+                className="w-full px-4 py-3 border border-border rounded-lg bg-surface text-foreground text-sm placeholder:text-subtle focus:border-accent focus:ring-4 focus:ring-accent/15 transition-all outline-none"
               />
             </div>
 
             <button
               type="submit"
               disabled={submitting}
-              className="w-full py-3 px-4 bg-slate-700 hover:bg-slate-800 text-white font-semibold rounded-lg transition-all duration-200 disabled:opacity-50 shadow-lg hover:shadow-xl"
+              className="w-full flex items-center justify-center gap-2 py-3 px-4 text-sm font-semibold rounded-lg text-primary-foreground bg-primary hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
             >
-              {submitting ? '登録中...' : '登録する'}
+              <span>{submitting ? '登録中...' : '登録する'}</span>
+              {!submitting && <ArrowRight className="h-4 w-4" />}
             </button>
           </form>
         </div>

@@ -7,7 +7,7 @@ export interface AppConfig {
 
 // デフォルトアプリ設定（ログイン前に表示）
 export const defaultAppConfig: AppConfig = {
-  icon: '/icons/icon_cropped.png',
+  icon: '/brand/logo.png',
   title: 'union資材発注',
   appTitle: 'union資材発注',
 }
