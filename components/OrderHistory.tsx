@@ -410,80 +410,153 @@ export default function OrderHistory() {
               </p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-surface-muted border-b border-border hover:bg-surface-muted">
-                    <TableHead className="text-[11px] font-mono uppercase tracking-wider font-semibold text-muted">現場名</TableHead>
-                    <TableHead className="text-[11px] font-mono uppercase tracking-wider font-semibold text-muted">担当者</TableHead>
-                    <TableHead className="text-[11px] font-mono uppercase tracking-wider font-semibold text-muted">発注日</TableHead>
-                    <TableHead className="text-[11px] font-mono uppercase tracking-wider font-semibold text-muted">積込日</TableHead>
-                    <TableHead className="text-right text-[11px] font-mono uppercase tracking-wider font-semibold text-muted">合計重量</TableHead>
-                    <TableHead className="text-[11px] font-mono uppercase tracking-wider font-semibold text-muted">ステータス</TableHead>
-                    <TableHead className="text-right text-[11px] font-mono uppercase tracking-wider font-semibold text-muted"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {paginatedOrders.map((order) => (
-                    <TableRow
-                      key={order.id}
-                      className="hover:bg-surface-muted border-b border-border"
+            <>
+              {/* モバイル: カード表示 */}
+              <div className="lg:hidden divide-y divide-border">
+                {paginatedOrders.map((order) => (
+                  <div key={order.id} className="p-4 hover:bg-surface-muted transition-colors">
+                    <button
+                      type="button"
+                      onClick={() => handleView(order.id)}
+                      className="w-full text-left"
                     >
-                      <TableCell className="text-sm text-foreground font-medium">
-                        {order.customerName}
-                      </TableCell>
-                      <TableCell className="text-sm text-foreground">
-                        {order.customerAddress}
-                      </TableCell>
-                      <TableCell className="text-sm text-muted font-mono tabular-nums">
-                        {format(new Date(order.createdAt), 'yyyy/MM/dd', { locale: ja })}
-                      </TableCell>
-                      <TableCell className="text-sm text-muted font-mono tabular-nums">
-                        {order.loadingDate
-                          ? format(new Date(order.loadingDate), 'yyyy/MM/dd', { locale: ja })
-                          : '—'}
-                      </TableCell>
-                      <TableCell className="text-right text-sm text-foreground font-mono tabular-nums font-semibold">
-                        {formatWeight(order.totalWeight)}
-                      </TableCell>
-                      <TableCell>{getStatusBadge(order.status)}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-0.5">
-                          <button
-                            onClick={() => handleCopyClick(order)}
-                            className="p-2 rounded-md text-muted hover:text-foreground hover:bg-surface-muted transition-colors"
-                            title="コピー"
-                          >
-                            <Copy className="h-4 w-4" />
-                          </button>
-                          <button
-                            onClick={() => handleView(order.id)}
-                            className="p-2 rounded-md text-muted hover:text-foreground hover:bg-surface-muted transition-colors"
-                            title="詳細表示"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </button>
-                          <button
-                            onClick={() => handleDownload(order.id)}
-                            className="p-2 rounded-md text-muted hover:text-foreground hover:bg-surface-muted transition-colors"
-                            title="発注書出力"
-                          >
-                            <Printer className="h-4 w-4" />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteClick(order)}
-                            className="p-2 rounded-md text-red-500 hover:text-red-600 hover:bg-red-50 transition-colors"
-                            title="削除"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
+                      <div className="flex items-start justify-between gap-3 mb-2">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-semibold text-foreground truncate">
+                            {order.customerName}
+                          </p>
+                          <p className="text-xs text-muted truncate mt-0.5">
+                            {order.customerAddress}
+                          </p>
                         </div>
-                      </TableCell>
+                        <div className="flex-shrink-0">{getStatusBadge(order.status)}</div>
+                      </div>
+                      <div className="flex items-center justify-between text-xs text-muted">
+                        <div className="flex items-center gap-3 font-mono tabular-nums">
+                          <span>
+                            発注 {format(new Date(order.createdAt), 'MM/dd', { locale: ja })}
+                          </span>
+                          {order.loadingDate && (
+                            <span>
+                              積込 {format(new Date(order.loadingDate), 'MM/dd', { locale: ja })}
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-foreground font-semibold font-mono tabular-nums">
+                          {formatWeight(order.totalWeight)}
+                        </span>
+                      </div>
+                    </button>
+                    <div className="mt-3 flex items-center justify-end gap-1 border-t border-border pt-2 -mx-1">
+                      <button
+                        onClick={() => handleCopyClick(order)}
+                        className="flex items-center justify-center h-11 w-11 rounded-md text-muted hover:text-foreground hover:bg-surface-muted active:bg-surface-muted transition-colors"
+                        aria-label="コピー"
+                      >
+                        <Copy className="h-5 w-5" />
+                      </button>
+                      <button
+                        onClick={() => handleView(order.id)}
+                        className="flex items-center justify-center h-11 w-11 rounded-md text-muted hover:text-foreground hover:bg-surface-muted active:bg-surface-muted transition-colors"
+                        aria-label="詳細表示"
+                      >
+                        <Eye className="h-5 w-5" />
+                      </button>
+                      <button
+                        onClick={() => handleDownload(order.id)}
+                        className="flex items-center justify-center h-11 w-11 rounded-md text-muted hover:text-foreground hover:bg-surface-muted active:bg-surface-muted transition-colors"
+                        aria-label="発注書出力"
+                      >
+                        <Printer className="h-5 w-5" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteClick(order)}
+                        className="flex items-center justify-center h-11 w-11 rounded-md text-red-500 hover:text-red-600 hover:bg-red-50 active:bg-red-50 transition-colors"
+                        aria-label="削除"
+                      >
+                        <Trash2 className="h-5 w-5" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* デスクトップ: テーブル表示 */}
+              <div className="hidden lg:block overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-surface-muted border-b border-border hover:bg-surface-muted">
+                      <TableHead className="text-[11px] font-mono uppercase tracking-wider font-semibold text-muted">現場名</TableHead>
+                      <TableHead className="text-[11px] font-mono uppercase tracking-wider font-semibold text-muted">担当者</TableHead>
+                      <TableHead className="text-[11px] font-mono uppercase tracking-wider font-semibold text-muted">発注日</TableHead>
+                      <TableHead className="text-[11px] font-mono uppercase tracking-wider font-semibold text-muted">積込日</TableHead>
+                      <TableHead className="text-right text-[11px] font-mono uppercase tracking-wider font-semibold text-muted">合計重量</TableHead>
+                      <TableHead className="text-[11px] font-mono uppercase tracking-wider font-semibold text-muted">ステータス</TableHead>
+                      <TableHead className="text-right text-[11px] font-mono uppercase tracking-wider font-semibold text-muted"></TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                  </TableHeader>
+                  <TableBody>
+                    {paginatedOrders.map((order) => (
+                      <TableRow
+                        key={order.id}
+                        className="hover:bg-surface-muted border-b border-border"
+                      >
+                        <TableCell className="text-sm text-foreground font-medium">
+                          {order.customerName}
+                        </TableCell>
+                        <TableCell className="text-sm text-foreground">
+                          {order.customerAddress}
+                        </TableCell>
+                        <TableCell className="text-sm text-muted font-mono tabular-nums">
+                          {format(new Date(order.createdAt), 'yyyy/MM/dd', { locale: ja })}
+                        </TableCell>
+                        <TableCell className="text-sm text-muted font-mono tabular-nums">
+                          {order.loadingDate
+                            ? format(new Date(order.loadingDate), 'yyyy/MM/dd', { locale: ja })
+                            : '—'}
+                        </TableCell>
+                        <TableCell className="text-right text-sm text-foreground font-mono tabular-nums font-semibold">
+                          {formatWeight(order.totalWeight)}
+                        </TableCell>
+                        <TableCell>{getStatusBadge(order.status)}</TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-0.5">
+                            <button
+                              onClick={() => handleCopyClick(order)}
+                              className="p-2 rounded-md text-muted hover:text-foreground hover:bg-surface-muted transition-colors"
+                              title="コピー"
+                            >
+                              <Copy className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() => handleView(order.id)}
+                              className="p-2 rounded-md text-muted hover:text-foreground hover:bg-surface-muted transition-colors"
+                              title="詳細表示"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDownload(order.id)}
+                              className="p-2 rounded-md text-muted hover:text-foreground hover:bg-surface-muted transition-colors"
+                              title="発注書出力"
+                            >
+                              <Printer className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteClick(order)}
+                              className="p-2 rounded-md text-red-500 hover:text-red-600 hover:bg-red-50 transition-colors"
+                              title="削除"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
           )}
         </div>
 

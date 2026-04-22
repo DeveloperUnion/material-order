@@ -1,8 +1,9 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter, Zen_Kaku_Gothic_New, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/Header";
 import Providers from "@/components/Providers";
+import PwaRegister from "@/components/PwaRegister";
 import { defaultAppConfig } from "@/lib/tenant/config";
 
 const inter = Inter({
@@ -27,9 +28,33 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: defaultAppConfig.appTitle,
   description: "建設業向けunion資材発注アプリケーション",
-  icons: {
-    apple: defaultAppConfig.icon,
+  applicationName: defaultAppConfig.appTitle,
+  appleWebApp: {
+    capable: true,
+    title: defaultAppConfig.title,
+    statusBarStyle: "default",
   },
+  formatDetection: {
+    telephone: false,
+  },
+  icons: {
+    icon: [
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180" }],
+  },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  viewportFit: "cover",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#06b6d4" },
+    { media: "(prefers-color-scheme: dark)", color: "#06b6d4" },
+  ],
 };
 
 export default function RootLayout({
@@ -45,6 +70,7 @@ export default function RootLayout({
         <Providers>
           <Header />
           {children}
+          <PwaRegister />
         </Providers>
       </body>
     </html>

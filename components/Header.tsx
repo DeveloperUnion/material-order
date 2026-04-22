@@ -26,8 +26,8 @@ export default function Header() {
   }
 
   return (
-    <header className="print:hidden bg-surface border-b border-border">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <header className="print:hidden bg-surface border-b border-border safe-top">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 safe-x">
         <div className="flex justify-between items-center h-16 sm:h-20">
           <button
             type="button"

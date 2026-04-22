@@ -305,6 +305,7 @@ export default function MaterialsPage() {
                   </label>
                   <input
                     type="number"
+                    inputMode="decimal"
                     step="0.01"
                     value={formData.weightKg}
                     onChange={(e) => setFormData({ ...formData, weightKg: e.target.value })}

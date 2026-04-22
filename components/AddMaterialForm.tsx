@@ -134,6 +134,7 @@ export default function AddMaterialForm({
             <input
               {...register("weightKg", { valueAsNumber: true })}
               type="number"
+              inputMode="decimal"
               step="0.0001"
               placeholder="0.0000"
               className="form-input font-mono tabular-nums"
