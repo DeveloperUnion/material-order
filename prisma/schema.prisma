@@ -22,6 +22,7 @@ model Tenant {
   settings  Json?    // ロゴURL、テーマカラー等
   maxUsers  Int      @default(10) @map("max_users") // テナントごとの最大ユーザー数
   isActive  Boolean  @default(true) @map("is_active")
+  isSystem  Boolean  @default(false) @map("is_system") // SUPER_ADMIN 専用テナント（通常の一覧から除外）
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 

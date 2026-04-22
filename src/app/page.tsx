@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Image from 'next/image'
-import { signIn } from 'next-auth/react'
+import { signIn, getSession } from 'next-auth/react'
 import { ArrowRight } from 'lucide-react'
 import { defaultAppConfig } from '@/lib/tenant/config'
 
@@ -29,7 +29,8 @@ export default function Home() {
         return
       }
 
-      window.location.href = '/dashboard'
+      const session = await getSession()
+      window.location.href = session?.user?.role === 'SUPER_ADMIN' ? '/super-admin' : '/dashboard'
     } catch {
       setError('予期しないエラーが発生しました')
     } finally {
