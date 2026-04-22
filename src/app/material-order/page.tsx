@@ -116,7 +116,7 @@ export default function MaterialOrderPage() {
           <div className="rounded-xl p-5 md:p-8 bg-surface border border-border">
             <h2 className="text-sm font-bold mb-4 text-foreground tracking-tight">発注内容確認</h2>
 
-            <div className="grid grid-cols-2 gap-x-6 gap-y-3 mb-6 p-4 bg-surface-muted rounded-lg">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 mb-6 p-4 bg-surface-muted rounded-lg">
               <InfoLine label="注文者" value={orderData.ordererName} />
               <InfoLine label="発注日" value={new Date(orderData.orderDate).toLocaleDateString('ja-JP')} />
               {orderData.siteName && <InfoLine label="現場名" value={orderData.siteName} />}

@@ -25,23 +25,9 @@
   --color-accent-hover: #0891b2;
   --color-accent-soft: #ecfeff;
 
-  /* ===== Semantic ===== */
-  --color-success: #15803d;
-  --color-success-soft: #f0fdf4;
-  --color-warning: #c2410c;
-  --color-danger: #b91c1c;
-
-  /* ===== shadcn/ui compatibility (for components/ui/*) ===== */
+  /* ===== Primary (used by login/invite CTA buttons) ===== */
   --color-primary: #0c0a09;
   --color-primary-foreground: #fafaf9;
-  --color-secondary: #f5f5f4;
-  --color-secondary-foreground: #0c0a09;
-  --color-destructive: #b91c1c;
-  --color-destructive-foreground: #ffffff;
-  --color-input: #e7e5e4;
-  --color-ring: #06b6d4;
-  --color-muted-foreground: #57534e;
-  --color-accent-foreground: #06b6d4;
 
   /* ===== Radius ===== */
   --radius-sm: 6px;
@@ -64,10 +50,34 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   font-feature-settings: "palt";
+  /* iOS PWA スタンドアロン時の下端ホームインジケータ領域を確保 */
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
 * {
   box-sizing: border-box;
+}
+
+/* iOS Safari の過剰なテキスト自動拡大を抑制 */
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+/* PWA スタンドアロン起動時のタップハイライト色を統一 */
+html {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* セーフエリア対応ユーティリティ（Header/固定要素に適用） */
+.safe-top {
+  padding-top: env(safe-area-inset-top);
+}
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.safe-x {
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
 }
 
 ::selection {
@@ -77,6 +87,16 @@ body {
 
 input:focus {
   outline: none;
+}
+
+/* iOS Safari は font-size < 16px の input にフォーカスすると画面を自動拡大する。
+   モバイル幅のみ最低 16px に引き上げて拡大を抑止する（視覚デザインはそのまま）。 */
+@media (max-width: 640px) {
+  input:not([type="checkbox"]):not([type="radio"]),
+  textarea,
+  select {
+    font-size: 16px;
+  }
 }
 
 button {

@@ -658,6 +658,7 @@ export default function MaterialOrderForm({ onSubmit, editMode = false, editOrde
                             <input
                               {...field}
                               type="number"
+                              inputMode="numeric"
                               min="0"
                               step="1"
                               value={field.value ?? ''}
