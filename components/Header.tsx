@@ -12,8 +12,9 @@ export default function Header() {
   const { data: session } = useSession()
   const { config } = useTenant()
 
-  // 未認証系ページではヘッダーを描画しない
-  if (pathname === '/' || pathname.startsWith('/invite/')) return null
+  // 未認証系ページ・SUPER_ADMIN 専用画面では通常ヘッダーを描画しない
+  if (pathname === '/' || pathname.startsWith('/invite/') || pathname.startsWith('/super-admin'))
+    return null
 
   const handleLogout = async () => {
     await signOut({ redirect: false })
