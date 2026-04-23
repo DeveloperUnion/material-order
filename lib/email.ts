@@ -1,6 +1,12 @@
 import { Resend } from 'resend';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Resend は API key が無いと construction 時に throw するため、
+// モジュール読み込み時ではなく送信時に初期化する
+// (RESEND_API_KEY 未設定な CI ビルドでも page collection が通るようにするため)
+function getResendClient(): Resend | null {
+  if (!process.env.RESEND_API_KEY) return null;
+  return new Resend(process.env.RESEND_API_KEY);
+}
 
 interface SendInvitationEmailParams {
   to: string;
@@ -19,8 +25,8 @@ export async function sendInvitationEmail({
   inviteUrl,
   expiresAt,
 }: SendInvitationEmailParams): Promise<{ success: boolean; error?: string }> {
-  // Resend APIキーが設定されていない場合はスキップ
-  if (!process.env.RESEND_API_KEY) {
+  const resend = getResendClient();
+  if (!resend) {
     console.log('RESEND_API_KEY not set, skipping email send');
     return { success: false, error: 'RESEND_API_KEY not configured' };
   }
@@ -36,9 +42,9 @@ export async function sendInvitationEmail({
 
   try {
     const { error } = await resend.emails.send({
-      from: `資材発注管理システム <${fromEmail}>`,
+      from: `union資材発注 <${fromEmail}>`,
       to: [to],
-      subject: `【${tenantName}】資材発注管理システムへの招待`,
+      subject: `【${tenantName}】union資材発注への招待`,
       html: `
         <!DOCTYPE html>
         <html lang="ja">
@@ -55,7 +61,7 @@ export async function sendInvitationEmail({
                   <tr>
                     <td style="background-color: #334155; padding: 30px 40px; text-align: center;">
                       <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 600;">
-                        資材発注管理システム
+                        union資材発注
                       </h1>
                     </td>
                   </tr>
@@ -68,7 +74,7 @@ export async function sendInvitationEmail({
                       </h2>
 
                       <p style="color: #475569; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">
-                        ${inviterName}さんから、${tenantName}の資材発注管理システムに招待されました。
+                        ${inviterName}さんから、${tenantName}のunion資材発注に招待されました。
                       </p>
 
                       <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f8fafc; border-radius: 6px; margin: 20px 0;">

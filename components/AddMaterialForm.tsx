@@ -4,6 +4,13 @@ import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const addMaterialSchema = z.object({
   name: z.string().min(1, "材料名を入力してください"),
@@ -33,9 +40,14 @@ interface AddMaterialFormProps {
   onCancel: () => void;
 }
 
-export default function AddMaterialForm({ categoryId, orderId, onSuccess, onCancel }: AddMaterialFormProps) {
+export default function AddMaterialForm({
+  categoryId,
+  orderId,
+  onSuccess,
+  onCancel,
+}: AddMaterialFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+
   const {
     register,
     handleSubmit,
@@ -85,107 +97,113 @@ export default function AddMaterialForm({ categoryId, orderId, onSuccess, onCanc
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-xl">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold text-slate-800">新しい材料を追加</h2>
-          <button
-            type="button"
-            onClick={onCancel}
-            className="text-slate-400 hover:text-slate-600 text-2xl leading-none"
-          >
-            ×
-          </button>
-        </div>
-        
+    <Dialog open onOpenChange={(open) => { if (!open) onCancel(); }}>
+      <DialogContent className="sm:max-w-md bg-surface rounded-xl">
+        <DialogHeader>
+          <DialogTitle className="text-foreground">新規資材を追加</DialogTitle>
+        </DialogHeader>
+
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-2 text-slate-700">
-              材料名 <span className="text-red-500">*</span>
-            </label>
+          <Field label="材料名" required error={errors.name?.message}>
             <input
               {...register("name")}
               type="text"
-              className="w-full p-3 text-slate-800 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-transparent"
               placeholder="材料名を入力"
+              className="form-input"
             />
-            {errors.name && (
-              <p className="text-red-500 mt-1 text-sm">{errors.name.message}</p>
-            )}
-          </div>
+          </Field>
 
-          <div>
-            <label className="block text-sm font-medium mb-2 text-slate-700">サイズ</label>
+          <Field label="サイズ">
             <input
               {...register("size")}
               type="text"
-              className="w-full p-3 text-slate-800 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-transparent"
               placeholder="例: 1.2×5.1"
+              className="form-input"
             />
-          </div>
+          </Field>
 
-          <div>
-            <label className="block text-sm font-medium mb-2 text-slate-700">
-              種別
-            </label>
+          <Field label="種別" error={errors.type?.message}>
             <input
               {...register("type")}
               type="text"
-              className="w-full p-3 text-slate-800 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-transparent"
+              className="form-input"
             />
-            {errors.type && (
-              <p className="text-red-500 mt-1 text-sm">{errors.type.message}</p>
-            )}
-          </div>
+          </Field>
 
-          <div>
-            <label className="block text-sm font-medium mb-2 text-slate-700">
-              重量(kg) <span className="text-red-500">*</span>
-            </label>
+          <Field label="重量 (kg)" required error={errors.weightKg?.message}>
             <input
               {...register("weightKg", { valueAsNumber: true })}
               type="number"
+              inputMode="decimal"
               step="0.0001"
-              className="w-full p-3 text-slate-800 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-transparent"
               placeholder="0.0000"
+              className="form-input font-mono tabular-nums"
             />
-            {errors.weightKg && (
-              <p className="text-red-500 mt-1 text-sm">{errors.weightKg.message}</p>
-            )}
-          </div>
+          </Field>
 
-          {/* 備考入力フィールド - コメントアウト
-          <div className="relative">
-            <label className="block text-lg font-semibold mb-3 text-slate-700">
-              備考
-            </label>
-            <textarea
-              {...register("note")}
-              className="w-full p-4 text-lg text-slate-800 bg-gray-50 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-slate-400 transition-all duration-200 hover:border-gray-300 placeholder:text-slate-400 resize-none"
-              rows={3}
-              placeholder="特記事項があれば入力"
-            />
-          </div>
-          */}
-
-          <div className="flex space-x-3 pt-4">
+          <DialogFooter className="flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-2">
             <button
               type="button"
               onClick={onCancel}
-              className="flex-1 py-3 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+              disabled={isSubmitting}
+              className="px-4 py-2 text-sm font-medium border border-border bg-surface text-foreground hover:bg-surface-muted rounded-md transition-colors disabled:opacity-50"
             >
               キャンセル
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex-1 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-slate-400 disabled:cursor-not-allowed transition-colors font-medium"
+              className="px-4 py-2 text-sm font-semibold bg-foreground text-background hover:bg-foreground/90 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isSubmitting ? "追加中..." : "追加"}
             </button>
-          </div>
+          </DialogFooter>
         </form>
-      </div>
+
+        <style jsx>{`
+          .form-input {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-md);
+            background: var(--color-surface);
+            font-size: 14px;
+            color: var(--color-foreground);
+            outline: none;
+            transition: border-color 0.15s, box-shadow 0.15s;
+          }
+          .form-input::placeholder {
+            color: var(--color-subtle);
+          }
+          .form-input:focus {
+            border-color: var(--color-accent);
+            box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.15);
+          }
+        `}</style>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function Field({
+  label,
+  required,
+  error,
+  children,
+}: {
+  label: string;
+  required?: boolean;
+  error?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <label className="block text-xs font-medium text-muted mb-1.5">
+        {label}
+        {required && <span className="text-red-600 ml-0.5">*</span>}
+      </label>
+      {children}
+      {error && <p className="mt-1 text-xs text-red-600 font-medium">{error}</p>}
     </div>
   );
 }

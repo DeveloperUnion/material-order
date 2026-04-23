@@ -1,48 +1,87 @@
 @import "tailwindcss";
 
-:root {
-  --background: #f8fafc;
-  --foreground: #0f172a;
-  --primary: #6366f1;
-  --primary-dark: #4f46e5;
-  --accent: #8b5cf6;
-  --border: #e2e8f0;
-  --card-background: #ffffff;
+/* =========================================================
+   Design Tokens — Refined Simple
+   - Neutral base (warm off-white) + cyan accent
+   - All color values live here; components reference tokens.
+   ========================================================= */
+@theme {
+  /* ===== Surfaces ===== */
+  --color-background: #fafaf9;
+  --color-surface: #ffffff;
+  --color-surface-muted: #f5f5f4;
+
+  /* ===== Borders ===== */
+  --color-border: #e7e5e4;
+  --color-border-strong: #d6d3d1;
+
+  /* ===== Text ===== */
+  --color-foreground: #0c0a09;
+  --color-muted: #57534e;
+  --color-subtle: #a8a29e;
+
+  /* ===== Accent (cyan-500) — matches /lease-order brand ===== */
+  --color-accent: #06b6d4;
+  --color-accent-hover: #0891b2;
+  --color-accent-soft: #ecfeff;
+
+  /* ===== Primary (used by login/invite CTA buttons) ===== */
+  --color-primary: #0c0a09;
+  --color-primary-foreground: #fafaf9;
+
+  /* ===== Radius ===== */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
 }
 
+/* Font families are set at use-time (next/font injects variables) */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0f172a;
-    --foreground: #f1f5f9;
-    --primary: #818cf8;
-    --primary-dark: #6366f1;
-    --accent: #a78bfa;
-    --border: #334155;
-    --card-background: #1e293b;
-  }
+  --font-sans: var(--font-inter), var(--font-zen-kaku), ui-sans-serif, system-ui, sans-serif;
+  --font-jp: var(--font-zen-kaku), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-jp);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: "palt";
+  /* iOS PWA スタンドアロン時の下端ホームインジケータ領域を確保 */
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
 * {
   box-sizing: border-box;
 }
 
+/* iOS Safari の過剰なテキスト自動拡大を抑制 */
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+/* PWA スタンドアロン起動時のタップハイライト色を統一 */
+html {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* セーフエリア対応ユーティリティ（Header/固定要素に適用） */
+.safe-top {
+  padding-top: env(safe-area-inset-top);
+}
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.safe-x {
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
 ::selection {
-  background-color: var(--primary);
+  background-color: var(--color-accent);
   color: white;
 }
 
@@ -50,11 +89,26 @@ input:focus {
   outline: none;
 }
 
+/* iOS Safari は font-size < 16px の input にフォーカスすると画面を自動拡大する。
+   モバイル幅のみ最低 16px に引き上げて拡大を抑止する（視覚デザインはそのまま）。 */
+@media (max-width: 640px) {
+  input:not([type="checkbox"]):not([type="radio"]),
+  textarea,
+  select {
+    font-size: 16px;
+  }
+}
+
 button {
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.15s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 button:active {
-  transform: scale(0.98);
+  transform: scale(0.99);
+}
+
+/* Tabular numerics utility — for numbers in stats/lists */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
 }

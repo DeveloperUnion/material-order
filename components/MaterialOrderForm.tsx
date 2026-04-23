@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useEffect, useRef } from "react";
+import React, { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { useForm, Controller, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -10,14 +10,13 @@ import {
 } from "@/types/material-order";
 import { formatWeight, formatTotalWeight } from "@/lib/utils/format";
 import AddMaterialForm from "./AddMaterialForm";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { Search, X, Plus, Minus, ArrowRight, Check, Pencil } from "lucide-react";
 
 const orderFormSchema = z.object({
   ordererName: z.string().min(1, "注文者名を入力してください"),
   siteName: z.string().min(1, "現場名を入力してください"),
   contactInfo: z.string().optional(),
   loadingDate: z.string().optional(),
-  // note: z.string().optional(), // コメントアウト
   materials: z.record(z.number().int().min(0)),
 });
 
@@ -29,7 +28,6 @@ interface EditOrderData {
   siteName: string;
   contactInfo: string;
   loadingDate: string;
-  // note: string; // コメントアウト
   items: Array<{
     id: string;
     name: string;
@@ -57,54 +55,125 @@ type Material = {
   name: string;
   categoryId: string;
   size?: string;
-  type: string;
   weightKg: number;
   isActive: boolean;
 };
 
+// sessionStorage のキーを生成
+function getDraftStorageKey(editMode: boolean, orderId?: string): string {
+  if (editMode && orderId) {
+    return `material-order-draft-edit-${orderId}`;
+  }
+  return 'material-order-draft-new';
+}
+
+interface DraftData {
+  ordererName: string;
+  siteName: string;
+  contactInfo: string;
+  loadingDate: string;
+  materials: Record<string, number>;
+  selectedCategoryId: string;
+  draftOrderId: string | null;
+  savedAt: number;
+}
+
+function loadDraft(storageKey: string): DraftData | null {
+  try {
+    const saved = sessionStorage.getItem(storageKey);
+    if (saved) {
+      return JSON.parse(saved);
+    }
+  } catch {
+    // ignore
+  }
+  return null;
+}
+
 export default function MaterialOrderForm({ onSubmit, editMode = false, editOrderData = null }: MaterialOrderFormProps) {
+  const storageKey = useMemo(
+    () => getDraftStorageKey(editMode, editOrderData?.orderId),
+    [editMode, editOrderData?.orderId]
+  );
+
+  const initialDraft = useRef(loadDraft(storageKey));
+
   const [categories, setCategories] = useState<Category[]>([]);
   const [materials, setMaterials] = useState<Material[]>([]);
-  const [selectedCategoryId, setSelectedCategoryId] = useState<string>("");
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string>(
+    initialDraft.current?.selectedCategoryId || ""
+  );
   const [loading, setLoading] = useState(true);
   const [showAddMaterialForm, setShowAddMaterialForm] = useState(false);
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [editData, setEditData] = useState<EditOrderData | null>(editOrderData);
-  const [draftOrderId, setDraftOrderId] = useState<string | null>(null);
-  const submitButtonRef = useRef<HTMLButtonElement>(null);
+  const [draftOrderId, setDraftOrderId] = useState<string | null>(
+    initialDraft.current?.draftOrderId || null
+  );
+  const [restoredFromDraft, setRestoredFromDraft] = useState(!!initialDraft.current);
+  const isInitializedRef = useRef(!!initialDraft.current);
+  const saveEnabledRef = useRef(false);
 
-  // 編集データが props で渡された場合に設定
+  const clearDraft = useCallback(() => {
+    try {
+      sessionStorage.removeItem(storageKey);
+    } catch {
+      // ignore
+    }
+  }, [storageKey]);
+
   useEffect(() => {
     if (editOrderData) {
       setEditData(editOrderData);
     }
   }, [editOrderData]);
 
+  const draft = initialDraft.current;
   const {
     register,
     control,
     handleSubmit,
     setValue,
     reset,
+    getValues,
+    trigger,
     formState: { errors },
   } = useForm<OrderFormData>({
     resolver: zodResolver(orderFormSchema),
     defaultValues: {
-      ordererName: "",
-      siteName: "",
-      contactInfo: "",
-      loadingDate: "",
-      // note: "", // コメントアウト
-      materials: {},
+      ordererName: draft?.ordererName || "",
+      siteName: draft?.siteName || "",
+      contactInfo: draft?.contactInfo || "",
+      loadingDate: draft?.loadingDate || "",
+      materials: draft?.materials || {},
     },
   });
 
-  // 編集データの読み込みとデータ取得
+  // Step 1 (基本情報) / Step 2 (資材選択) の切り替え
+  const initialStep: 1 | 2 =
+    (draft?.ordererName?.trim() && draft?.siteName?.trim()) ||
+    (editMode && editOrderData)
+      ? 2
+      : 1;
+  const [currentStep, setCurrentStep] = useState<1 | 2>(initialStep);
+
+  const goToStep2 = async () => {
+    const valid = await trigger(['ordererName', 'siteName']);
+    if (valid) {
+      setCurrentStep(2);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const goToStep1 = () => {
+    setCurrentStep(1);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // 編集モードの場合はeditData.orderId、新規の場合はdraftOrderIdを使用
-        const orderId = editMode ? editData?.orderId : draftOrderId;
+        const orderId = editMode ? editData?.orderId : initialDraft.current?.draftOrderId || null;
         const materialsUrl = orderId ? `/api/materials?orderId=${orderId}` : '/api/materials';
 
         const [categoriesRes, materialsRes] = await Promise.all([
@@ -118,75 +187,95 @@ export default function MaterialOrderForm({ onSubmit, editMode = false, editOrde
         setCategories(categoriesData);
         setMaterials(materialsData);
 
-        if (categoriesData.length > 0) {
+        if (categoriesData.length > 0 && !initialDraft.current?.selectedCategoryId) {
           setSelectedCategoryId(categoriesData[0].id);
         }
-
-
       } catch (error) {
         console.error('データの取得に失敗しました:', error);
       } finally {
         setLoading(false);
+        requestAnimationFrame(() => {
+          saveEnabledRef.current = true;
+        });
       }
     };
 
     fetchData();
-  }, [editMode, editData, draftOrderId, setValue]);
+  }, [editMode, editData]);
 
-  // 編集データと資材データが揃ったらフォームを初期化
   useEffect(() => {
-    console.log('Form initialization check:', {
-      editMode,
-      hasEditData: !!editData,
-      materialsCount: materials.length,
-      loading
-    });
-    
+    if (!loading && initialDraft.current) {
+      const draftMaterials = initialDraft.current.materials;
+      if (draftMaterials && Object.keys(draftMaterials).length > 0) {
+        Object.entries(draftMaterials).forEach(([id, qty]) => {
+          setValue(`materials.${id}`, qty as number);
+        });
+      }
+    }
+  }, [loading, setValue]);
+
+  useEffect(() => {
+    if (isInitializedRef.current) return;
+
     if (editMode && editData && materials.length > 0 && !loading) {
-      console.log('Initializing form with edit data:', editData);
-      
-      // 資材の数量を復元
       const materialQuantities: { [key: string]: number } = {};
       editData.items?.forEach((item) => {
         const material = materials.find((m: Material) => m.name === item.name);
         if (material) {
           materialQuantities[material.id] = item.quantity;
-          console.log(`Mapping material: ${item.name} -> ${material.id} (quantity: ${item.quantity})`);
-        } else {
-          console.warn(`Material not found: ${item.name}`);
         }
       });
-      
-      console.log('Material quantities to set:', materialQuantities);
-      
-      // reset()を使用してフォーム全体を再初期化
+
       const formData = {
         ordererName: editData.ordererName || "",
         siteName: editData.siteName || "",
         contactInfo: editData.contactInfo || "",
         loadingDate: editData.loadingDate || "",
-        // note: editData.note || "", // コメントアウト
         materials: materialQuantities,
       };
-      
-      console.log('Resetting form with:', formData);
+
       reset(formData);
+      isInitializedRef.current = true;
     }
   }, [editMode, editData, materials, loading, reset]);
 
-  // useWatchを使用してmaterialsフィールドを監視
   const watchedMaterials = useWatch({
     control,
     name: 'materials',
     defaultValue: {}
   });
-  
-  // デバッグ用
-  useEffect(() => {
-    console.log('watchedMaterials changed (useWatch):', watchedMaterials);
-  }, [watchedMaterials]);
-  
+
+  const watchedFields = useWatch({
+    control,
+    name: ['ordererName', 'siteName', 'contactInfo', 'loadingDate'],
+  });
+
   const selectedMaterials = useMemo(() => watchedMaterials || {}, [watchedMaterials]);
+
+  useEffect(() => {
+    if (loading || !saveEnabledRef.current) return;
+
+    const timer = setTimeout(() => {
+      try {
+        const values = getValues();
+        const draft: DraftData = {
+          ordererName: values.ordererName || "",
+          siteName: values.siteName || "",
+          contactInfo: values.contactInfo || "",
+          loadingDate: values.loadingDate || "",
+          materials: watchedMaterials || {},
+          selectedCategoryId,
+          draftOrderId,
+          savedAt: Date.now(),
+        };
+        sessionStorage.setItem(storageKey, JSON.stringify(draft));
+      } catch {
+        // ignore
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [watchedMaterials, watchedFields, selectedCategoryId, draftOrderId, loading, getValues, storageKey]);
 
   const currentMaterials = useMemo(() => {
     const filtered = materials.filter(m => {
@@ -201,17 +290,13 @@ export default function MaterialOrderForm({ onSubmit, editMode = false, editOrde
       const query = searchQuery.toLowerCase();
       return m.name.toLowerCase().includes(query) ||
              (m.size && m.size.toLowerCase().includes(query)) ||
-             m.type.toLowerCase().includes(query) ||
              m.materialCode.toLowerCase().includes(query);
     });
 
-    // 編集モードの場合は、数量が0より大きいものを優先的に上に表示
     if (editMode) {
       return filtered.sort((a, b) => {
         const quantityA = selectedMaterials[a.id] || 0;
         const quantityB = selectedMaterials[b.id] || 0;
-
-        // 数量が0より大きいものを優先
         if (quantityA > 0 && quantityB === 0) return -1;
         if (quantityA === 0 && quantityB > 0) return 1;
         return 0;
@@ -221,11 +306,15 @@ export default function MaterialOrderForm({ onSubmit, editMode = false, editOrde
     return filtered;
   }, [materials, selectedCategoryId, searchQuery, editMode, selectedMaterials]);
 
+  const categoryTotalCount = useMemo(
+    () => materials.filter(m => m.categoryId === selectedCategoryId && m.isActive).length,
+    [materials, selectedCategoryId]
+  );
+
   const selectedCategory = categories.find(cat => cat.id === selectedCategoryId);
   const isOtherCategory = selectedCategory?.name === 'その他';
 
   const handleAddMaterialClick = async () => {
-    // 新規発注で、まだ draft が作成されていない場合は draft 発注を作成
     if (!editMode && !draftOrderId) {
       try {
         const response = await fetch('/api/orders', {
@@ -246,7 +335,6 @@ export default function MaterialOrderForm({ onSubmit, editMode = false, editOrde
 
         const data = await response.json();
         setDraftOrderId(data.order.id);
-        console.log('Draft order created:', data.order.id);
       } catch (error) {
         console.error('Draft order creation failed:', error);
         alert('下書き発注の作成に失敗しました');
@@ -261,41 +349,19 @@ export default function MaterialOrderForm({ onSubmit, editMode = false, editOrde
     setShowAddMaterialForm(false);
   };
 
-  // 注文ボタンまでスクロールする関数
-  const scrollToSubmit = () => {
-    if (submitButtonRef.current) {
-      submitButtonRef.current.scrollIntoView({
-        behavior: 'smooth',
-        block: 'center'
-      });
-    }
-  };
-
-  // 一番上までスクロールする関数
-  const scrollToTop = () => {
-    window.scrollTo({
-      top: 0,
-      behavior: 'smooth'
-    });
-  };
-
   const orderItems = useMemo(() => {
     const items: MaterialOrderItem[] = [];
-    const unitWeights: number[] = []; // 単位重量のみ（最小重量判定用）
+    const unitWeights: number[] = [];
     let total = 0;
-    
-    console.log('orderItems recalculating, selectedMaterials:', selectedMaterials);
-    
+
     Object.entries(selectedMaterials).forEach(([materialId, quantity]) => {
       if (quantity > 0) {
         const material = materials.find((m) => m.id === materialId);
-        
+
         if (material) {
           const materialWeight = Number(material.weightKg);
           const totalWeight = Math.round((materialWeight * Number(quantity)) * 10000) / 10000;
-          console.log(`Material ${material.name}: ${quantity} x ${materialWeight}kg = ${totalWeight}kg`);
-          console.log(`Running total before adding: ${total}`);
-          
+
           items.push({
             id: material.id,
             name: material.name,
@@ -304,347 +370,439 @@ export default function MaterialOrderForm({ onSubmit, editMode = false, editOrde
             weightPerUnit: materialWeight,
             totalWeight: totalWeight,
           });
-          
-          // 単位重量を記録（重複なし、最小重量判定用）
+
           if (!unitWeights.includes(materialWeight)) {
             unitWeights.push(materialWeight);
           }
-          
+
           total += totalWeight;
-          console.log(`Running total after adding: ${total}`);
         }
       }
     });
 
-    // 浮動小数点演算の精度問題を回避
     total = Math.round(total * 10000) / 10000;
-    
-    console.log('Total weight calculated:', total);
-    console.log('Unit weights for precision:', unitWeights);
     return { items, totalWeight: total, unitWeights };
   }, [selectedMaterials, materials, categories]);
 
   const handleQuantityChange = (materialId: string, delta: number) => {
     const currentValue = selectedMaterials[materialId] || 0;
     const newValue = Math.max(0, currentValue + delta);
-    setValue(`materials.${materialId}`, newValue, { 
+    setValue(`materials.${materialId}`, newValue, {
       shouldValidate: true,
       shouldDirty: true,
-      shouldTouch: true 
+      shouldTouch: true
+    });
+  };
+
+  const removeSelected = (materialId: string) => {
+    setValue(`materials.${materialId}`, 0, {
+      shouldValidate: true,
+      shouldDirty: true,
+      shouldTouch: true,
     });
   };
 
   const onFormSubmit = (data: OrderFormData) => {
+    // 基本情報画面で誤ってフォーム送信された場合のガード
+    if (currentStep !== 2) return;
     const orderDocument: OrderDocument = {
       ordererName: data.ordererName,
       siteName: data.siteName,
       contactInfo: data.contactInfo,
       loadingDate: data.loadingDate,
       orderDate: new Date().toISOString(),
-      // note: data.note, // コメントアウト
       items: orderItems.items,
       totalWeight: orderItems.totalWeight,
     };
     onSubmit(orderDocument);
   };
 
+  const totalItemCount = orderItems.items.reduce((sum, item) => sum + item.quantity, 0);
+  const hasItems = orderItems.items.length > 0;
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4 flex items-center justify-center">
-        <div className="text-slate-600">データを読み込み中...</div>
+      <div className="min-h-[60vh] flex items-center justify-center">
+        <div className="text-muted text-sm">データを読み込み中...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-slate-100 p-6">
-      <form onSubmit={handleSubmit(onFormSubmit)} className="max-w-6xl mx-auto">
-        <div className="text-center mb-10">
-          <h1 className="text-3xl font-bold mb-4 text-slate-800">
-            {editMode ? '発注書編集' : '資材発注書作成'}
-          </h1>
-          <div className="h-1 w-24 mx-auto bg-slate-300 rounded-full"></div>
+    <div className="pb-28 lg:pb-10">
+      <form onSubmit={handleSubmit(onFormSubmit)}>
+        {restoredFromDraft && (
+          <div className="mb-4 px-4 py-3 bg-accent-soft border border-accent/20 rounded-xl flex items-center justify-between gap-3">
+            <span className="text-sm text-accent-hover font-medium">前回の入力内容を復元しました</span>
+            <button
+              type="button"
+              onClick={() => {
+                clearDraft();
+                reset({
+                  ordererName: "",
+                  siteName: "",
+                  contactInfo: "",
+                  loadingDate: "",
+                  materials: {},
+                });
+                setRestoredFromDraft(false);
+              }}
+              className="px-3 py-1 text-xs font-medium border border-border bg-surface text-foreground hover:bg-surface-muted rounded-md transition-colors"
+            >
+              クリア
+            </button>
+          </div>
+        )}
+
+        {/* Steps indicator */}
+        <div className="mb-5 px-4 sm:px-5 py-3 bg-surface border border-border rounded-xl flex items-center gap-2 sm:gap-3 overflow-x-auto">
+          <Step num={1} label="情報入力" state={currentStep === 1 ? 'current' : 'done'} />
+          <div className="h-px w-6 sm:w-10 bg-border flex-shrink-0" />
+          <Step num={2} label="資材選択" state={currentStep === 2 ? 'current' : 'pending'} />
+          <div className="h-px w-6 sm:w-10 bg-border flex-shrink-0" />
+          <Step num={3} label="確認" state="pending" />
         </div>
 
-        <div className="space-y-6 mb-10 bg-white p-8 rounded-2xl shadow-xl border border-gray-200">
-          <div className="relative">
-            <label className="block text-lg font-semibold mb-3 text-slate-700">
-              注文者名 <span className="text-red-500">*</span>
-            </label>
-            <input
-              {...register("ordererName")}
-              type="text"
-              className="w-full p-4 text-lg text-slate-800 bg-gray-50 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-slate-400 transition-all duration-200 hover:border-gray-300 placeholder:text-slate-400"
-              placeholder="山田太郎"
-            />
-            {errors.ordererName && (
-              <p className="text-red-500 mt-2 text-sm font-medium">{errors.ordererName.message}</p>
-            )}
-          </div>
+        {/* STEP 1: 基本情報 */}
+        {currentStep === 1 && (
+          <>
+            <section className="mb-5 bg-surface border border-border rounded-xl p-5 sm:p-6">
+              <h2 className="text-sm font-bold text-foreground mb-4 tracking-tight">基本情報</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Field label="注文者名" required error={errors.ordererName?.message}>
+                  <input
+                    {...register("ordererName")}
+                    type="text"
+                    placeholder="山田太郎"
+                    className="input"
+                  />
+                </Field>
 
-          <div className="relative">
-            <label className="block text-lg font-semibold mb-3 text-slate-700">
-              現場名 <span className="text-red-500">*</span>
-            </label>
-            <input
-              {...register("siteName")}
-              type="text"
-              className="w-full p-4 text-lg text-slate-800 bg-gray-50 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-slate-400 transition-all duration-200 hover:border-gray-300 placeholder:text-slate-400"
-              placeholder="〇〇ビル新築工事"
-            />
-            {errors.siteName && (
-              <p className="text-red-500 mt-2 text-sm font-medium">{errors.siteName.message}</p>
-            )}
-          </div>
+                <Field label="現場名" required error={errors.siteName?.message}>
+                  <input
+                    {...register("siteName")}
+                    type="text"
+                    placeholder="〇〇ビル新築工事"
+                    className="input"
+                  />
+                </Field>
 
-          <div className="relative">
-            <label className="block text-lg font-semibold mb-3 text-slate-700">
-              連絡先
-            </label>
-            <input
-              {...register("contactInfo")}
-              type="text"
-              className="w-full p-4 text-lg text-slate-800 bg-gray-50 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-slate-400 transition-all duration-200 hover:border-gray-300 placeholder:text-slate-400"
-              placeholder="090-1234-5678"
-            />
-            {errors.contactInfo && (
-              <p className="text-red-500 mt-2 text-sm font-medium">{errors.contactInfo.message}</p>
-            )}
-          </div>
+                <Field label="連絡先" error={errors.contactInfo?.message}>
+                  <input
+                    {...register("contactInfo")}
+                    type="text"
+                    placeholder="090-1234-5678"
+                    className="input"
+                  />
+                </Field>
 
-          <div className="relative">
-            <label className="block text-lg font-semibold mb-3 text-slate-700">
-              積込日
-            </label>
-            <input
-              {...register("loadingDate")}
-              type="date"
-              placeholder="積込予定日を選択"
-              className="w-full p-4 text-lg text-slate-800 bg-gray-50 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-slate-400 transition-all duration-200 hover:border-gray-300 placeholder:text-slate-400"
-            />
-            {errors.loadingDate && (
-              <p className="text-red-500 mt-2 text-sm font-medium">{errors.loadingDate.message}</p>
-            )}
-          </div>
+                <Field label="積込日" error={errors.loadingDate?.message}>
+                  <input
+                    {...register("loadingDate")}
+                    type="date"
+                    className="input"
+                  />
+                </Field>
+              </div>
+            </section>
 
-          {/* 備考入力フィールド - コメントアウト
-          <div className="relative">
-            <label className="block text-lg font-semibold mb-3 text-slate-700">
-              備考
-            </label>
-            <textarea
-              {...register("note")}
-              className="w-full p-4 text-lg text-slate-800 bg-gray-50 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-slate-400 transition-all duration-200 hover:border-gray-300 placeholder:text-slate-400 resize-none"
-              rows={3}
-              placeholder="特記事項があれば入力"
-            />
-          </div>
-          */}
-        </div>
-
-        <div className="mb-10 bg-white p-8 rounded-2xl shadow-xl border border-gray-200">
-          <label className="block text-2xl font-bold mb-6 text-slate-800 text-center">
-            資材カテゴリー
-          </label>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-            {categories.map((category) => (
-              <button
-                key={category.id}
-                type="button"
-                onClick={() => setSelectedCategoryId(category.id)}
-                className={`px-6 py-4 rounded-xl font-semibold text-lg transition-all duration-200 transform hover:scale-105 shadow-md ${
-                  selectedCategoryId === category.id
-                    ? "bg-slate-800 text-white shadow-lg shadow-slate-300"
-                    : "bg-gray-50 text-slate-700 hover:bg-gray-100 border border-gray-200 hover:shadow-lg"
-                }`}
-              >
-                {category.name}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="space-y-6 mb-8">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-3xl font-bold text-slate-800">
-              資材選択
-            </h2>
-            {isOtherCategory && (
+            <div className="flex justify-end">
               <button
                 type="button"
-                onClick={handleAddMaterialClick}
-                className="px-6 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-all duration-200 font-semibold shadow-md hover:shadow-lg transform hover:scale-105 flex items-center space-x-2"
+                onClick={goToStep2}
+                className="w-full sm:w-auto px-6 py-3 bg-foreground text-background font-semibold text-sm rounded-md flex items-center justify-center gap-2 hover:bg-foreground/90 transition-colors"
               >
-                <span>材料を追加</span>
+                資材選択へ
+                <ArrowRight className="h-4 w-4" />
               </button>
-            )}
-          </div>
-          
-          <div className="bg-white p-6 rounded-2xl shadow-xl border border-gray-200">
-            <label className="block text-lg font-semibold mb-4 text-slate-700">
-              資材検索
-            </label>
-            <div className="relative">
+            </div>
+          </>
+        )}
+
+        {/* STEP 2: 資材選択 */}
+        {currentStep === 2 && (
+          <>
+            {/* 情報サマリー */}
+            <div className="mb-5 bg-surface border border-border rounded-xl px-4 sm:px-5 py-3 flex items-center gap-2 sm:gap-5 overflow-x-auto">
+              <InfoSummaryItem label="注文者" value={watchedFields?.[0]} />
+              <div className="h-6 w-px bg-border flex-shrink-0" />
+              <InfoSummaryItem label="現場" value={watchedFields?.[1]} />
+              {watchedFields?.[2] && (
+                <>
+                  <div className="h-6 w-px bg-border flex-shrink-0" />
+                  <InfoSummaryItem label="連絡先" value={watchedFields[2]} />
+                </>
+              )}
+              {watchedFields?.[3] && (
+                <>
+                  <div className="h-6 w-px bg-border flex-shrink-0" />
+                  <InfoSummaryItem
+                    label="積込日"
+                    value={new Date(watchedFields[3]).toLocaleDateString('ja-JP')}
+                  />
+                </>
+              )}
+              <button
+                type="button"
+                onClick={goToStep1}
+                className="ml-auto flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-muted border border-border bg-surface hover:bg-surface-muted rounded-md transition-colors flex-shrink-0"
+              >
+                <Pencil className="h-3 w-3" />
+                編集
+              </button>
+            </div>
+
+            <div className="grid lg:grid-cols-[1fr_360px] gap-5">
+          {/* LEFT: browser */}
+          <div className="min-w-0 space-y-3">
+            {/* Categories */}
+            <div className="bg-surface border border-border rounded-xl p-2.5 flex gap-1.5 overflow-x-auto">
+              {categories.map((category) => {
+                const isActive = selectedCategoryId === category.id;
+                return (
+                  <button
+                    key={category.id}
+                    type="button"
+                    onClick={() => setSelectedCategoryId(category.id)}
+                    className={`px-3.5 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors border ${
+                      isActive
+                        ? "bg-foreground text-background border-foreground"
+                        : "bg-surface text-foreground border-border hover:bg-surface-muted"
+                    }`}
+                  >
+                    {category.name}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Search */}
+            <div className="bg-surface border border-border rounded-xl px-4 py-3 flex items-center gap-3">
+              <Search className="h-4 w-4 text-subtle flex-shrink-0" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full p-4 text-lg text-slate-800 bg-gray-50 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-slate-400 transition-all duration-200 hover:border-gray-300 placeholder:text-slate-400 pr-12"
-                placeholder="資材名で検索..."
+                placeholder="資材名・サイズ・コードで検索"
+                className="flex-1 border-0 outline-none bg-transparent text-sm text-foreground placeholder:text-subtle"
               />
-              <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                <div className="w-8 h-8 bg-slate-700 rounded-lg flex items-center justify-center">
-                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                  </svg>
-                </div>
-              </div>
-            </div>
-            {searchQuery && (
-              <div className="flex justify-between items-center mt-4 p-3 bg-gray-50 rounded-xl border border-gray-200">
-                <span className="text-slate-700 font-medium">
-                  {currentMaterials.length}件見つかりました
-                </span>
+              {searchQuery && (
                 <button
                   type="button"
                   onClick={() => setSearchQuery("")}
-                  className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition-colors font-medium"
+                  className="text-subtle hover:text-foreground transition-colors"
+                  aria-label="クリア"
                 >
-                  クリア
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+              <span className="font-mono text-[11px] text-muted px-2.5 py-1 rounded-full bg-surface-muted tabular-nums tracking-wide">
+                {searchQuery ? `${currentMaterials.length} / ${categoryTotalCount}` : `${categoryTotalCount} 件`}
+              </span>
+            </div>
+
+            {/* Toolbar (add custom material for その他) */}
+            {isOtherCategory && (
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={handleAddMaterialClick}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border border-border bg-surface text-foreground hover:bg-surface-muted rounded-md transition-colors"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  材料を追加
                 </button>
               </div>
             )}
+
+            {/* Material list */}
+            <div className="bg-surface border border-border rounded-xl overflow-hidden">
+              {currentMaterials.length === 0 ? (
+                <div className="px-5 py-10 text-center text-sm text-subtle">
+                  {searchQuery ? "該当する資材がありません" : "資材が登録されていません"}
+                </div>
+              ) : (
+                currentMaterials.map((material, idx) => {
+                  const qty = Number(selectedMaterials[material.id] || 0);
+                  const unitWeight = Number(material.weightKg);
+                  const rowTotal = qty * unitWeight;
+                  const isLast = idx === currentMaterials.length - 1;
+                  return (
+                    <div
+                      key={material.id}
+                      className={`px-4 py-3 flex items-center gap-3 sm:gap-4 ${!isLast ? "border-b border-border" : ""}`}
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-semibold text-foreground leading-tight line-clamp-2 break-words">
+                          {material.name}
+                        </div>
+                        <div className="mt-0.5 text-xs font-mono tabular-nums text-muted">
+                          {formatWeight(unitWeight)}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center border border-border rounded-md overflow-hidden flex-shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => handleQuantityChange(material.id, -1)}
+                          className="w-8 h-8 flex items-center justify-center text-muted hover:bg-surface-muted hover:text-foreground transition-colors"
+                          aria-label="減らす"
+                        >
+                          <Minus className="h-3.5 w-3.5" />
+                        </button>
+                        <Controller
+                          name={`materials.${material.id}`}
+                          control={control}
+                          defaultValue={0}
+                          render={({ field }) => (
+                            <input
+                              {...field}
+                              type="number"
+                              inputMode="numeric"
+                              min="0"
+                              step="1"
+                              value={field.value ?? ''}
+                              onChange={(e) => {
+                                const inputValue = e.target.value;
+                                if (inputValue === '') {
+                                  field.onChange('');
+                                  return;
+                                }
+                                const value = parseInt(inputValue);
+                                if (isNaN(value)) {
+                                  field.onChange(0);
+                                } else {
+                                  field.onChange(Math.max(0, value));
+                                }
+                              }}
+                              onFocus={(e) => e.target.select()}
+                              onBlur={(e) => {
+                                if (e.target.value === '' || e.target.value === null) {
+                                  field.onChange(0);
+                                }
+                              }}
+                              className="w-11 h-8 text-center text-sm font-semibold font-mono tabular-nums border-x border-border bg-transparent text-foreground outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            />
+                          )}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleQuantityChange(material.id, 1)}
+                          className="w-8 h-8 flex items-center justify-center text-muted hover:bg-surface-muted hover:text-foreground transition-colors"
+                          aria-label="増やす"
+                        >
+                          <Plus className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+
+                      <div className="min-w-[70px] text-right font-mono text-sm tabular-nums font-semibold flex-shrink-0">
+                        {qty > 0 ? (
+                          <span className="text-foreground">{formatWeight(rowTotal)}</span>
+                        ) : (
+                          <span className="text-subtle font-normal">—</span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
           </div>
-        {currentMaterials.map((material) => (
-          <div
-            key={material.id}
-            className="bg-white rounded-2xl p-4 md:p-6 shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-[1.01] border border-gray-200"
-          >
-            <div className="mb-4">
-              <h3 className="text-lg md:text-xl font-bold text-slate-800 mb-2">{material.name}</h3>
-              <div className="flex items-center space-x-2">
-                <span className="px-3 py-1 bg-blue-100 text-blue-800 text-sm font-medium rounded-full">
-                  {formatWeight(Number(material.weightKg))}
+
+          {/* RIGHT: sticky summary (desktop) */}
+          <aside className="hidden lg:block">
+            <div className="sticky top-5 bg-surface border border-border rounded-xl overflow-hidden flex flex-col max-h-[calc(100vh-40px)]">
+              <div className="px-5 py-3.5 border-b border-border flex items-center justify-between">
+                <h2 className="text-sm font-bold tracking-tight">選択中の資材</h2>
+                <span className="font-mono text-[11px] font-semibold px-2.5 py-1 rounded-full bg-accent-soft text-accent tabular-nums">
+                  {orderItems.items.length} 品
                 </span>
               </div>
-            </div>
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0 sm:space-x-4">
-              <div className="flex items-center justify-center sm:justify-start space-x-3 md:space-x-4">
-                <button
-                  type="button"
-                  onClick={() => handleQuantityChange(material.id, -1)}
-                  className="w-10 h-10 md:w-12 md:h-12 bg-slate-600 text-white rounded-xl text-lg md:text-xl font-bold hover:bg-slate-700 shadow-md hover:shadow-lg transition-all duration-200 active:scale-95"
-                >
-                  −
-                </button>
-                <Controller
-                  name={`materials.${material.id}`}
-                  control={control}
-                  defaultValue={0}
-                  render={({ field }) => (
-                    <input
-                      {...field}
-                      type="number"
-                      min="0"
-                      step="1"
-                      value={field.value ?? ''}
-                      onChange={(e) => {
-                        const inputValue = e.target.value;
-                        // 空文字の場合はそのまま空文字を設定（0にしない）
-                        if (inputValue === '') {
-                          field.onChange('');
-                          return;
-                        }
-                        const value = parseInt(inputValue);
-                        // 数値でない場合は0、負の数の場合は0にする
-                        if (isNaN(value)) {
-                          field.onChange(0);
-                        } else {
-                          field.onChange(Math.max(0, value));
-                        }
-                      }}
-                      onFocus={(e) => {
-                        // フォーカス時に全選択
-                        e.target.select();
-                      }}
-                      onBlur={(e) => {
-                        // フォーカスが外れた時に空文字なら0にする
-                        if (e.target.value === '' || e.target.value === null) {
-                          field.onChange(0);
-                        }
-                      }}
-                      className="w-16 md:w-20 text-center text-lg md:text-xl bg-white border-2 border-gray-300 rounded-xl p-2 font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 hover:border-gray-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                    />
-                  )}
-                />
-                <button
-                  type="button"
-                  onClick={() => handleQuantityChange(material.id, 1)}
-                  className="w-10 h-10 md:w-12 md:h-12 bg-slate-600 text-white rounded-xl text-lg md:text-xl font-bold hover:bg-slate-700 shadow-md hover:shadow-lg transition-all duration-200 active:scale-95"
-                >
-                  +
-                </button>
+
+              <div className="flex-1 overflow-y-auto py-1 max-h-[min(340px,40vh)]">
+                {orderItems.items.length === 0 ? (
+                  <div className="px-5 py-10 text-center text-xs text-subtle leading-relaxed">
+                    まだ資材が選択されていません。
+                    <br />
+                    左のリストから数量を入力してください。
+                  </div>
+                ) : (
+                  orderItems.items.map((item) => (
+                    <div key={item.id} className="px-5 py-2.5 flex items-start gap-3 hover:bg-surface-muted transition-colors">
+                      <div className="flex-1 min-w-0">
+                        <div className="text-xs font-semibold text-foreground leading-snug truncate">
+                          {item.name}
+                        </div>
+                        <div className="mt-0.5 font-mono text-[11px] tabular-nums text-subtle">
+                          {formatWeight(item.weightPerUnit)} × {item.quantity}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <span className="font-mono text-xs font-semibold tabular-nums text-foreground">
+                          {formatWeight(item.totalWeight)}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => removeSelected(item.id)}
+                          className="w-5 h-5 flex items-center justify-center text-subtle hover:bg-red-50 hover:text-red-600 rounded-full transition-colors"
+                          aria-label={`${item.name}を削除`}
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
-              <div className="flex justify-center sm:justify-end">
-                <div className="px-3 py-2 md:px-4 md:py-2 bg-orange-100 text-orange-800 font-bold text-base md:text-lg rounded-xl max-w-full overflow-hidden">
-                  {formatWeight(Number(selectedMaterials[material.id] || 0) * Number(material.weightKg))}
+
+              <div className="px-5 py-4 bg-surface-muted border-t border-border space-y-2">
+                <div className="flex justify-between text-xs text-muted">
+                  <span>合計点数</span>
+                  <span className="font-mono font-semibold tabular-nums text-foreground">{totalItemCount} 個</span>
+                </div>
+                <div className="flex items-baseline justify-between pt-2 border-t border-border">
+                  <span className="text-xs text-muted">合計重量</span>
+                  <span className="font-sans text-2xl font-bold tracking-tight tabular-nums text-foreground">
+                    {formatTotalWeight(orderItems.totalWeight)}
+                  </span>
                 </div>
               </div>
-            </div>
-          </div>
-        ))}
-      </div>
 
-        <div className="bg-white rounded-2xl p-8 shadow-xl border border-gray-200 mb-8">
-          <div className="text-center mb-6">
-            <div className="text-slate-500 text-sm font-medium uppercase tracking-wider mb-2">合計重量</div>
-            <div className="text-4xl font-bold text-slate-800">
-              {formatTotalWeight(orderItems.totalWeight)}
+              <button
+                type="submit"
+                disabled={!hasItems}
+                className="m-3 px-4 py-3 bg-foreground text-background font-semibold text-sm rounded-md flex items-center justify-center gap-2 hover:bg-foreground/90 disabled:bg-subtle disabled:cursor-not-allowed transition-colors"
+              >
+                {editMode ? "発注書を更新" : "発注書を作成"}
+                <ArrowRight className="h-4 w-4" />
+              </button>
             </div>
-          </div>
-          <div className="flex justify-center items-center space-x-8 text-slate-600">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-slate-800">{orderItems.items.length}</div>
-              <div className="text-sm font-medium">選択資材</div>
+          </aside>
             </div>
-            <div className="w-px h-12 bg-gray-300"></div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-slate-800">
-                {orderItems.items.reduce((sum, item) => sum + item.quantity, 0)}
+
+            {/* Mobile fixed bottom bar */}
+            <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-surface border-t border-border px-4 py-3 flex items-center gap-3 z-30 shadow-[0_-4px_12px_rgba(12,10,9,0.06)]">
+              <div className="flex-1 min-w-0">
+                <div className="text-[10px] font-mono tracking-wider text-subtle uppercase tabular-nums">
+                  {orderItems.items.length} 品 · {totalItemCount} 個
+                </div>
+                <div className="text-lg font-bold tracking-tight tabular-nums text-foreground leading-tight">
+                  {formatTotalWeight(orderItems.totalWeight)}
+                </div>
               </div>
-              <div className="text-sm font-medium">合計点数</div>
+              <button
+                type="submit"
+                disabled={!hasItems}
+                className="px-5 py-3 bg-foreground text-background font-semibold text-sm rounded-md flex items-center gap-2 hover:bg-foreground/90 disabled:bg-subtle disabled:cursor-not-allowed transition-colors flex-shrink-0"
+              >
+                {editMode ? "更新" : "発注書を作成"}
+                <ArrowRight className="h-4 w-4" />
+              </button>
             </div>
-          </div>
-        </div>
-
-        <button
-          ref={submitButtonRef}
-          type="submit"
-          disabled={orderItems.items.length === 0}
-          className="w-full py-5 bg-gradient-to-r from-slate-800 to-slate-700 text-white text-xl font-bold rounded-xl hover:from-slate-900 hover:to-slate-800 disabled:from-gray-400 disabled:to-gray-400 disabled:cursor-not-allowed shadow-xl hover:shadow-2xl transition-all duration-200 transform hover:-translate-y-1 active:scale-[0.98]"
-        >
-          {editMode ? '発注書を更新' : '発注書を作成'}
-        </button>
+          </>
+        )}
       </form>
-      
-      {/* スクロールボタン */}
-      <div className="fixed bottom-6 right-6 flex flex-col space-y-3 z-50">
-        <button
-          onClick={scrollToTop}
-          className="w-14 h-14 bg-slate-700 hover:bg-slate-800 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-110 active:scale-95 flex items-center justify-center"
-          title="一番上まで移動"
-        >
-          <ChevronUp className="h-6 w-6" />
-        </button>
-        <button
-          onClick={scrollToSubmit}
-          className="w-14 h-14 bg-slate-700 hover:bg-slate-800 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-110 active:scale-95 flex items-center justify-center"
-          title="注文ボタンまで移動"
-        >
-          <ChevronDown className="h-6 w-6" />
-        </button>
-      </div>
-      
+
       {showAddMaterialForm && (
         <AddMaterialForm
           categoryId={selectedCategoryId}
@@ -652,6 +810,114 @@ export default function MaterialOrderForm({ onSubmit, editMode = false, editOrde
           onSuccess={handleAddMaterial}
           onCancel={() => setShowAddMaterialForm(false)}
         />
+      )}
+
+      <style jsx>{`
+        .input {
+          width: 100%;
+          padding: 10px 14px;
+          border: 1px solid var(--color-border);
+          border-radius: var(--radius-md);
+          background: var(--color-surface);
+          font-size: 14px;
+          color: var(--color-foreground);
+          outline: none;
+          transition: border-color 0.15s, box-shadow 0.15s;
+        }
+        .input::placeholder {
+          color: var(--color-subtle);
+        }
+        .input:focus {
+          border-color: var(--color-accent);
+          box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.15);
+        }
+      `}</style>
+    </div>
+  );
+}
+
+/* ============ Sub-components ============ */
+
+function Step({
+  num,
+  label,
+  state,
+}: {
+  num: number;
+  label: string;
+  state: "done" | "current" | "pending";
+}) {
+  return (
+    <div
+      className={`flex items-center gap-2 flex-shrink-0 ${
+        state === "current"
+          ? "text-foreground"
+          : state === "done"
+          ? "text-muted"
+          : "text-subtle"
+      }`}
+    >
+      <span
+        className={`w-6 h-6 rounded-full flex items-center justify-center font-mono text-[11px] font-semibold border ${
+          state === "current"
+            ? "bg-accent border-accent text-white ring-4 ring-accent/15"
+            : state === "done"
+            ? "bg-foreground border-foreground text-background"
+            : "bg-surface border-border text-subtle"
+        }`}
+      >
+        {state === "done" ? <Check className="w-3 h-3" strokeWidth={3} /> : num}
+      </span>
+      <span
+        className={`text-xs sm:text-sm tracking-tight ${
+          state === "current" ? "font-semibold" : "font-medium"
+        }`}
+      >
+        {label}
+      </span>
+    </div>
+  );
+}
+
+function InfoSummaryItem({
+  label,
+  value,
+}: {
+  label: string;
+  value?: string | null;
+}) {
+  return (
+    <div className="flex flex-col flex-shrink-0 min-w-0">
+      <span className="font-mono text-[10px] uppercase tracking-wider text-subtle leading-none mb-1">
+        {label}
+      </span>
+      <span className="text-[13px] font-semibold text-foreground leading-none truncate">
+        {value || "—"}
+      </span>
+    </div>
+  );
+}
+
+function Field({
+  label,
+  required,
+  error,
+  children,
+}: {
+  label: string;
+  required?: boolean;
+  error?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <label className="block text-xs font-medium text-muted mb-1.5">
+        {label}
+        {required && <span className="text-red-600 ml-0.5">*</span>}
+      </label>
+      {children}
+      {error && (
+        <p className="mt-1 text-xs text-red-600 font-medium">{error}</p>
       )}
     </div>
   );

@@ -106,9 +106,7 @@ export async function POST(request: Request) {
             name: material.name,
             categoryId: material.categoryId,
             size: material.size,
-            type: material.type,
             weightKg: material.weightKg,
-            notes: material.notes,
             isActive: true,
             isTemporary: true,
             createdForOrderId: null // まだorderIdを設定しない
@@ -166,6 +164,27 @@ export async function POST(request: Request) {
         }
       });
       console.log('Updated createdForOrderId for copied materials');
+    }
+
+    // draftOrderIdが指定されている場合、仮資材を新しい発注に移行してdraft発注を削除
+    if (data.draftOrderId) {
+      // 仮資材の createdForOrderId を新しい発注IDに更新
+      await prisma.material.updateMany({
+        where: {
+          isTemporary: true,
+          createdForOrderId: data.draftOrderId,
+        },
+        data: {
+          createdForOrderId: order.id,
+        },
+      });
+      // draft 発注を削除（仮資材は移行済みなのでカスケード削除の影響なし）
+      await prisma.order.delete({
+        where: { id: data.draftOrderId },
+      }).catch((e) => {
+        console.warn('Draft order cleanup failed:', e);
+      });
+      console.log('Cleaned up draft order:', data.draftOrderId);
     }
 
     return NextResponse.json({ order });

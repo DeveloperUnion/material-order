@@ -6,7 +6,7 @@ const formatDate = (dateString: string) => {
   return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
 };
 
-export const generatePDFContent = (data: OrderDocument, options?: { hidePrintButton?: boolean; watermarkText?: string }): string => {
+export const generatePDFContent = (data: OrderDocument, options?: { hidePrintButton?: boolean; watermarkText?: string; hideWatermark?: boolean }): string => {
   // 行のタイプ定義
   type TableRow = {
     type: 'category-header';
@@ -43,8 +43,9 @@ export const generatePDFContent = (data: OrderDocument, options?: { hidePrintBut
     columns.push(allRows.slice(i, i + itemsPerColumn));
   }
 
-  // 最小2列を保証
-  if (columns.length === 1 && allRows.length > 0) {
+  // アイテムが2個以上の場合は最小2列を保証
+  const itemCount = allRows.filter(r => r.type === 'item').length;
+  if (columns.length === 1 && itemCount > 1) {
     const allRowsInColumn = columns[0];
     const midPoint = Math.ceil(allRowsInColumn.length / 2);
     columns[0] = allRowsInColumn.slice(0, midPoint);
@@ -66,176 +67,116 @@ export const generatePDFContent = (data: OrderDocument, options?: { hidePrintBut
       <meta name="apple-mobile-web-app-capable" content="yes">
       <title>${data.siteName || '現場名未設定'}-${data.orderDate.split('T')[0].replace(/-/g, '')}</title>
       <style>
-        * {
-          box-sizing: border-box;
+        :root {
+          --ink: #0a0a0a;
+          --ink-soft: #525252;
+          --ink-mute: #6b6b6b;
+          --rule: #0a0a0a;
+          --rule-soft: #9a9a9a;
+          --rule-mute: #c7c7c7;
+          --row-alt: #fafafa;
+          --band: #f1f1f1;
+          --panel: #f8f8f8;
         }
-        html, body {
-          margin: 0;
-          padding: 0;
-        }
-        @media print {
-          @page {
-            size: A4 portrait;
-            margin: 0;
-          }
-          html, body {
-            width: 100% !important;
-            height: 100svh !important;
-            overflow: visible !important;
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
-          }
-          body {
-            margin: 0 !important;
-            padding: 0 10mm !important;
-            position: relative;
-          }
-          .print-button {
-            display: none !important;
-          }
-          .watermark-container {
-            position: absolute !important;
-            top: 0 !important;
-            left: 0 !important;
-            width: 100% !important;
-            height: 100% !important;
-            z-index: 9999 !important;
-            pointer-events: none !important;
-          }
-          .watermark {
-            font-size: 10pt !important;
-          }
-          .print-content {
-            position: relative !important;
-            padding: 3mm 0 !important;
-            width: 100% !important;
-            max-width: 100% !important;
-            overflow: hidden !important;
-            page-break-inside: avoid;
-          }
-          .title {
-            margin-bottom: 2mm !important;
-          }
-          .title h1 {
-            margin-bottom: 1mm !important;
-            padding-bottom: 1mm !important;
-          }
-          .info-section {
-            margin-bottom: 1mm !important;
-            padding: 2pt 4pt !important;
-            display: grid !important;
-            grid-template-columns: 1fr 1fr !important;
-            gap: 0.5mm 0mm !important;
-          }
-          .info-row-full {
-            grid-column: 1 / -1 !important;
-          }
-          .tables-container {
-            width: 100% !important;
-          }
-          table {
-            font-size: 7pt !important;
-            line-height: 1.0 !important;
-          }
-          th {
-            font-size: 7pt !important;
-            padding: 2pt !important;
-            line-height: 1.0 !important;
-          }
-          td {
-            font-size: 7pt !important;
-            padding: 0 2pt !important;
-            height: 17pt !important;
-            line-height: 1.0 !important;
-          }
-          .title h1 {
-            font-size: 14pt !important;
-            line-height: 1.2 !important;
-          }
-          .info-row {
-            font-size: 10pt !important;
-            line-height: 1.3 !important;
-          }
-          .info-label {
-            font-size: 10pt !important;
-            line-height: 1.3 !important;
-          }
-          .total-label {
-            font-size: 11pt !important;
-            line-height: 1.3 !important;
-          }
-          .total-value {
-            font-size: 12pt !important;
-            line-height: 1.3 !important;
-          }
-          .note-label {
-            font-size: 10pt !important;
-            line-height: 1.3 !important;
-          }
-          .note-text {
-            font-size: 9pt !important;
-            line-height: 1.3 !important;
-          }
-          .category-header-row td {
-            font-size: 9pt !important;
-            padding: 0 2pt !important;
-          }
-          .total-section {
-            margin-top: 1mm !important;
-            padding: 2mm !important;
-          }
-          .note-section {
-            margin-top: 1mm !important;
-            padding: 2mm !important;
-          }
-        }
+        * { box-sizing: border-box; }
+        html, body { margin: 0; padding: 0; }
+
         body {
-          font-family: system-ui, -apple-system, sans-serif;
-          font-size: 12px;
-          line-height: 1.2;
-          color: #000;
-          padding: 6px;
+          font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic", "Meiryo", system-ui, sans-serif;
+          font-size: 15px;
+          line-height: 1.5;
+          color: var(--ink);
+          padding: 16px;
           position: relative;
           min-height: 100vh;
           overflow-x: hidden;
+          font-feature-settings: "palt";
+          -webkit-font-smoothing: antialiased;
         }
+
         .print-content {
           display: block;
-          max-width: 100%;
+          max-width: 880px;
+          margin: 0 auto;
           position: relative;
+          min-height: 600px;
         }
+
+        /* ===== Title ===== */
         .title {
           text-align: center;
-          margin-bottom: 4px;
+          margin-bottom: 18px;
+          padding-bottom: 10px;
+          position: relative;
         }
         .title h1 {
-          font-size: 24px;
-          font-weight: bold;
-          margin: 0 0 3px 0;
-          border-bottom: 1px solid #333;
-          padding-bottom: 3px;
+          font-size: 30px;
+          font-weight: 700;
+          margin: 0;
+          letter-spacing: 0.45em;
+          padding-left: 0.45em;
+          color: var(--ink);
+          line-height: 1.2;
         }
+        .title::after {
+          content: "";
+          position: absolute;
+          bottom: 0;
+          left: 22%;
+          right: 22%;
+          border-top: 2px solid var(--rule);
+          border-bottom: 1px solid var(--rule);
+          height: 4px;
+        }
+        .title .page-indicator {
+          display: block;
+          font-size: 12px;
+          font-weight: 500;
+          letter-spacing: 0.12em;
+          color: var(--ink-mute);
+          margin-top: 6px;
+          font-variant-numeric: tabular-nums;
+        }
+
+        /* ===== Info section ===== */
         .info-section {
-          margin-bottom: 5px;
-          padding: 6px;
-          background-color: #f8fafc;
-          border: 2px solid #000;
-          border-radius: 4px;
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          column-gap: 20px;
+          row-gap: 8px;
+          margin-bottom: 16px;
+          padding: 14px 18px;
+          background: var(--panel);
+          border: 1.5px solid var(--rule);
         }
         .info-row {
-          margin-bottom: 2px;
-          font-size: 16px;
+          font-size: 15px;
+          display: flex;
+          align-items: baseline;
+          gap: 10px;
+          min-width: 0;
         }
+        .info-row-full { grid-column: 1 / -1; }
         .info-label {
-          font-weight: bold;
-          min-width: 60px;
-          display: inline-block;
-          font-size: 16px;
+          font-size: 12px;
+          font-weight: 700;
+          letter-spacing: 0.14em;
+          color: var(--ink-mute);
+          min-width: 64px;
+          flex-shrink: 0;
         }
+        .info-row span:not(.info-label) {
+          font-weight: 600;
+          color: var(--ink);
+          min-width: 0;
+          word-break: break-all;
+        }
+
+        /* ===== Tables ===== */
         .tables-container {
           display: flex;
-          gap: 6px;
-          margin-bottom: 5px;
+          gap: 14px;
+          margin-bottom: 8px;
           justify-content: space-between;
           width: 100%;
           overflow: hidden;
@@ -248,194 +189,381 @@ export const generatePDFContent = (data: OrderDocument, options?: { hidePrintBut
         table {
           width: 100%;
           border-collapse: collapse;
-          border: 2px solid #000;
           table-layout: fixed;
           overflow: hidden;
+          border: 1.5px solid var(--rule);
+          font-variant-numeric: tabular-nums;
         }
-        th {
-          border: 1px solid #000;
-          padding: 0 2px;
-          background-color: #475569;
-          color: white;
-          font-weight: bold;
-          font-size: 14px;
+        thead th {
+          background: var(--band);
+          color: var(--ink);
+          font-weight: 700;
+          font-size: 13px;
+          letter-spacing: 0.1em;
+          padding: 8px 6px;
+          border-right: 1px solid var(--rule-soft);
+          border-bottom: 1.5px solid var(--rule);
           word-break: break-word;
           overflow-wrap: break-word;
         }
+        thead th:last-child { border-right: none; }
         td {
-          border: 1px solid #000;
-          padding: 0 2px;
-          height: auto;
+          padding: 6px 8px;
+          border-right: 1px solid var(--rule-mute);
+          border-bottom: 1px solid var(--rule-mute);
           vertical-align: middle;
-          line-height: 1.3;
+          line-height: 1.35;
           word-break: break-word;
           overflow-wrap: break-word;
+          font-size: 14px;
         }
-        .row-alternate {
-          background-color: #f7fafc;
-        }
-        .category-header-row {
-          background-color: #cbd5e1;
-          font-weight: bold;
-          text-align: center;
-        }
+        td:last-child { border-right: none; }
+        tr:last-child td { border-bottom: none; }
+        .row-alternate { background-color: var(--row-alt); }
+
         .category-header-row td {
-          font-size: 15px;
-          padding: 0 4px;
+          background: var(--band);
+          font-weight: 700;
+          font-size: 14px;
+          letter-spacing: 0.1em;
+          padding: 7px 10px !important;
+          text-align: left !important;
+          border-top: 1px solid var(--rule);
+          border-bottom: 1px solid var(--rule);
+          color: var(--ink);
         }
+
+        /* ===== Total ===== */
         .total-section {
-          margin-top: 5px;
-          padding: 6px;
-          background-color: #f8fafc;
-          border-radius: 4px;
-          border: 2px solid #000;
+          margin-top: 14px;
+          padding: 14px 18px;
+          border: 2px solid var(--rule);
+          background: var(--panel);
           display: flex;
-          justify-content: space-between;
-          align-items: center;
+          justify-content: flex-end;
+          align-items: baseline;
+          gap: 16px;
         }
         .total-label {
-          font-size: 18px;
-          font-weight: bold;
-          color: #1a1a1a;
+          font-size: 14px;
+          font-weight: 700;
+          letter-spacing: 0.18em;
+          color: var(--ink-soft);
         }
         .total-value {
-          font-size: 20px;
-          font-weight: bold;
-          color: #1e293b;
+          font-size: 30px;
+          font-weight: 700;
+          letter-spacing: -0.01em;
+          color: var(--ink);
+          font-variant-numeric: tabular-nums;
+          line-height: 1;
         }
+
+        /* ===== Note (kept for backward compat) ===== */
         .note-section {
-          margin-top: 5px;
-          padding: 6px;
-          background-color: #f8fafc;
-          border-radius: 4px;
-          border: 2px solid #000;
+          margin-top: 12px;
+          padding: 10px 14px;
+          border: 1.5px solid var(--rule);
+          background: var(--panel);
         }
         .note-label {
-          font-size: 16px;
-          font-weight: bold;
-          color: #333;
-          margin-bottom: 3px;
+          font-size: 12px;
+          font-weight: 700;
+          letter-spacing: 0.14em;
+          color: var(--ink-mute);
+          margin-bottom: 6px;
         }
         .note-text {
-          font-size: 15px;
-          line-height: 1.3;
-          color: #1a1a1a;
+          font-size: 14px;
+          line-height: 1.5;
+          color: var(--ink);
           white-space: pre-wrap;
         }
+
+        /* ===== Print button (screen only) ===== */
         .print-button {
-          background: linear-gradient(to right, #1e293b, #334155);
-          color: white;
+          background: var(--ink);
+          color: #fff;
           border: none;
-          padding: 12px 24px;
+          padding: 11px 22px;
           border-radius: 8px;
-          font-size: 14px;
+          font-size: 13px;
           font-weight: 600;
           cursor: pointer;
-          margin-bottom: 20px;
-          transition: all 0.2s ease;
+          margin-bottom: 18px;
+          letter-spacing: 0.02em;
+          transition: background 0.15s ease, transform 0.1s ease;
         }
-        .print-button:hover {
-          background: linear-gradient(to right, #0f172a, #1e293b);
-          transform: translateY(-1px);
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-        }
-        .page-break {
-          page-break-after: always;
-        }
+        .print-button:hover { background: #1c1917; }
+        .print-button:active { transform: scale(0.99); }
+
+        .page-break { page-break-after: always; }
+
+        /* ===== Watermark ===== */
         .watermark-container {
-          position: fixed;
+          position: absolute;
           top: 0;
           left: 0;
-          width: 100vw;
-          height: 100vh;
-          z-index: 9999;
+          width: 100%;
+          height: 100%;
+          z-index: 0;
           pointer-events: none;
           user-select: none;
-          overflow: visible;
+          overflow: hidden;
+        }
+        .print-content > *:not(.watermark-container) {
+          position: relative;
+          z-index: 1;
         }
         .watermark {
           position: absolute;
-          font-size: 18px;
-          font-weight: bold;
-          color: rgba(0, 0, 0, 0.07);
+          font-size: 16px;
+          font-weight: 600;
+          color: rgba(10, 10, 10, 0.06);
           white-space: nowrap;
-          transform: translate(-50%, -50%) rotate(-45deg);
+          letter-spacing: 0.1em;
+          transform: translate(-50%, -50%) rotate(-30deg);
         }
-        @media screen and (max-width: 767px) {
-          .watermark {
-            font-size: 16px;
+
+        /* ===== Tablet (medium screens) ===== */
+        @media screen and (max-width: 900px) {
+          .title h1 { font-size: 26px; letter-spacing: 0.35em; padding-left: 0.35em; }
+          .info-section { column-gap: 14px; padding: 12px 14px; }
+          body { padding: 12px; }
+        }
+
+        /* ===== Print media ===== */
+        @media print {
+          @page { size: A4 portrait; margin: 0; }
+          html, body {
+            width: 100% !important;
+            height: 100svh !important;
+            overflow: visible !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
           }
-          /* スマホ用2行レイアウト */
+          body {
+            margin: 0 !important;
+            padding: 0 10mm !important;
+            position: relative;
+            font-size: 9pt !important;
+          }
+          .print-button { display: none !important; }
+          .print-content {
+            max-width: 100% !important;
+            margin: 0 !important;
+          }
+          .watermark-container {
+            position: absolute !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100% !important;
+            height: 100% !important;
+            z-index: 9999 !important;
+            pointer-events: none !important;
+          }
+          .watermark { font-size: 10pt !important; }
+          .print-content {
+            position: relative !important;
+            padding: 3mm 0 !important;
+            width: 100% !important;
+            overflow: hidden !important;
+            page-break-inside: avoid;
+          }
+          .title {
+            margin-bottom: 3mm !important;
+            padding-bottom: 2mm !important;
+          }
+          .title h1 {
+            font-size: 16pt !important;
+            line-height: 1.2 !important;
+            letter-spacing: 0.4em !important;
+            padding-left: 0.4em !important;
+          }
+          .title .page-indicator {
+            font-size: 8pt !important;
+            margin-top: 1mm !important;
+          }
+          .info-section {
+            margin-bottom: 2.5mm !important;
+            padding: 2mm 3mm !important;
+            grid-template-columns: 1fr 1fr !important;
+            column-gap: 6mm !important;
+            row-gap: 1mm !important;
+            border-width: 1pt !important;
+          }
+          .info-row { font-size: 10pt !important; line-height: 1.3 !important; }
+          .info-label {
+            font-size: 8pt !important;
+            min-width: 14mm !important;
+          }
+          .tables-container { width: 100% !important; gap: 4mm !important; }
+          table { font-size: 8pt !important; line-height: 1.1 !important; border-width: 1pt !important; }
+          thead th {
+            font-size: 8pt !important;
+            padding: 2pt 2pt !important;
+            line-height: 1.1 !important;
+          }
+          td {
+            font-size: 8pt !important;
+            padding: 1pt 3pt !important;
+            height: 18pt !important;
+            line-height: 1.1 !important;
+          }
+          .category-header-row td {
+            font-size: 9pt !important;
+            padding: 2pt 4pt !important;
+          }
+          .total-section {
+            margin-top: 3mm !important;
+            padding: 2.5mm 4mm !important;
+            border-width: 1.5pt !important;
+          }
+          .total-label { font-size: 11pt !important; }
+          .total-value { font-size: 16pt !important; }
+          .note-section {
+            margin-top: 2mm !important;
+            padding: 2mm 3mm !important;
+          }
+          .note-label { font-size: 8pt !important; }
+          .note-text { font-size: 9pt !important; }
+        }
+
+        /* ===== Mobile (screen, <=767px) ===== */
+        @media screen and (max-width: 767px) {
+          body { font-size: 14px; padding: 10px; }
+          .print-content { max-width: 100%; }
+          .title { margin-bottom: 14px; padding-bottom: 8px; }
+          .title h1 {
+            font-size: 20px;
+            letter-spacing: 0.2em;
+            padding-left: 0.2em;
+          }
+          .title .page-indicator { font-size: 11px; }
+
+          .info-section {
+            grid-template-columns: 1fr;
+            column-gap: 0;
+            row-gap: 6px;
+            padding: 12px 14px;
+          }
+          .info-row { font-size: 14px; }
+          .info-label { min-width: 64px; font-size: 11px; }
+
+          .watermark { font-size: 14px; }
+
+          /* Tables container: 2-column grid on mobile (matches PC) */
+          .tables-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+          }
+          .table-column {
+            display: block;
+            width: auto;
+            flex: none;
+            margin-bottom: 0;
+            min-width: 0;
+          }
+
+          /* Item row — CSS Grid card layout */
           table {
             table-layout: auto;
+            border: 1.5px solid var(--rule);
           }
-          thead {
-            display: none;
-          }
+          thead { display: none; }
+
           tbody tr:not(.category-header-row) {
-            display: flex;
-            flex-wrap: wrap;
-            border: 1px solid #000;
-            margin-bottom: 0;
+            display: grid;
+            grid-template-areas:
+              "name name name"
+              "qty  unit total";
+            grid-template-columns: 1fr 1fr 1fr;
+            border-bottom: 1px solid var(--rule-mute);
+            background: transparent;
           }
+          tbody tr:not(.category-header-row):last-child { border-bottom: none; }
+          tbody tr:not(.category-header-row).row-alternate {
+            background: var(--row-alt);
+          }
+
           tbody tr:not(.category-header-row) td {
             border: none;
-            border-bottom: 0.5px solid #ccc;
+            padding: 0;
           }
-          tbody tr:not(.category-header-row) td:first-child {
-            width: 100%;
-            text-align: left;
-            background-color: #f1f5f9;
-            padding: 2px 8px;
+
+          /* Name row (full width within card) */
+          tbody tr:not(.category-header-row) td:nth-child(1) {
+            grid-area: name;
+            padding: 7px 8px 5px;
             font-size: 12px;
+            font-weight: 700;
+            line-height: 1.35;
             white-space: normal;
+            text-align: left !important;
+            border-bottom: 1px solid var(--rule-mute);
+            word-break: break-word;
           }
+
+          /* Value cells (数量 / 単重 / 合計) */
           tbody tr:not(.category-header-row) td:nth-child(2),
           tbody tr:not(.category-header-row) td:nth-child(3),
           tbody tr:not(.category-header-row) td:nth-child(4) {
-            width: 33.333%;
-            flex: none;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 0;
-            border-bottom: none;
-            border-right: 1px solid #000;
+            padding: 5px 2px 7px;
+            border-right: 1px solid var(--rule-mute);
             box-sizing: border-box;
             white-space: normal;
+            font-size: 13px;
+            font-weight: 600;
+            font-variant-numeric: tabular-nums;
+            text-align: center !important;
+            line-height: 1.25;
           }
+          tbody tr:not(.category-header-row) td:nth-child(2) { grid-area: qty; }
+          tbody tr:not(.category-header-row) td:nth-child(3) { grid-area: unit; }
+          tbody tr:not(.category-header-row) td:nth-child(4) {
+            grid-area: total;
+            border-right: none;
+            font-weight: 700;
+            color: var(--ink);
+          }
+
+          /* Label pseudo-elements (shortened for 2-col mobile) */
           tbody tr:not(.category-header-row) td:nth-child(2)::before,
           tbody tr:not(.category-header-row) td:nth-child(3)::before,
           tbody tr:not(.category-header-row) td:nth-child(4)::before {
             font-size: 9px;
-            color: #666;
-            font-weight: normal;
+            color: var(--ink-mute);
+            font-weight: 700;
+            letter-spacing: 0.1em;
             width: 100%;
             text-align: center;
-            border-bottom: 0.5px solid #ccc;
-            padding: 1px 0;
+            padding: 0 0 3px;
           }
-          tbody tr:not(.category-header-row) td:nth-child(2)::before {
-            content: "数量";
-          }
-          tbody tr:not(.category-header-row) td:nth-child(3)::before {
-            content: "単重(kg)";
-          }
-          tbody tr:not(.category-header-row) td:nth-child(4)::before {
-            content: "合計(kg)";
-          }
-          tbody tr:not(.category-header-row) td:nth-child(4) {
-            border-right: none;
-          }
-                    .category-header-row {
-            display: block;
-            margin-top: 0;
-          }
+          tbody tr:not(.category-header-row) td:nth-child(2)::before { content: "数量"; }
+          tbody tr:not(.category-header-row) td:nth-child(3)::before { content: "単重"; }
+          tbody tr:not(.category-header-row) td:nth-child(4)::before { content: "合計"; }
+
+          .category-header-row { display: block; }
           .category-header-row td {
             display: block;
-            text-align: center;
+            text-align: left !important;
+            padding: 6px 12px !important;
+            font-size: 13px !important;
           }
+
+          .total-section {
+            padding: 14px 16px;
+            flex-direction: row;
+            justify-content: space-between;
+            align-items: baseline;
+          }
+          .total-label { font-size: 13px; letter-spacing: 0.14em; }
+          .total-value { font-size: 26px; }
         }
       </style>
     </head>
@@ -444,24 +572,28 @@ export const generatePDFContent = (data: OrderDocument, options?: { hidePrintBut
 
       ${pages.map((pageColumns, pageIndex) => `
       <div class="print-content ${pageIndex < pages.length - 1 ? 'page-break' : ''}">
-        <div class="watermark-container">
+        ${options?.hideWatermark ? '' : `<div class="watermark-container">
           ${(() => {
             const watermarks = [];
             const rows = 8;
-            const spacingVw = 25;
+            const spacingPct = 20; // 列間隔（％）: 0, 20, 40, 60, 80, 100 → 6列
+            const rowStep = 100 / (rows - 1);
 
             for (let row = 0; row < rows; row++) {
-              for (let colVw = 0; colVw <= 100; colVw += spacingVw) {
-                const top = (row * (100 / (rows - 1))) + (Math.floor(colVw / spacingVw) % 2 === 0 ? 0 : 5);
-                watermarks.push(`<div class="watermark" style="top: ${top}%; left: ${colVw}vw;">${options?.watermarkText || '株式会社　櫻建'}</div>`);
+              for (let colPct = 0; colPct <= 100; colPct += spacingPct) {
+                // 奇数列を少しずらしてハニカム的な分布に
+                const isOddCol = Math.floor(colPct / spacingPct) % 2 === 1;
+                const top = (row * rowStep) + (isOddCol ? rowStep / 2 : 0);
+                watermarks.push(`<div class="watermark" style="top: ${top}%; left: ${colPct}%;">${options?.watermarkText || '株式会社　櫻建'}</div>`);
               }
             }
 
             return watermarks.join('');
           })()}
-        </div>
+        </div>`}
         <div class="title">
-          <h1>資材発注書${pages.length > 1 ? ` (${pageIndex + 1}/${pages.length})` : ''}</h1>
+          <h1>資材発注書</h1>
+          ${pages.length > 1 ? `<span class="page-indicator">${pageIndex + 1} / ${pages.length}</span>` : ''}
         </div>
 
         <div class="info-section">
@@ -504,27 +636,15 @@ export const generatePDFContent = (data: OrderDocument, options?: { hidePrintBut
                 </tr>
               </thead>
               <tbody>
-                ${columnItems.map((row, rowIndex) => {
-                  if (row.type === 'category-header') {
-                    return `
-                <tr class="category-header-row">
-                  <td colspan="4">${row.categoryName}</td>
-                </tr>`;
-                  } else {
-                    // 同一カテゴリ内でのアイテムインデックスを計算（縞模様用）
-                    let itemIndexInCategory = 0;
-                    for (let i = rowIndex - 1; i >= 0; i--) {
-                      if (columnItems[i].type === 'category-header') break;
-                      itemIndexInCategory++;
-                    }
-                    return `
-                <tr ${itemIndexInCategory % 2 === 1 ? 'class="row-alternate"' : ''}>
+                ${columnItems.filter(row => row.type === 'item').map((row, rowIndex) => {
+                  if (row.type !== 'item') return '';
+                  return `
+                <tr ${rowIndex % 2 === 1 ? 'class="row-alternate"' : ''}>
                   <td style="font-weight: bold; white-space: normal; line-height: 1.3;">${row.item.name}</td>
                   <td style="text-align: right; font-weight: bold;">${row.item.quantity}</td>
                   <td style="text-align: right;">${formatWeight(row.item.weightPerUnit).replace('kg', '')}</td>
                   <td style="text-align: right; font-weight: bold;">${formatWeight(row.item.totalWeight).replace('kg', '')}</td>
                 </tr>`;
-                  }
                 }).join('')}
               </tbody>
             </table>
