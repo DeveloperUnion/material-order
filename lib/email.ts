@@ -1,6 +1,12 @@
 import { Resend } from 'resend';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Resend は API key が無いと construction 時に throw するため、
+// モジュール読み込み時ではなく送信時に初期化する
+// (RESEND_API_KEY 未設定な CI ビルドでも page collection が通るようにするため)
+function getResendClient(): Resend | null {
+  if (!process.env.RESEND_API_KEY) return null;
+  return new Resend(process.env.RESEND_API_KEY);
+}
 
 interface SendInvitationEmailParams {
   to: string;
@@ -19,8 +25,8 @@ export async function sendInvitationEmail({
   inviteUrl,
   expiresAt,
 }: SendInvitationEmailParams): Promise<{ success: boolean; error?: string }> {
-  // Resend APIキーが設定されていない場合はスキップ
-  if (!process.env.RESEND_API_KEY) {
+  const resend = getResendClient();
+  if (!resend) {
     console.log('RESEND_API_KEY not set, skipping email send');
     return { success: false, error: 'RESEND_API_KEY not configured' };
   }
