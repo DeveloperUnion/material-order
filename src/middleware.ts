@@ -48,17 +48,34 @@ export default auth((request) => {
   // パスベース化以前に発行された JWT には tenantCode が入っていない。
   // そのまま動かすと redirect 先が /undefined/dashboard になり 404 ループするので、
   // session cookie を削除して / に戻し再ログインさせる。
+  //
+  // NextResponse.cookies.delete(name) は Secure 属性を付けない Set-Cookie を吐くため、
+  // ブラウザは __Secure- / __Host- プレフィックス付き cookie の上書き・削除を拒否する
+  // (HTTP State Tokens / cookie prefix 仕様)。結果として cookie が残り続け、/ → / の
+  // 同 URL redirect とあわせて ERR_TOO_MANY_REDIRECTS の無限ループが発生する。
+  // 明示的に Secure / HttpOnly / Path を付けて set('', maxAge: 0) で消す。
   if (
     isLoggedIn &&
     role !== 'SUPER_ADMIN' &&
     !sessionTenantCode &&
     !pathname.startsWith('/api/auth')
   ) {
-    const response = NextResponse.redirect(new URL('/', request.url))
-    response.cookies.delete('next-auth.session-token')
-    response.cookies.delete('__Secure-next-auth.session-token')
-    response.cookies.delete('authjs.session-token')
-    response.cookies.delete('__Secure-authjs.session-token')
+    // 既に / にいる場合は同 URL redirect を避けて next() で素通し。
+    // どちらにせよこのレスポンスで cookie が消えるので、次回以降は通常フロー。
+    const response =
+      pathname === '/'
+        ? NextResponse.next()
+        : NextResponse.redirect(new URL('/', request.url))
+    const baseOpts = {
+      path: '/',
+      maxAge: 0,
+      httpOnly: true,
+      sameSite: 'lax',
+    } as const
+    response.cookies.set('next-auth.session-token', '', baseOpts)
+    response.cookies.set('authjs.session-token', '', baseOpts)
+    response.cookies.set('__Secure-next-auth.session-token', '', { ...baseOpts, secure: true })
+    response.cookies.set('__Secure-authjs.session-token', '', { ...baseOpts, secure: true })
     return response
   }
 
