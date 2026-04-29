@@ -661,7 +661,7 @@ export default function MaterialOrderForm({ onSubmit, editMode = false, editOrde
                               inputMode="numeric"
                               min="0"
                               step="1"
-                              value={field.value ?? ''}
+                              value={field.value ?? 0}
                               onChange={(e) => {
                                 const inputValue = e.target.value;
                                 if (inputValue === '') {
@@ -675,7 +675,13 @@ export default function MaterialOrderForm({ onSubmit, editMode = false, editOrde
                                   field.onChange(Math.max(0, value));
                                 }
                               }}
-                              onFocus={(e) => e.target.select()}
+                              onFocus={(e) => {
+                                if (field.value === 0) {
+                                  field.onChange('');
+                                } else {
+                                  e.target.select();
+                                }
+                              }}
                               onBlur={(e) => {
                                 if (e.target.value === '' || e.target.value === null) {
                                   field.onChange(0);
