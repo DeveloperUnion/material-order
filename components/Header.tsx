@@ -27,8 +27,11 @@ export default function Header() {
     return null
 
   const handleLogout = async () => {
+    // 同じテナントのログイン画面に戻す。会社コードを再入力させない。
+    // session が無いケースは / にフォールバック。
+    const dest = session?.user?.tenantCode ? `/${session.user.tenantCode}` : '/'
     await signOut({ redirect: false })
-    router.push('/')
+    router.push(dest)
     router.refresh()
   }
 
