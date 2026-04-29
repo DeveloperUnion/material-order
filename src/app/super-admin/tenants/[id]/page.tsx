@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { format } from 'date-fns'
 import { ja } from 'date-fns/locale'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, FileSpreadsheet } from 'lucide-react'
 import { prisma } from '@/lib/tenant/prisma'
 import TenantActions from '@/components/super-admin/TenantActions'
 
@@ -95,6 +95,22 @@ export default async function TenantDetailPage({
         <StatCard label="未使用の招待" value={tenant.invitations.length.toString()} />
         <StatCard label="発注 / 資材" value={`${tenant._count.orders} / ${tenant._count.materials}`} />
       </div>
+
+      <section className="bg-surface border border-border rounded-xl p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <p className="text-sm font-semibold text-foreground">資材CSVインポート</p>
+          <p className="text-xs text-muted mt-1">
+            CSV ファイルから資材を一括登録・更新します。
+          </p>
+        </div>
+        <Link
+          href={`/super-admin/tenants/${tenant.id}/materials/import`}
+          className="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm font-semibold hover:bg-primary/90 transition-colors"
+        >
+          <FileSpreadsheet className="h-4 w-4" />
+          資材を CSV インポート
+        </Link>
+      </section>
 
       <section className="bg-surface border border-border rounded-xl">
         <h2 className="px-5 py-4 text-sm font-semibold text-foreground border-b border-border">
