@@ -34,7 +34,11 @@ export async function seedTenantAndAdmin(prisma: PrismaClient) {
   await prisma.user.upsert({
     where: { tenantId_name: { tenantId: tenant.id, name: adminName } },
     update: {
+      email: null,
+      password: hashedPassword,
       role: 'ADMIN',
+      isActive: true,
+      passwordSetupExpiresAt: null,
     },
     create: {
       tenantId: tenant.id,

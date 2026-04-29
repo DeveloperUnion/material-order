@@ -110,26 +110,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       },
     }),
   ],
-  callbacks: {
-    async jwt({ token, user }) {
-      if (user) {
-        token.id = user.id as string
-        token.tenantId = user.tenantId
-        token.tenantCode = user.tenantCode
-        token.role = user.role
-        token.tenantName = user.tenantName
-      }
-      return token
-    },
-    async session({ session, token }) {
-      if (token) {
-        session.user.id = token.id as string
-        session.user.tenantId = token.tenantId as string
-        session.user.tenantCode = token.tenantCode as string
-        session.user.role = token.role as UserRole
-        session.user.tenantName = token.tenantName as string
-      }
-      return session
-    },
-  },
+  // jwt / session callbacks は authConfig (Edge 互換) 側に集約。
+  // middleware から request.auth.user.tenantCode を見えるようにするため。
 })
