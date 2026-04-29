@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import Image from 'next/image'
-import Link from 'next/link'
 import { signIn, getSession } from 'next-auth/react'
 import { ArrowRight, ArrowLeft, User as UserIcon } from 'lucide-react'
 import { defaultAppConfig } from '@/lib/tenant/config'
@@ -21,8 +20,6 @@ interface Props {
   authMode: 'EMAIL' | 'NAME'
   members: MemberUser[]
 }
-
-const LAST_TENANT_KEY = 'material-order:last-tenant-code'
 
 export function LoginForm(props: Props) {
   return (
@@ -113,12 +110,6 @@ function EmailLogin({ tenantId, tenantCode, tenantName }: Props) {
         throw new Error('メールアドレスまたはパスワードが正しくありません')
       }
 
-      try {
-        localStorage.setItem(LAST_TENANT_KEY, tenantCode)
-      } catch {
-        /* ignore */
-      }
-
       const session = await getSession()
       window.location.href =
         session?.user?.role === 'SUPER_ADMIN' ? '/super-admin' : `/${tenantCode}/dashboard`
@@ -204,8 +195,6 @@ function EmailLogin({ tenantId, tenantCode, tenantName }: Props) {
         </span>
         {!loading && <ArrowRight className="h-4 w-4" />}
       </button>
-
-      <ChangeTenantLink />
     </form>
   )
 }
@@ -259,12 +248,6 @@ function NameLogin({ tenantId, tenantCode, tenantName, members }: Props) {
         redirect: false,
       })
       if (result?.error) throw new Error('パスワードが正しくありません')
-
-      try {
-        localStorage.setItem(LAST_TENANT_KEY, tenantCode)
-      } catch {
-        /* ignore */
-      }
 
       window.location.href = `/${tenantCode}/dashboard`
     } catch (err) {
@@ -420,21 +403,7 @@ function NameLogin({ tenantId, tenantCode, tenantName, members }: Props) {
           })
         )}
       </div>
-
-      <ChangeTenantLink />
     </div>
-  )
-}
-
-function ChangeTenantLink() {
-  return (
-    <Link
-      href="/"
-      className="w-full flex items-center justify-center gap-2 py-2 px-4 text-xs font-medium text-muted hover:text-foreground transition-colors"
-    >
-      <ArrowLeft className="h-3 w-3" />
-      会社を変更
-    </Link>
   )
 }
 

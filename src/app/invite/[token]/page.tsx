@@ -91,15 +91,6 @@ export default function InviteRegistrationPage() {
 
       setSuccess(true);
 
-      // 次回 / で会社コード入力欄に自動入力するため
-      try {
-        if (invitation?.tenantCode) {
-          localStorage.setItem('material-order:last-tenant-code', invitation.tenantCode);
-        }
-      } catch {
-        // localStorage が使えない環境では無視
-      }
-
       const credentials =
         invitation?.tenantAuthMode === 'NAME'
           ? { tenantId: invitation.tenantId, name: name.trim(), password }

@@ -23,7 +23,6 @@ import {
   Trash2,
   Mail,
   KeyRound,
-  Copy,
 } from 'lucide-react';
 
 type AuthMode = 'EMAIL' | 'NAME';
@@ -80,7 +79,6 @@ export default function CompanySettingsPage() {
   const [inviteRole, setInviteRole] = useState<'ADMIN' | 'MEMBER'>('MEMBER');
   const [inviteLoading, setInviteLoading] = useState(false);
   const [inviteSuccess, setInviteSuccess] = useState<string | null>(null);
-  const [createdUserName, setCreatedUserName] = useState<string | null>(null);
 
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [updateLoading, setUpdateLoading] = useState<string | null>(null);
@@ -177,7 +175,6 @@ export default function CompanySettingsPage() {
     setInviteLoading(true);
     setError(null);
     setInviteSuccess(null);
-    setCreatedUserName(null);
 
     const isNameMode = tenant?.authMode === 'NAME';
 
@@ -188,7 +185,6 @@ export default function CompanySettingsPage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             name: inviteName,
-            email: inviteEmail || null,
             role: inviteRole,
           }),
         });
@@ -200,10 +196,8 @@ export default function CompanySettingsPage() {
         }
 
         setUsers([...users, data.user]);
-        setCreatedUserName(data.user.name);
-        setInviteSuccess('メンバーを追加しました。ログイン情報をご本人にお伝えください。');
+        setInviteSuccess('メンバーを追加しました');
         setInviteName('');
-        setInviteEmail('');
       } else {
         const res = await fetch('/api/invitations', {
           method: 'POST',
@@ -255,21 +249,6 @@ export default function CompanySettingsPage() {
       setError(err instanceof Error ? err.message : 'エラーが発生しました');
     } finally {
       setUpdateLoading(null);
-    }
-  };
-
-  const copyLoginInfo = async (userName: string) => {
-    if (!tenant) return;
-    const text =
-      `ログイン URL: ${window.location.origin}\n` +
-      `会社コード: ${tenant.code}\n` +
-      `お名前: ${userName}\n` +
-      '初回ログイン時に名前を選んでパスワードを設定してください。';
-    try {
-      await navigator.clipboard.writeText(text);
-      setSuccess('ログイン情報をクリップボードにコピーしました');
-    } catch {
-      setError('クリップボードへのコピーに失敗しました');
     }
   };
 
@@ -538,13 +517,6 @@ export default function CompanySettingsPage() {
                         <option value="ADMIN">管理者</option>
                       </select>
                     </div>
-                    <input
-                      type="email"
-                      value={inviteEmail}
-                      onChange={(e) => setInviteEmail(e.target.value)}
-                      placeholder="メールアドレス（任意）"
-                      className="w-full px-3 py-2 text-sm text-foreground border border-border rounded-md bg-surface focus:border-accent focus:ring-4 focus:ring-accent/15 outline-none placeholder:text-subtle transition-all"
-                    />
                     <button
                       type="submit"
                       disabled={inviteLoading}
@@ -582,21 +554,11 @@ export default function CompanySettingsPage() {
                 )}
               </form>
               {inviteSuccess && (
-                <div className="mt-3 px-3 py-2 bg-emerald-50 border border-emerald-200 rounded-md space-y-2">
+                <div className="mt-3 px-3 py-2 bg-emerald-50 border border-emerald-200 rounded-md">
                   <p className="text-xs text-emerald-700 flex items-center gap-1">
                     <Check className="h-3 w-3" />
                     {inviteSuccess}
                   </p>
-                  {createdUserName && tenant.authMode === 'NAME' && (
-                    <button
-                      type="button"
-                      onClick={() => copyLoginInfo(createdUserName)}
-                      className="inline-flex items-center gap-1 text-xs text-foreground bg-surface border border-border rounded px-2 py-1 hover:bg-surface-muted"
-                    >
-                      <Copy className="h-3 w-3" />
-                      ログイン情報をコピー
-                    </button>
-                  )}
                 </div>
               )}
             </div>
@@ -698,16 +660,6 @@ export default function CompanySettingsPage() {
                               <KeyRound className="h-4 w-4 text-amber-600" />
                               パスワード再発行
                             </button>
-                            {tenant?.authMode === 'NAME' && (
-                              <button
-                                type="button"
-                                onClick={() => copyLoginInfo(user.name)}
-                                className="w-full px-3 py-2 text-left text-sm hover:bg-surface-muted flex items-center gap-2 text-foreground"
-                              >
-                                <Copy className="h-4 w-4 text-muted" />
-                                ログイン情報をコピー
-                              </button>
-                            )}
                             <div className="border-t border-border my-1" />
                             {user.isActive ? (
                               <button
