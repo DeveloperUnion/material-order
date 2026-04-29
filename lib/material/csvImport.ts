@@ -298,70 +298,76 @@ export async function executeImport(
   const plan = await buildPlan(prisma, tenantId, csvText)
   const autoCodeByRow = new Map(plan.autoCodeAssignments.map((a) => [a.rowNumber, a.code]))
 
-  const result = await prisma.$transaction(async (tx) => {
-    const categoryIdByName = new Map(plan.existingCategoryIdByName)
+  const result = await prisma.$transaction(
+    async (tx) => {
+      const categoryIdByName = new Map(plan.existingCategoryIdByName)
 
-    if (plan.newCategoryNames.length > 0) {
-      const last = await tx.category.findFirst({
-        where: { tenantId },
-        orderBy: { displayOrder: 'desc' },
-        select: { displayOrder: true },
-      })
-      let nextOrder = (last?.displayOrder ?? -1) + 1
-      for (const name of plan.newCategoryNames) {
-        const created = await tx.category.create({
-          data: { tenantId, name, displayOrder: nextOrder },
+      if (plan.newCategoryNames.length > 0) {
+        const last = await tx.category.findFirst({
+          where: { tenantId },
+          orderBy: { displayOrder: 'desc' },
+          select: { displayOrder: true },
         })
-        categoryIdByName.set(name, created.id)
-        nextOrder++
+        let nextOrder = (last?.displayOrder ?? -1) + 1
+        for (const name of plan.newCategoryNames) {
+          const created = await tx.category.create({
+            data: { tenantId, name, displayOrder: nextOrder },
+          })
+          categoryIdByName.set(name, created.id)
+          nextOrder++
+        }
       }
-    }
 
-    let created = 0
-    for (const row of plan.toCreateRows) {
-      const code = row.materialCode ?? autoCodeByRow.get(row.rowNumber)
-      if (!code) {
-        throw new Error(`内部エラー: 行 ${row.rowNumber} のコードが解決できません`)
+      let created = 0
+      for (const row of plan.toCreateRows) {
+        const code = row.materialCode ?? autoCodeByRow.get(row.rowNumber)
+        if (!code) {
+          throw new Error(`内部エラー: 行 ${row.rowNumber} のコードが解決できません`)
+        }
+        const categoryId = row.category ? (categoryIdByName.get(row.category) ?? null) : null
+        await tx.material.create({
+          data: {
+            tenantId,
+            materialCode: code,
+            name: row.name,
+            categoryId,
+            size: row.size,
+            weightKg: row.weightKg,
+            isActive: true,
+            isTemporary: false,
+          },
+        })
+        created++
       }
-      const categoryId = row.category ? (categoryIdByName.get(row.category) ?? null) : null
-      await tx.material.create({
-        data: {
-          tenantId,
-          materialCode: code,
+
+      let updated = 0
+      for (const { row, existingId } of plan.toUpdateRows) {
+        const data: {
+          name: string
+          weightKg: number
+          size?: string | null
+          categoryId?: string | null
+        } = {
           name: row.name,
-          categoryId,
-          size: row.size,
           weightKg: row.weightKg,
-          isActive: true,
-          isTemporary: false,
-        },
-      })
-      created++
-    }
+        }
+        if (plan.presentFields.category) {
+          data.categoryId = row.category ? (categoryIdByName.get(row.category) ?? null) : null
+        }
+        if (plan.presentFields.size) {
+          data.size = row.size
+        }
+        await tx.material.update({ where: { id: existingId }, data })
+        updated++
+      }
 
-    let updated = 0
-    for (const { row, existingId } of plan.toUpdateRows) {
-      const data: {
-        name: string
-        weightKg: number
-        size?: string | null
-        categoryId?: string | null
-      } = {
-        name: row.name,
-        weightKg: row.weightKg,
-      }
-      if (plan.presentFields.category) {
-        data.categoryId = row.category ? (categoryIdByName.get(row.category) ?? null) : null
-      }
-      if (plan.presentFields.size) {
-        data.size = row.size
-      }
-      await tx.material.update({ where: { id: existingId }, data })
-      updated++
-    }
-
-    return { created, updated }
-  })
+      return { created, updated }
+    },
+    {
+      maxWait: 10_000,
+      timeout: 25_000,
+    },
+  )
 
   return {
     created: result.created,
