@@ -14,7 +14,11 @@ export async function PUT(
     const resolvedParams = await params;
     const body = await request.json();
 
-    const { role, isActive } = body;
+    const { role, isActive, regeneratePasswordSetup } = body as {
+      role?: UserRole;
+      isActive?: boolean;
+      regeneratePasswordSetup?: boolean;
+    };
 
     // 対象ユーザーを取得
     const targetUser = await prisma.user.findUnique({
@@ -79,9 +83,34 @@ export async function PUT(
     }
 
     // 更新データを構築
-    const updateData: { role?: UserRole; isActive?: boolean } = {};
+    const updateData: {
+      role?: UserRole;
+      isActive?: boolean;
+      password?: null;
+      joinedAt?: null;
+      passwordSetupExpiresAt?: Date;
+    } = {};
     if (role !== undefined) updateData.role = role as UserRole;
     if (isActive !== undefined) updateData.isActive = isActive;
+
+    if (regeneratePasswordSetup === true) {
+      // NAME モード以外では拒否（EMAIL モードでは招待フローでパスワード再設定する）
+      const tenant = await prisma.tenant.findUnique({
+        where: { id: currentUser.tenantId },
+        select: { authMode: true },
+      });
+      if (tenant?.authMode !== 'NAME') {
+        return NextResponse.json(
+          { error: 'パスワード再発行は名前認証のテナントのみ可能です' },
+          { status: 400 }
+        );
+      }
+      updateData.password = null;
+      updateData.joinedAt = null;
+      updateData.passwordSetupExpiresAt = new Date(
+        Date.now() + 24 * 60 * 60 * 1000
+      );
+    }
 
     const updatedUser = await prisma.user.update({
       where: { id: resolvedParams.id },
@@ -92,6 +121,8 @@ export async function PUT(
         name: true,
         role: true,
         isActive: true,
+        joinedAt: true,
+        passwordSetupExpiresAt: true,
       },
     });
 

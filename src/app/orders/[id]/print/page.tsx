@@ -16,6 +16,9 @@ interface OrderDetail {
   loadingDate: string | null;
   deliveryDate: string;
   shippingAddress: string;
+  truckId: string | null;
+  truckName: string | null;
+  truckCapacityKg: number | null;
   totalWeight: number;
   status: string;
   createdAt: string;
@@ -60,6 +63,9 @@ export default function OrderPrintPage() {
         siteName: data.order.customerName,
         contactInfo: data.order.contactInfo,
         loadingDate: data.order.loadingDate || undefined,
+        truckId: data.order.truckId ?? null,
+        truckName: data.order.truckName ?? null,
+        truckCapacityKg: data.order.truckCapacityKg ?? null,
         items: data.order.items.map((item: OrderDetail['items'][0]) => ({
           id: `${data.order.id}-${item.productName}`,
           name: item.productName,

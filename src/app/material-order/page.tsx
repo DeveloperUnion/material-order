@@ -50,6 +50,9 @@ export default function MaterialOrderPage() {
         status: 'completed',
         notes: null,
         draftOrderId,
+        truckId: orderData.truckId ?? null,
+        truckName: orderData.truckName ?? null,
+        truckCapacityKg: orderData.truckCapacityKg ?? null,
         items: orderData.items.map(item => ({
           materialId: item.id,
           quantity: item.quantity,
@@ -123,6 +126,12 @@ export default function MaterialOrderPage() {
               {orderData.contactInfo && <InfoLine label="連絡先" value={orderData.contactInfo} />}
               {orderData.loadingDate && (
                 <InfoLine label="積込日" value={new Date(orderData.loadingDate).toLocaleDateString('ja-JP')} />
+              )}
+              {orderData.truckName && orderData.truckCapacityKg && (
+                <InfoLine
+                  label="トラック"
+                  value={`${orderData.truckName}（${orderData.truckCapacityKg.toLocaleString()}kg）`}
+                />
               )}
             </div>
 

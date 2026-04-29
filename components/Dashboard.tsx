@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from 'next/navigation';
-import { FileText, Clock, Building2, Package, ChevronRight } from 'lucide-react';
+import { FileText, Clock, Building2, Package, Truck, ChevronRight } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import type { LucideIcon } from 'lucide-react';
 
@@ -80,6 +80,12 @@ export default function Dashboard() {
       description: '資材マスタの登録・編集',
       icon: Package,
       href: '/admin/materials',
+    },
+    {
+      title: 'トラック管理',
+      description: 'トラック種別と積載量の登録',
+      icon: Truck,
+      href: '/admin/trucks',
     },
   ];
 

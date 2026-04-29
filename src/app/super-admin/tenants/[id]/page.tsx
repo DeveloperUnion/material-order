@@ -64,6 +64,24 @@ export default async function TenantDetailPage({
         </div>
       </div>
 
+      <section className="bg-accent-soft border border-accent/20 rounded-xl px-5 py-4">
+        <p className="font-mono text-[10px] uppercase tracking-wider text-accent mb-2">
+          ログイン情報
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <p className="text-[11px] text-muted">会社コード</p>
+            <p className="text-base font-mono font-semibold text-foreground">{tenant.code}</p>
+          </div>
+          <div>
+            <p className="text-[11px] text-muted">認証方式</p>
+            <p className="text-base font-semibold text-foreground">
+              {tenant.authMode === 'NAME' ? '名前選択 (NAME)' : 'メール (EMAIL)'}
+            </p>
+          </div>
+        </div>
+      </section>
+
       <TenantActions
         tenantId={tenant.id}
         tenantName={tenant.name}
@@ -91,7 +109,9 @@ export default async function TenantDetailPage({
                 <div className="min-w-0">
                   <p className="text-sm font-medium text-foreground truncate">
                     {u.name}
-                    <span className="ml-2 text-xs font-mono text-muted">{u.email}</span>
+                    {u.email && (
+                      <span className="ml-2 text-xs font-mono text-muted">{u.email}</span>
+                    )}
                   </p>
                   <p className="text-xs text-muted mt-0.5 font-mono tabular-nums">
                     {u.role} ・ {u.isActive ? '有効' : '無効'}

@@ -10,7 +10,7 @@ import {
 } from "@/types/material-order";
 import { formatWeight, formatTotalWeight } from "@/lib/utils/format";
 import AddMaterialForm from "./AddMaterialForm";
-import { Search, X, Plus, Minus, ArrowRight, Check, Pencil } from "lucide-react";
+import { Search, X, Plus, Minus, ArrowRight, Check, Pencil, AlertTriangle } from "lucide-react";
 
 const orderFormSchema = z.object({
   ordererName: z.string().min(1, "注文者名を入力してください"),
@@ -18,6 +18,9 @@ const orderFormSchema = z.object({
   contactInfo: z.string().optional(),
   loadingDate: z.string().optional(),
   materials: z.record(z.number().int().min(0)),
+  truckOption: z.string().optional(),         // '' | <truckId> | 'custom'
+  truckCustomName: z.string().optional(),
+  truckCustomCapacityKg: z.string().optional(),
 });
 
 type OrderFormData = z.infer<typeof orderFormSchema>;
@@ -28,6 +31,9 @@ interface EditOrderData {
   siteName: string;
   contactInfo: string;
   loadingDate: string;
+  truckId?: string | null;
+  truckName?: string | null;
+  truckCapacityKg?: number | null;
   items: Array<{
     id: string;
     name: string;
@@ -59,6 +65,15 @@ type Material = {
   isActive: boolean;
 };
 
+type Truck = {
+  id: string;
+  name: string;
+  capacityKg: number;
+  isActive: boolean;
+};
+
+const TRUCK_CUSTOM_OPTION = 'custom';
+
 // sessionStorage のキーを生成
 function getDraftStorageKey(editMode: boolean, orderId?: string): string {
   if (editMode && orderId) {
@@ -75,6 +90,9 @@ interface DraftData {
   materials: Record<string, number>;
   selectedCategoryId: string;
   draftOrderId: string | null;
+  truckOption: string;
+  truckCustomName: string;
+  truckCustomCapacityKg: string;
   savedAt: number;
 }
 
@@ -100,6 +118,7 @@ export default function MaterialOrderForm({ onSubmit, editMode = false, editOrde
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [materials, setMaterials] = useState<Material[]>([]);
+  const [trucks, setTrucks] = useState<Truck[]>([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>(
     initialDraft.current?.selectedCategoryId || ""
   );
@@ -146,6 +165,9 @@ export default function MaterialOrderForm({ onSubmit, editMode = false, editOrde
       contactInfo: draft?.contactInfo || "",
       loadingDate: draft?.loadingDate || "",
       materials: draft?.materials || {},
+      truckOption: draft?.truckOption ?? "",
+      truckCustomName: draft?.truckCustomName ?? "",
+      truckCustomCapacityKg: draft?.truckCustomCapacityKg ?? "",
     },
   });
 
@@ -176,16 +198,19 @@ export default function MaterialOrderForm({ onSubmit, editMode = false, editOrde
         const orderId = editMode ? editData?.orderId : initialDraft.current?.draftOrderId || null;
         const materialsUrl = orderId ? `/api/materials?orderId=${orderId}` : '/api/materials';
 
-        const [categoriesRes, materialsRes] = await Promise.all([
+        const [categoriesRes, materialsRes, trucksRes] = await Promise.all([
           fetch('/api/categories'),
-          fetch(materialsUrl)
+          fetch(materialsUrl),
+          fetch('/api/trucks'),
         ]);
 
         const categoriesData = await categoriesRes.json();
         const materialsData = await materialsRes.json();
+        const trucksData = trucksRes.ok ? await trucksRes.json() : [];
 
         setCategories(categoriesData);
         setMaterials(materialsData);
+        setTrucks(trucksData);
 
         if (categoriesData.length > 0 && !initialDraft.current?.selectedCategoryId) {
           setSelectedCategoryId(categoriesData[0].id);
@@ -226,18 +251,33 @@ export default function MaterialOrderForm({ onSubmit, editMode = false, editOrde
         }
       });
 
+      // トラック復元: master に該当 id があればそれを、無ければ snapshot からカスタムとして復元
+      let truckOption = "";
+      let truckCustomName = "";
+      let truckCustomCapacityKg = "";
+      if (editData.truckId && trucks.some((t) => t.id === editData.truckId)) {
+        truckOption = editData.truckId;
+      } else if (editData.truckName && editData.truckCapacityKg) {
+        truckOption = TRUCK_CUSTOM_OPTION;
+        truckCustomName = editData.truckName;
+        truckCustomCapacityKg = String(editData.truckCapacityKg);
+      }
+
       const formData = {
         ordererName: editData.ordererName || "",
         siteName: editData.siteName || "",
         contactInfo: editData.contactInfo || "",
         loadingDate: editData.loadingDate || "",
         materials: materialQuantities,
+        truckOption,
+        truckCustomName,
+        truckCustomCapacityKg,
       };
 
       reset(formData);
       isInitializedRef.current = true;
     }
-  }, [editMode, editData, materials, loading, reset]);
+  }, [editMode, editData, materials, trucks, loading, reset]);
 
   const watchedMaterials = useWatch({
     control,
@@ -250,7 +290,26 @@ export default function MaterialOrderForm({ onSubmit, editMode = false, editOrde
     name: ['ordererName', 'siteName', 'contactInfo', 'loadingDate'],
   });
 
+  const watchedTruck = useWatch({
+    control,
+    name: ['truckOption', 'truckCustomName', 'truckCustomCapacityKg'],
+  });
+
   const selectedMaterials = useMemo(() => watchedMaterials || {}, [watchedMaterials]);
+
+  // 選択中トラックの実効値
+  const selectedTruck = useMemo(() => {
+    const [option, customName, customCapacity] = watchedTruck || [];
+    if (!option) return null;
+    if (option === TRUCK_CUSTOM_OPTION) {
+      const cap = Number(customCapacity);
+      if (!customName?.trim() || !Number.isFinite(cap) || cap <= 0) return null;
+      return { id: null as string | null, name: customName.trim(), capacityKg: Math.round(cap) };
+    }
+    const t = trucks.find((tr) => tr.id === option);
+    if (!t) return null;
+    return { id: t.id, name: t.name, capacityKg: t.capacityKg };
+  }, [watchedTruck, trucks]);
 
   useEffect(() => {
     if (loading || !saveEnabledRef.current) return;
@@ -266,6 +325,9 @@ export default function MaterialOrderForm({ onSubmit, editMode = false, editOrde
           materials: watchedMaterials || {},
           selectedCategoryId,
           draftOrderId,
+          truckOption: values.truckOption ?? "",
+          truckCustomName: values.truckCustomName ?? "",
+          truckCustomCapacityKg: values.truckCustomCapacityKg ?? "",
           savedAt: Date.now(),
         };
         sessionStorage.setItem(storageKey, JSON.stringify(draft));
@@ -275,7 +337,7 @@ export default function MaterialOrderForm({ onSubmit, editMode = false, editOrde
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [watchedMaterials, watchedFields, selectedCategoryId, draftOrderId, loading, getValues, storageKey]);
+  }, [watchedMaterials, watchedFields, watchedTruck, selectedCategoryId, draftOrderId, loading, getValues, storageKey]);
 
   const currentMaterials = useMemo(() => {
     const filtered = materials.filter(m => {
@@ -413,6 +475,9 @@ export default function MaterialOrderForm({ onSubmit, editMode = false, editOrde
       orderDate: new Date().toISOString(),
       items: orderItems.items,
       totalWeight: orderItems.totalWeight,
+      truckId: selectedTruck?.id ?? null,
+      truckName: selectedTruck?.name ?? null,
+      truckCapacityKg: selectedTruck?.capacityKg ?? null,
     };
     onSubmit(orderDocument);
   };
@@ -504,6 +569,48 @@ export default function MaterialOrderForm({ onSubmit, editMode = false, editOrde
                   />
                 </Field>
               </div>
+
+              {/* トラック選択 */}
+              <div className="mt-4">
+                <Field label="使用トラック">
+                  <select
+                    {...register("truckOption")}
+                    className="input"
+                  >
+                    <option value="">未指定</option>
+                    {trucks.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.name}（{t.capacityKg.toLocaleString()}kg）
+                      </option>
+                    ))}
+                    <option value={TRUCK_CUSTOM_OPTION}>カスタム入力…</option>
+                  </select>
+                </Field>
+
+                {watchedTruck?.[0] === TRUCK_CUSTOM_OPTION && (
+                  <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <Field label="トラック名" required={false} error={errors.truckCustomName?.message}>
+                      <input
+                        {...register("truckCustomName")}
+                        type="text"
+                        placeholder="例: 4tユニック"
+                        className="input"
+                      />
+                    </Field>
+                    <Field label="積載量(kg)" required={false} error={errors.truckCustomCapacityKg?.message}>
+                      <input
+                        {...register("truckCustomCapacityKg")}
+                        type="number"
+                        inputMode="numeric"
+                        min="1"
+                        step="1"
+                        placeholder="例: 4000"
+                        className="input"
+                      />
+                    </Field>
+                  </div>
+                )}
+              </div>
             </section>
 
             <div className="flex justify-end">
@@ -539,6 +646,15 @@ export default function MaterialOrderForm({ onSubmit, editMode = false, editOrde
                   <InfoSummaryItem
                     label="積込日"
                     value={new Date(watchedFields[3]).toLocaleDateString('ja-JP')}
+                  />
+                </>
+              )}
+              {selectedTruck && (
+                <>
+                  <div className="h-6 w-px bg-border flex-shrink-0" />
+                  <InfoSummaryItem
+                    label="トラック"
+                    value={`${selectedTruck.name} (${selectedTruck.capacityKg.toLocaleString()}kg)`}
                   />
                 </>
               )}
@@ -768,10 +884,17 @@ export default function MaterialOrderForm({ onSubmit, editMode = false, editOrde
                 </div>
                 <div className="flex items-baseline justify-between pt-2 border-t border-border">
                   <span className="text-xs text-muted">合計重量</span>
-                  <span className="font-sans text-2xl font-bold tracking-tight tabular-nums text-foreground">
+                  <span className={`font-sans text-2xl font-bold tracking-tight tabular-nums ${selectedTruck && orderItems.totalWeight > selectedTruck.capacityKg ? 'text-red-600' : 'text-foreground'}`}>
                     {formatTotalWeight(orderItems.totalWeight)}
                   </span>
                 </div>
+                {selectedTruck && (
+                  <CapacityGauge
+                    truckName={selectedTruck.name}
+                    capacityKg={selectedTruck.capacityKg}
+                    currentKg={orderItems.totalWeight}
+                  />
+                )}
               </div>
 
               <button
@@ -787,23 +910,39 @@ export default function MaterialOrderForm({ onSubmit, editMode = false, editOrde
             </div>
 
             {/* Mobile fixed bottom bar */}
-            <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-surface border-t border-border px-4 py-3 flex items-center gap-3 z-30 shadow-[0_-4px_12px_rgba(12,10,9,0.06)]">
-              <div className="flex-1 min-w-0">
-                <div className="text-[10px] font-mono tracking-wider text-subtle uppercase tabular-nums">
-                  {orderItems.items.length} 品 · {totalItemCount} 個
+            <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-surface border-t border-border px-4 py-3 z-30 shadow-[0_-4px_12px_rgba(12,10,9,0.06)]">
+              {selectedTruck && orderItems.totalWeight > selectedTruck.capacityKg && (
+                <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-red-600">
+                  <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0" />
+                  <span>{selectedTruck.name}の積載量を超過 (+{formatWeight(orderItems.totalWeight - selectedTruck.capacityKg)})</span>
                 </div>
-                <div className="text-lg font-bold tracking-tight tabular-nums text-foreground leading-tight">
-                  {formatTotalWeight(orderItems.totalWeight)}
+              )}
+              <div className="flex items-center gap-3">
+                <div className="flex-1 min-w-0">
+                  <div className="text-[10px] font-mono tracking-wider text-subtle uppercase tabular-nums">
+                    {orderItems.items.length} 品 · {totalItemCount} 個
+                    {selectedTruck && (
+                      <span className="ml-1.5 normal-case tracking-normal">/ {selectedTruck.name}</span>
+                    )}
+                  </div>
+                  <div className={`text-lg font-bold tracking-tight tabular-nums leading-tight ${selectedTruck && orderItems.totalWeight > selectedTruck.capacityKg ? 'text-red-600' : 'text-foreground'}`}>
+                    {formatTotalWeight(orderItems.totalWeight)}
+                    {selectedTruck && (
+                      <span className="ml-1 text-xs font-medium text-muted">
+                        / {selectedTruck.capacityKg.toLocaleString()}kg
+                      </span>
+                    )}
+                  </div>
                 </div>
+                <button
+                  type="submit"
+                  disabled={!hasItems}
+                  className="px-5 py-3 bg-foreground text-background font-semibold text-sm rounded-md flex items-center gap-2 hover:bg-foreground/90 disabled:bg-subtle disabled:cursor-not-allowed transition-colors flex-shrink-0"
+                >
+                  {editMode ? "更新" : "発注書を作成"}
+                  <ArrowRight className="h-4 w-4" />
+                </button>
               </div>
-              <button
-                type="submit"
-                disabled={!hasItems}
-                className="px-5 py-3 bg-foreground text-background font-semibold text-sm rounded-md flex items-center gap-2 hover:bg-foreground/90 disabled:bg-subtle disabled:cursor-not-allowed transition-colors flex-shrink-0"
-              >
-                {editMode ? "更新" : "発注書を作成"}
-                <ArrowRight className="h-4 w-4" />
-              </button>
             </div>
           </>
         )}
@@ -900,6 +1039,43 @@ function InfoSummaryItem({
       <span className="text-[13px] font-semibold text-foreground leading-none truncate">
         {value || "—"}
       </span>
+    </div>
+  );
+}
+
+function CapacityGauge({
+  truckName,
+  capacityKg,
+  currentKg,
+}: {
+  truckName: string;
+  capacityKg: number;
+  currentKg: number;
+}) {
+  const ratio = capacityKg > 0 ? currentKg / capacityKg : 0;
+  const overCapacity = currentKg > capacityKg;
+  const fillPct = Math.max(0, Math.min(100, ratio * 100));
+
+  return (
+    <div className="pt-2 border-t border-border space-y-1.5">
+      <div className="flex justify-between text-[11px] font-mono tabular-nums text-muted">
+        <span>{truckName}</span>
+        <span>{currentKg.toLocaleString()} / {capacityKg.toLocaleString()}kg</span>
+      </div>
+      <div className="h-2 rounded-full bg-border overflow-hidden">
+        <div
+          className={`h-full rounded-full transition-all ${overCapacity ? 'bg-red-500' : 'bg-accent'}`}
+          style={{ width: `${overCapacity ? 100 : fillPct}%` }}
+        />
+      </div>
+      {overCapacity && (
+        <div className="flex items-start gap-1.5 mt-1.5 px-2.5 py-1.5 bg-red-50 border border-red-200 rounded-md text-[11px] font-semibold text-red-700">
+          <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0 mt-px" />
+          <span className="leading-snug">
+            積載量を超過しています（+{formatWeight(currentKg - capacityKg)}）
+          </span>
+        </div>
+      )}
     </div>
   );
 }

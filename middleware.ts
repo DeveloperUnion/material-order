@@ -5,10 +5,13 @@ export default auth((request) => {
   const { pathname } = request.nextUrl
 
   // 認証不要なパス
-  const publicPaths = ['/', '/api/auth', '/invite']
-  const isPublicPath = publicPaths.some(path =>
-    pathname === path || pathname.startsWith(path + '/')
-  )
+  const publicPaths = ['/', '/api/auth', '/invite', '/super-admin-login', '/api/tenant/lookup']
+  const isPublicPath =
+    publicPaths.some(
+      (path) => pathname === path || pathname.startsWith(path + '/')
+    ) ||
+    // ログイン画面が叩く NAME モードのメンバー一覧 API
+    /^\/api\/tenant\/[^/]+\/users\/?$/.test(pathname)
 
   // 認証状態を取得
   const isLoggedIn = !!request.auth?.user

@@ -5,6 +5,7 @@ import { seedSheetMaterials } from './seeds/materials-sheet'
 import { seedOtherMaterials } from './seeds/materials-other'
 import { seedKusabiMaterials } from './seeds/materials-kusabi'
 import { seedTenantAndAdmin } from './seeds/users'
+import { seedTrucks } from './seeds/trucks'
 
 const prisma = new PrismaClient()
 
@@ -29,17 +30,22 @@ async function main() {
   // 6. くさびの資材を投入
   await seedKusabiMaterials(prisma, tenantId)
 
+  // 7. トラックを投入
+  await seedTrucks(prisma, tenantId)
+
   // 最終確認
   const tenantCount = await prisma.tenant.count()
   const categoryCount = await prisma.category.count()
   const materialCount = await prisma.material.count()
   const userCount = await prisma.user.count()
+  const truckCount = await prisma.truck.count()
 
   console.log('\n📊 最終的なデータベースの状態:')
   console.log(`  - テナント: ${tenantCount}件`)
   console.log(`  - カテゴリ: ${categoryCount}件`)
   console.log(`  - 資材: ${materialCount}件`)
   console.log(`  - ユーザー: ${userCount}件`)
+  console.log(`  - トラック: ${truckCount}件`)
   console.log('\n✨ すべての初期データ投入が完了しました！')
 }
 

@@ -10,7 +10,10 @@ import { ArrowRight, X, Check, Shield } from 'lucide-react';
 interface InvitationInfo {
   email: string;
   role: 'ADMIN' | 'MEMBER';
+  tenantId: string;
+  tenantCode: string;
   tenantName: string;
+  tenantAuthMode: 'EMAIL' | 'NAME';
   expiresAt: string;
 }
 
@@ -88,9 +91,22 @@ export default function InviteRegistrationPage() {
 
       setSuccess(true);
 
+      // 次回のログインがスムーズになるよう、会社コードを localStorage にも保存しておく
+      try {
+        if (invitation?.tenantCode) {
+          localStorage.setItem('material-order:tenant-code', invitation.tenantCode);
+        }
+      } catch {
+        // localStorage が使えない環境では無視
+      }
+
+      const credentials =
+        invitation?.tenantAuthMode === 'NAME'
+          ? { tenantId: invitation.tenantId, name: name.trim(), password }
+          : { email: invitation?.email, password };
+
       const signInResult = await signIn('credentials', {
-        email: invitation?.email,
-        password,
+        ...credentials,
         redirect: false,
       });
 

@@ -13,6 +13,9 @@ interface EditOrderData {
   siteName: string;
   contactInfo: string;
   loadingDate: string;
+  truckId: string | null;
+  truckName: string | null;
+  truckCapacityKg: number | null;
   items: Array<{
     id: string;
     name: string;
@@ -50,6 +53,9 @@ export default function MaterialOrderEditPage() {
           siteName: order.customerName || '',
           contactInfo: order.contactInfo || '',
           loadingDate: order.loadingDate ? new Date(order.loadingDate).toISOString().split('T')[0] : '',
+          truckId: order.truckId ?? null,
+          truckName: order.truckName ?? null,
+          truckCapacityKg: order.truckCapacityKg ?? null,
           items: order.items.map((item: { materialId: string; productName: string; quantity: number; weightPerUnit: number; totalWeight: number }) => ({
             id: item.materialId,
             name: item.productName,
@@ -99,6 +105,9 @@ export default function MaterialOrderEditPage() {
         deliveryDate: null,
         status: 'completed',
         notes: null,
+        truckId: orderData.truckId ?? null,
+        truckName: orderData.truckName ?? null,
+        truckCapacityKg: orderData.truckCapacityKg ?? null,
         items: orderData.items.map(item => ({
           materialId: item.id,
           quantity: item.quantity,
@@ -178,6 +187,12 @@ export default function MaterialOrderEditPage() {
               {orderData.contactInfo && <InfoLine label="連絡先" value={orderData.contactInfo} />}
               {orderData.loadingDate && (
                 <InfoLine label="積込日" value={new Date(orderData.loadingDate).toLocaleDateString('ja-JP')} />
+              )}
+              {orderData.truckName && orderData.truckCapacityKg && (
+                <InfoLine
+                  label="トラック"
+                  value={`${orderData.truckName}（${orderData.truckCapacityKg.toLocaleString()}kg）`}
+                />
               )}
             </div>
 

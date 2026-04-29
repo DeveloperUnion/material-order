@@ -16,6 +16,7 @@ export async function seedTenantAndAdmin(prisma: PrismaClient) {
     tenant = await prisma.tenant.create({
       data: {
         name: '建設テック',
+        code: 'kensetsu-tech',
         maxUsers: 10,
         isActive: true,
       }

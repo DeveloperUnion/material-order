@@ -3,7 +3,21 @@ import Credentials from 'next-auth/providers/credentials'
 import bcrypt from 'bcrypt'
 import { authConfig } from '@/lib/auth.config'
 import { getCurrentPrismaClient } from '@/lib/tenant/server'
-import { UserRole } from '@prisma/client'
+import { PrismaClient, UserRole } from '@prisma/client'
+
+async function findUserByEmail(prisma: PrismaClient, email: string) {
+  return prisma.user.findUnique({
+    where: { email },
+    include: { tenant: true },
+  })
+}
+
+async function findUserByTenantAndName(prisma: PrismaClient, tenantId: string, name: string) {
+  return prisma.user.findUnique({
+    where: { tenantId_name: { tenantId, name } },
+    include: { tenant: true },
+  })
+}
 
 // セッションに追加するカスタムフィールドの型定義
 declare module 'next-auth' {
@@ -36,47 +50,43 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     Credentials({
       credentials: {
         email: { label: 'Email', type: 'email' },
+        tenantId: { label: 'Tenant ID', type: 'text' },
+        name: { label: 'Name', type: 'text' },
         password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          return null
-        }
+        const password = credentials?.password as string | undefined
+        if (!password) return null
 
-        const email = credentials.email as string
-        const password = credentials.password as string
+        const email = credentials?.email as string | undefined
+        const tenantId = credentials?.tenantId as string | undefined
+        const name = credentials?.name as string | undefined
 
         try {
           const prisma = getCurrentPrismaClient()
 
-          // ユーザーを検索（テナント情報も含む）
-          const user = await prisma.user.findUnique({
-            where: {
-              email: email,
-              isActive: true,
-            },
-            include: {
-              tenant: true,
-            },
-          })
+          // EMAIL モード: email 単独でユーザー特定
+          // NAME モード: (tenantId, name) でユーザー特定
+          let user: Awaited<ReturnType<typeof findUserByEmail>> | Awaited<ReturnType<typeof findUserByTenantAndName>>
 
-          // ユーザーが存在しない、またはテナントが無効
-          if (!user || !user.tenant.isActive) {
+          if (tenantId && name) {
+            user = await findUserByTenantAndName(prisma, tenantId, name)
+            // NAME モードでは Tenant.authMode === 'NAME' であることも確認
+            if (user && user.tenant.authMode !== 'NAME') return null
+          } else if (email) {
+            user = await findUserByEmail(prisma, email)
+            // EMAIL モードでのログインは Tenant.authMode === 'EMAIL' のみ許容
+            if (user && user.tenant.authMode !== 'EMAIL') return null
+          } else {
             return null
           }
 
-          // パスワードがnullの場合（SSO専用ユーザー）
-          if (!user.password) {
-            return null
-          }
+          if (!user || !user.isActive || !user.tenant.isActive) return null
+          if (!user.password) return null
 
-          // パスワード検証
           const isValidPassword = await bcrypt.compare(password, user.password)
-          if (!isValidPassword) {
-            return null
-          }
+          if (!isValidPassword) return null
 
-          // 最終ログイン日時を更新
           await prisma.user.update({
             where: { id: user.id },
             data: { lastLoginAt: new Date() },
@@ -84,7 +94,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
           return {
             id: user.id,
-            email: user.email,
+            email: user.email ?? '',
             name: user.name,
             tenantId: user.tenantId,
             role: user.role,
