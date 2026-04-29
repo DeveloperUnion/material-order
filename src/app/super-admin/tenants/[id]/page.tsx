@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { format } from 'date-fns'
 import { ja } from 'date-fns/locale'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, FileSpreadsheet } from 'lucide-react'
 import { prisma } from '@/lib/tenant/prisma'
 import TenantActions from '@/components/super-admin/TenantActions'
 
@@ -64,6 +64,24 @@ export default async function TenantDetailPage({
         </div>
       </div>
 
+      <section className="bg-accent-soft border border-accent/20 rounded-xl px-5 py-4">
+        <p className="font-mono text-[10px] uppercase tracking-wider text-accent mb-2">
+          ログイン情報
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <p className="text-[11px] text-muted">会社コード</p>
+            <p className="text-base font-mono font-semibold text-foreground">{tenant.code}</p>
+          </div>
+          <div>
+            <p className="text-[11px] text-muted">認証方式</p>
+            <p className="text-base font-semibold text-foreground">
+              {tenant.authMode === 'NAME' ? '名前選択 (NAME)' : 'メール (EMAIL)'}
+            </p>
+          </div>
+        </div>
+      </section>
+
       <TenantActions
         tenantId={tenant.id}
         tenantName={tenant.name}
@@ -78,6 +96,22 @@ export default async function TenantDetailPage({
         <StatCard label="発注 / 資材" value={`${tenant._count.orders} / ${tenant._count.materials}`} />
       </div>
 
+      <section className="bg-surface border border-border rounded-xl p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <p className="text-sm font-semibold text-foreground">資材CSVインポート</p>
+          <p className="text-xs text-muted mt-1">
+            CSV ファイルから資材を一括登録・更新します。
+          </p>
+        </div>
+        <Link
+          href={`/super-admin/tenants/${tenant.id}/materials/import`}
+          className="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm font-semibold hover:bg-primary/90 transition-colors"
+        >
+          <FileSpreadsheet className="h-4 w-4" />
+          資材を CSV インポート
+        </Link>
+      </section>
+
       <section className="bg-surface border border-border rounded-xl">
         <h2 className="px-5 py-4 text-sm font-semibold text-foreground border-b border-border">
           メンバー（{tenant.users.length}）
@@ -91,7 +125,9 @@ export default async function TenantDetailPage({
                 <div className="min-w-0">
                   <p className="text-sm font-medium text-foreground truncate">
                     {u.name}
-                    <span className="ml-2 text-xs font-mono text-muted">{u.email}</span>
+                    {u.email && (
+                      <span className="ml-2 text-xs font-mono text-muted">{u.email}</span>
+                    )}
                   </p>
                   <p className="text-xs text-muted mt-0.5 font-mono tabular-nums">
                     {u.role} ・ {u.isActive ? '有効' : '無効'}

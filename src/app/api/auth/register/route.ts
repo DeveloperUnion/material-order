@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { Prisma } from '@prisma/client';
 import { getCurrentPrismaClient } from '@/lib/tenant/server';
 import bcrypt from 'bcrypt';
 
@@ -22,7 +23,9 @@ export async function GET(request: Request) {
         tenant: {
           select: {
             id: true,
+            code: true,
             name: true,
+            authMode: true,
           },
         },
       },
@@ -53,7 +56,10 @@ export async function GET(request: Request) {
       invitation: {
         email: invitation.email,
         role: invitation.role,
+        tenantId: invitation.tenant.id,
+        tenantCode: invitation.tenant.code,
         tenantName: invitation.tenant.name,
+        tenantAuthMode: invitation.tenant.authMode,
         expiresAt: invitation.expiresAt,
       },
     });
@@ -144,29 +150,52 @@ export async function POST(request: Request) {
       );
     }
 
+    // (tenantId, name) 重複の事前チェック
+    const collidingName = await prisma.user.findUnique({
+      where: { tenantId_name: { tenantId: invitation.tenantId, name: name.trim() } },
+      select: { id: true },
+    });
+    if (collidingName) {
+      return NextResponse.json(
+        { error: 'この会社に既に同じ名前のメンバーがいます。別の表記でお願いします（例: 山田 太郎(現場A)）' },
+        { status: 409 }
+      );
+    }
+
     // パスワードハッシュ化
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // トランザクションでユーザー作成と招待更新
     const now = new Date();
-    const [user] = await prisma.$transaction([
-      prisma.user.create({
-        data: {
-          tenantId: invitation.tenantId,
-          email: invitation.email,
-          password: hashedPassword,
-          name: name.trim(),
-          role: invitation.role,
-          isActive: true,
-          invitedAt: invitation.createdAt,
-          joinedAt: now,
-        },
-      }),
-      prisma.invitation.update({
-        where: { id: invitation.id },
-        data: { usedAt: now },
-      }),
-    ]);
+    let user;
+    try {
+      [user] = await prisma.$transaction([
+        prisma.user.create({
+          data: {
+            tenantId: invitation.tenantId,
+            email: invitation.email,
+            password: hashedPassword,
+            name: name.trim(),
+            role: invitation.role,
+            isActive: true,
+            invitedAt: invitation.createdAt,
+            joinedAt: now,
+          },
+        }),
+        prisma.invitation.update({
+          where: { id: invitation.id },
+          data: { usedAt: now },
+        }),
+      ]);
+    } catch (e) {
+      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
+        return NextResponse.json(
+          { error: 'この会社に既に同じ名前のメンバーがいます。別の表記でお願いします' },
+          { status: 409 }
+        );
+      }
+      throw e;
+    }
 
     return NextResponse.json({
       message: '登録が完了しました',
@@ -175,6 +204,12 @@ export async function POST(request: Request) {
         email: user.email,
         name: user.name,
         role: user.role,
+        tenantId: user.tenantId,
+      },
+      tenant: {
+        id: invitation.tenant.id,
+        code: invitation.tenant.code,
+        authMode: invitation.tenant.authMode,
       },
     }, { status: 201 });
   } catch (error) {

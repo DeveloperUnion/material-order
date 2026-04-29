@@ -5,25 +5,38 @@ import Image from 'next/image'
 import { LogOut, User } from 'lucide-react'
 import { useSession, signOut } from 'next-auth/react'
 import { useTenant } from '@/lib/tenant/context'
+import { useTenantPath } from '@/lib/tenant/links'
 
 export default function Header() {
   const router = useRouter()
   const pathname = usePathname()
   const { data: session } = useSession()
   const { config } = useTenant()
+  const t = useTenantPath()
 
-  // 未認証系ページ・SUPER_ADMIN 専用画面では通常ヘッダーを描画しない
-  if (pathname === '/' || pathname.startsWith('/invite/') || pathname.startsWith('/super-admin'))
+  // 未認証系ページ・SUPER_ADMIN 専用画面では通常ヘッダーを描画しない。
+  // /[tenantCode] のログイン画面 (テナントコード単独) も非表示にする。
+  const segments = pathname.split('/').filter(Boolean)
+  const isTenantLoginPage = segments.length === 1 && segments[0] !== 'super-admin' && segments[0] !== 'super-admin-login'
+  if (
+    pathname === '/' ||
+    pathname.startsWith('/invite/') ||
+    pathname.startsWith('/super-admin') ||
+    isTenantLoginPage
+  )
     return null
 
   const handleLogout = async () => {
+    // 同じテナントのログイン画面に戻す。会社コードを再入力させない。
+    // session が無いケースは / にフォールバック。
+    const dest = session?.user?.tenantCode ? `/${session.user.tenantCode}` : '/'
     await signOut({ redirect: false })
-    router.push('/')
+    router.push(dest)
     router.refresh()
   }
 
   const handleLogoClick = () => {
-    router.push('/dashboard')
+    router.push(t('/dashboard'))
   }
 
   return (
@@ -53,7 +66,7 @@ export default function Header() {
             {session?.user && (
               <button
                 type="button"
-                onClick={() => router.push('/profile')}
+                onClick={() => router.push(t('/profile'))}
                 className="flex items-center gap-2 pl-1 pr-2 sm:pr-3 py-1 rounded-full text-sm text-foreground hover:bg-surface-muted transition-colors"
               >
                 <div className="w-8 h-8 bg-accent-soft rounded-full flex items-center justify-center">

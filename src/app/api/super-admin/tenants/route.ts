@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server'
 import { randomBytes } from 'crypto'
+import { TenantAuthMode } from '@prisma/client'
 import { prisma } from '@/lib/tenant/prisma'
 import { getSuperAdminSession } from '@/lib/auth/super-admin'
 import { sendInvitationEmail } from '@/lib/email'
+import { isReservedTenantCode } from '@/lib/tenant/reserved'
 
 export async function GET() {
   const session = await getSuperAdminSession()
@@ -17,15 +19,19 @@ export async function GET() {
   return NextResponse.json({ tenants })
 }
 
+const CODE_PATTERN = /^[a-z0-9][a-z0-9-]{1,62}[a-z0-9]$/
+
 export async function POST(request: Request) {
   const session = await getSuperAdminSession()
   if (!session) return new NextResponse(null, { status: 404 })
 
   let body: {
     companyName?: string
+    tenantCode?: string
     adminEmail?: string
     adminName?: string
     maxUsers?: number
+    authMode?: TenantAuthMode
   }
   try {
     body = await request.json()
@@ -34,18 +40,39 @@ export async function POST(request: Request) {
   }
 
   const companyName = body.companyName?.trim()
+  const tenantCode = body.tenantCode?.trim().toLowerCase()
   const adminEmail = body.adminEmail?.trim().toLowerCase()
   const adminName = body.adminName?.trim() || '管理者'
   const maxUsers = Math.max(1, Math.min(999, body.maxUsers ?? 10))
+  const authMode: TenantAuthMode = body.authMode === 'NAME' ? 'NAME' : 'EMAIL'
 
   if (!companyName) {
     return NextResponse.json({ error: '会社名を入力してください' }, { status: 400 })
   }
+  if (!tenantCode || !CODE_PATTERN.test(tenantCode)) {
+    return NextResponse.json(
+      { error: '会社コードは英小文字・数字・ハイフンの 3〜64 文字で、先頭末尾は英数字にしてください' },
+      { status: 400 }
+    )
+  }
+  if (isReservedTenantCode(tenantCode)) {
+    return NextResponse.json(
+      { error: `「${tenantCode}」はシステム予約語のため使用できません` },
+      { status: 400 }
+    )
+  }
   if (!adminEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(adminEmail)) {
-    return NextResponse.json({ error: '有効なメールアドレスを入力してください' }, { status: 400 })
+    return NextResponse.json({ error: '有効な管理者メールアドレスを入力してください' }, { status: 400 })
   }
 
-  // 既存 User / Invitation 重複チェック
+  const existingTenantByCode = await prisma.tenant.findUnique({ where: { code: tenantCode } })
+  if (existingTenantByCode) {
+    return NextResponse.json(
+      { error: `会社コード「${tenantCode}」は既に使われています` },
+      { status: 409 }
+    )
+  }
+
   const existingUser = await prisma.user.findUnique({ where: { email: adminEmail } })
   if (existingUser) {
     return NextResponse.json(
@@ -64,15 +91,14 @@ export async function POST(request: Request) {
     )
   }
 
-  const existingTenant = await prisma.tenant.findFirst({ where: { name: companyName } })
-  if (existingTenant) {
+  const existingTenantByName = await prisma.tenant.findFirst({ where: { name: companyName } })
+  if (existingTenantByName) {
     return NextResponse.json(
       { error: `「${companyName}」という名前のテナントは既に存在します` },
       { status: 409 }
     )
   }
 
-  // baseUrl をリクエストから動的取得（環境ごとに正しい URL になる）
   const host = request.headers.get('host') || 'localhost:3000'
   const protocol = request.headers.get('x-forwarded-proto') || 'http'
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || `${protocol}://${host}`
@@ -82,7 +108,6 @@ export async function POST(request: Request) {
   expiresAt.setDate(expiresAt.getDate() + 7)
   const inviteUrl = `${baseUrl}/invite/${token}`
 
-  // メールを先に送る（失敗時にテナントを作らない）
   const emailResult = await sendInvitationEmail({
     to: adminEmail,
     inviterName: session.user.name || 'Super Admin',
@@ -99,15 +124,15 @@ export async function POST(request: Request) {
     )
   }
 
-  const [tenant] = await prisma.$transaction([
-    prisma.tenant.create({
-      data: {
-        name: companyName,
-        maxUsers,
-        isActive: true,
-      },
-    }),
-  ])
+  const tenant = await prisma.tenant.create({
+    data: {
+      name: companyName,
+      code: tenantCode,
+      authMode,
+      maxUsers,
+      isActive: true,
+    },
+  })
 
   await prisma.invitation.create({
     data: {
@@ -120,12 +145,18 @@ export async function POST(request: Request) {
     },
   })
 
-  // adminName は現状保持場所がない（User は招待承認時に作られる）。
-  // UI 表示用に渡されるが、DB には承認時にユーザーが自分で入力した名前が入る。
   void adminName
 
   return NextResponse.json(
-    { tenant: { id: tenant.id, name: tenant.name } },
+    {
+      tenant: {
+        id: tenant.id,
+        name: tenant.name,
+        code: tenant.code,
+        authMode: tenant.authMode,
+      },
+      loginUrl: baseUrl,
+    },
     { status: 201 }
   )
 }

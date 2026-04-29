@@ -11,7 +11,7 @@ export default function SuperAdminNav({ userName }: { userName: string }) {
 
   const handleLogout = async () => {
     await signOut({ redirect: false })
-    router.push('/')
+    router.push('/super-admin-login')
     router.refresh()
   }
 

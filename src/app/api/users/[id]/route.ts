@@ -14,7 +14,11 @@ export async function PUT(
     const resolvedParams = await params;
     const body = await request.json();
 
-    const { role, isActive } = body;
+    const { role, isActive, regeneratePasswordSetup } = body as {
+      role?: UserRole;
+      isActive?: boolean;
+      regeneratePasswordSetup?: boolean;
+    };
 
     // 対象ユーザーを取得
     const targetUser = await prisma.user.findUnique({
@@ -79,9 +83,22 @@ export async function PUT(
     }
 
     // 更新データを構築
-    const updateData: { role?: UserRole; isActive?: boolean } = {};
+    const updateData: {
+      role?: UserRole;
+      isActive?: boolean;
+      password?: null;
+      passwordSetupExpiresAt?: Date;
+    } = {};
     if (role !== undefined) updateData.role = role as UserRole;
     if (isActive !== undefined) updateData.isActive = isActive;
+
+    if (regeneratePasswordSetup === true) {
+      // EMAIL / NAME 両モードで動く。joinedAt は履歴として残すため触らない
+      updateData.password = null;
+      updateData.passwordSetupExpiresAt = new Date(
+        Date.now() + 24 * 60 * 60 * 1000
+      );
+    }
 
     const updatedUser = await prisma.user.update({
       where: { id: resolvedParams.id },
@@ -92,6 +109,8 @@ export async function PUT(
         name: true,
         role: true,
         isActive: true,
+        joinedAt: true,
+        passwordSetupExpiresAt: true,
       },
     });
 

@@ -1,9 +1,10 @@
 "use client";
 
 import { useRouter } from 'next/navigation';
-import { FileText, Clock, Building2, Package, ChevronRight } from 'lucide-react';
+import { FileText, Clock, Building2, Package, Truck, Tag, ChevronRight } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import type { LucideIcon } from 'lucide-react';
+import { useTenantPath } from '@/lib/tenant/links';
 
 interface MenuItem {
   title: string;
@@ -51,6 +52,7 @@ function formatDate(date: Date): string {
 export default function Dashboard() {
   const router = useRouter();
   const { data: session } = useSession();
+  const t = useTenantPath();
   const isAdmin = session?.user?.role === 'ADMIN';
 
   const baseItems: MenuItem[] = [
@@ -81,6 +83,18 @@ export default function Dashboard() {
       icon: Package,
       href: '/admin/materials',
     },
+    {
+      title: 'カテゴリ管理',
+      description: '資材カテゴリの追加・編集',
+      icon: Tag,
+      href: '/admin/categories',
+    },
+    {
+      title: 'トラック管理',
+      description: 'トラック種別と積載量の登録',
+      icon: Truck,
+      href: '/admin/trucks',
+    },
   ];
 
   return (
@@ -95,7 +109,7 @@ export default function Dashboard() {
             <MenuCard
               key={item.href}
               {...item}
-              onClick={() => router.push(item.href)}
+              onClick={() => router.push(t(item.href))}
             />
           ))}
           {isAdmin &&
@@ -103,7 +117,7 @@ export default function Dashboard() {
               <MenuCard
                 key={item.href}
                 {...item}
-                onClick={() => router.push(item.href)}
+                onClick={() => router.push(t(item.href))}
               />
             ))}
         </div>

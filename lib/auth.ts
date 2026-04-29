@@ -5,6 +5,7 @@ import { UserRole } from '@prisma/client'
 export interface CurrentUser {
   id: string
   tenantId: string
+  tenantCode: string
   email: string
   name: string
   role: UserRole
@@ -22,6 +23,7 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
     return {
       id: session.user.id,
       tenantId: session.user.tenantId,
+      tenantCode: session.user.tenantCode,
       email: session.user.email || '',
       name: session.user.name || '',
       role: session.user.role,

@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { Prisma } from '@prisma/client';
 import { getPrismaClientFromRequest } from '@/lib/tenant/server';
 import { requireAuth } from '@/lib/auth';
+import { generateMaterialCode } from '@/lib/material/generateMaterialCode';
+
+const MATERIAL_ORDER_BY: Prisma.MaterialOrderByWithRelationInput[] = [
+  { category: { displayOrder: 'asc' } },
+  { materialCode: 'asc' },
+];
 
 export async function GET(request: NextRequest) {
   try {
@@ -19,16 +26,7 @@ export async function GET(request: NextRequest) {
       include: {
         category: true
       },
-      orderBy: [
-        {
-          category: {
-            displayOrder: 'asc'
-          }
-        },
-        {
-          materialCode: 'asc'
-        }
-      ]
+      orderBy: MATERIAL_ORDER_BY,
     });
 
     // orderIdが指定されている場合は、その発注用の一時材料も取得
@@ -43,16 +41,7 @@ export async function GET(request: NextRequest) {
         include: {
           category: true
         },
-        orderBy: [
-          {
-            category: {
-              displayOrder: 'asc'
-            }
-          },
-          {
-            materialCode: 'asc'
-          }
-        ]
+        orderBy: MATERIAL_ORDER_BY,
       });
 
       // 通常の材料と一時材料を結合
@@ -82,98 +71,87 @@ export async function POST(request: NextRequest) {
     const currentUser = await requireAuth();
     const prisma = getPrismaClientFromRequest(request)
     const body = await request.json();
-    const { name, categoryId, size, weightKg, isTemporary, createdForOrderId } = body;
+    const {
+      name,
+      categoryId: rawCategoryId,
+      materialCode: rawMaterialCode,
+      size,
+      weightKg,
+      isTemporary,
+      createdForOrderId,
+    } = body;
 
-    // バリデーション
-    if (!name || !categoryId || weightKg === null || weightKg === undefined) {
+    if (!name || weightKg === null || weightKg === undefined) {
       return NextResponse.json(
         { error: '必須項目が不足しています' },
         { status: 400 }
       );
     }
 
-    // カテゴリの存在確認
-    const category = await prisma.category.findUnique({
-      where: { id: categoryId }
-    });
+    const categoryId: string | null =
+      typeof rawCategoryId === 'string' && rawCategoryId.length > 0 ? rawCategoryId : null;
 
-    if (!category) {
-      return NextResponse.json(
-        { error: 'カテゴリが見つかりません' },
-        { status: 404 }
-      );
+    if (categoryId) {
+      const category = await prisma.category.findFirst({
+        where: { id: categoryId, tenantId: currentUser.tenantId },
+      });
+      if (!category) {
+        return NextResponse.json(
+          { error: 'カテゴリが見つかりません' },
+          { status: 404 }
+        );
+      }
     }
 
-    // 次のマテリアルコードを生成
-    let materialCode: string;
-    if (category.name === 'その他') {
-      // その他カテゴリの場合、OT-XXX形式
-      const lastMaterial = await prisma.material.findFirst({
-        where: {
-          materialCode: { startsWith: 'OT-' }
-        },
-        orderBy: { materialCode: 'desc' }
-      });
-      
-      let nextNumber = 1;
-      if (lastMaterial) {
-        const currentNumber = parseInt(lastMaterial.materialCode.split('-')[1]);
-        nextNumber = currentNumber + 1;
+    const userMaterialCode =
+      typeof rawMaterialCode === 'string' && rawMaterialCode.trim().length > 0
+        ? rawMaterialCode.trim()
+        : null;
+
+    // ユーザー指定がなければテナント単位の連番 (M-001) で採番。
+    // unique 制約衝突は並行作成時のみ発生しうるため、その場合は採番をやり直す。
+    const MAX_RETRIES = 3;
+    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+      const materialCode =
+        userMaterialCode ?? (await generateMaterialCode(prisma, currentUser.tenantId));
+
+      try {
+        const newMaterial = await prisma.material.create({
+          data: {
+            tenantId: currentUser.tenantId,
+            materialCode,
+            name,
+            categoryId,
+            size: size || null,
+            weightKg: parseFloat(weightKg),
+            isActive: true,
+            isTemporary: isTemporary || false,
+            createdForOrderId: createdForOrderId || null,
+          },
+          include: { category: true },
+        });
+        return NextResponse.json(newMaterial, { status: 201 });
+      } catch (err) {
+        if (
+          err instanceof Prisma.PrismaClientKnownRequestError &&
+          err.code === 'P2002'
+        ) {
+          if (userMaterialCode) {
+            return NextResponse.json(
+              { error: '指定された品番は既に使用されています' },
+              { status: 409 }
+            );
+          }
+          continue;
+        }
+        throw err;
       }
-      materialCode = `OT-${String(nextNumber).padStart(3, '0')}`;
-    } else if (category.name === 'シート') {
-      // シートカテゴリの場合、SH-XXX形式
-      const lastMaterial = await prisma.material.findFirst({
-        where: {
-          materialCode: { startsWith: 'SH-' }
-        },
-        orderBy: { materialCode: 'desc' }
-      });
-      
-      let nextNumber = 1;
-      if (lastMaterial) {
-        const currentNumber = parseInt(lastMaterial.materialCode.split('-')[1]);
-        nextNumber = currentNumber + 1;
-      }
-      materialCode = `SH-${String(nextNumber).padStart(3, '0')}`;
-    } else if (category.name === '枠') {
-      // 枠カテゴリの場合、WK-XXX形式
-      const lastMaterial = await prisma.material.findFirst({
-        where: {
-          materialCode: { startsWith: 'WK-' }
-        },
-        orderBy: { materialCode: 'desc' }
-      });
-      
-      let nextNumber = 1;
-      if (lastMaterial) {
-        const currentNumber = parseInt(lastMaterial.materialCode.split('-')[1]);
-        nextNumber = currentNumber + 1;
-      }
-      materialCode = `WK-${String(nextNumber).padStart(3, '0')}`;
-    } else {
-      // その他のカテゴリはとりあえずOT-形式
-      materialCode = `OT-001`;
     }
 
-    const newMaterial = await prisma.material.create({
-      data: {
-        tenantId: currentUser.tenantId,
-        materialCode,
-        name,
-        categoryId,
-        size: size || null,
-        weightKg: parseFloat(weightKg),
-        isActive: true,
-        isTemporary: isTemporary || false,
-        createdForOrderId: createdForOrderId || null
-      },
-      include: {
-        category: true
-      }
-    });
-
-    return NextResponse.json(newMaterial, { status: 201 });
+    return NextResponse.json(
+      { error: '品番の自動採番に失敗しました。再度お試しください。' },
+      { status: 500 }
+    );
   } catch (error) {
     console.error('材料作成エラー:', error);
     return NextResponse.json(
