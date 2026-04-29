@@ -87,26 +87,14 @@ export async function PUT(
       role?: UserRole;
       isActive?: boolean;
       password?: null;
-      joinedAt?: null;
       passwordSetupExpiresAt?: Date;
     } = {};
     if (role !== undefined) updateData.role = role as UserRole;
     if (isActive !== undefined) updateData.isActive = isActive;
 
     if (regeneratePasswordSetup === true) {
-      // NAME モード以外では拒否（EMAIL モードでは招待フローでパスワード再設定する）
-      const tenant = await prisma.tenant.findUnique({
-        where: { id: currentUser.tenantId },
-        select: { authMode: true },
-      });
-      if (tenant?.authMode !== 'NAME') {
-        return NextResponse.json(
-          { error: 'パスワード再発行は名前認証のテナントのみ可能です' },
-          { status: 400 }
-        );
-      }
+      // EMAIL / NAME 両モードで動く。joinedAt は履歴として残すため触らない
       updateData.password = null;
-      updateData.joinedAt = null;
       updateData.passwordSetupExpiresAt = new Date(
         Date.now() + 24 * 60 * 60 * 1000
       );
