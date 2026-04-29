@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from 'next/navigation';
-import { FileText, Clock, Building2, Package, Truck, ChevronRight } from 'lucide-react';
+import { FileText, Clock, Building2, Package, Truck, Tag, ChevronRight } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import type { LucideIcon } from 'lucide-react';
 import { useTenantPath } from '@/lib/tenant/links';
@@ -82,6 +82,12 @@ export default function Dashboard() {
       description: '資材マスタの登録・編集',
       icon: Package,
       href: '/admin/materials',
+    },
+    {
+      title: 'カテゴリ管理',
+      description: '資材カテゴリの追加・編集',
+      icon: Tag,
+      href: '/admin/categories',
     },
     {
       title: 'トラック管理',

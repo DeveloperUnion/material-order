@@ -110,7 +110,7 @@ model Material {
   tenant            Tenant        @relation(fields: [tenantId], references: [id])
   materialCode      String        @map("material_code")
   name              String
-  categoryId        String        @map("category_id")
+  categoryId        String?       @map("category_id")
   size              String?
   weightKg          Float         @map("weight_kg")
   isActive          Boolean       @default(true) @map("is_active")
@@ -118,7 +118,7 @@ model Material {
   createdForOrderId String?       @map("created_for_order_id")
   createdAt         DateTime      @default(now()) @map("created_at")
   updatedAt         DateTime      @updatedAt @map("updated_at")
-  category          Category      @relation(fields: [categoryId], references: [id])
+  category          Category?     @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   createdForOrder   Order?        @relation("TemporaryMaterials", fields: [createdForOrderId], references: [id], onDelete: Cascade)
   orderDetails      OrderDetail[]
 

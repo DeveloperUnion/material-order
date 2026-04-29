@@ -37,7 +37,22 @@ export async function PUT(
     if (name !== undefined) updateData.name = name;
     if (size !== undefined) updateData.size = size || null;
     if (weightKg !== undefined) updateData.weightKg = parseFloat(weightKg);
-    if (categoryId !== undefined) updateData.categoryId = categoryId;
+    if (categoryId !== undefined) {
+      const normalized: string | null =
+        typeof categoryId === 'string' && categoryId.length > 0 ? categoryId : null;
+      if (normalized) {
+        const category = await prisma.category.findFirst({
+          where: { id: normalized, tenantId: currentUser.tenantId },
+        });
+        if (!category) {
+          return NextResponse.json(
+            { error: 'カテゴリが見つかりません' },
+            { status: 404 }
+          );
+        }
+      }
+      updateData.categoryId = normalized;
+    }
     if (isActive !== undefined) updateData.isActive = isActive;
 
     const updated = await prisma.material.update({
