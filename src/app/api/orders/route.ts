@@ -127,6 +127,28 @@ export async function POST(request: Request) {
       notes: item.notes
     })) || [];
 
+    // トラック情報の検証（マスター指定時はテナント内の有効なトラックか確認）
+    let resolvedTruckId: string | null = null;
+    let resolvedTruckName: string | null = null;
+    let resolvedTruckCapacityKg: number | null = null;
+    if (data.truckId) {
+      const masterTruck = await prisma.truck.findFirst({
+        where: { id: data.truckId, tenantId: currentUser.tenantId },
+      });
+      if (masterTruck) {
+        resolvedTruckId = masterTruck.id;
+        resolvedTruckName = masterTruck.name;
+        resolvedTruckCapacityKg = masterTruck.capacityKg;
+      }
+    } else if (data.truckName && data.truckCapacityKg) {
+      // カスタム入力（マスター未紐付け）
+      const cap = Number(data.truckCapacityKg);
+      if (Number.isFinite(cap) && cap > 0) {
+        resolvedTruckName = String(data.truckName).trim();
+        resolvedTruckCapacityKg = Math.round(cap);
+      }
+    }
+
     const order = await prisma.order.create({
         data: {
           tenantId: currentUser.tenantId,
@@ -140,6 +162,9 @@ export async function POST(request: Request) {
           deliveryDate: data.deliveryDate ? new Date(data.deliveryDate) : null,
           status: data.status || 'draft',
           notes: data.notes || null,
+          truckId: resolvedTruckId,
+          truckName: resolvedTruckName,
+          truckCapacityKg: resolvedTruckCapacityKg,
           orderDetails: {
             create: mappedItems
           }
@@ -234,7 +259,28 @@ export async function PUT(request: Request) {
     await prisma.orderDetail.deleteMany({
       where: { orderId: orderId }
     });
-    
+
+    // トラック情報の検証
+    let resolvedTruckId: string | null = null;
+    let resolvedTruckName: string | null = null;
+    let resolvedTruckCapacityKg: number | null = null;
+    if (updateData.truckId) {
+      const masterTruck = await prisma.truck.findFirst({
+        where: { id: updateData.truckId, tenantId: currentUser.tenantId },
+      });
+      if (masterTruck) {
+        resolvedTruckId = masterTruck.id;
+        resolvedTruckName = masterTruck.name;
+        resolvedTruckCapacityKg = masterTruck.capacityKg;
+      }
+    } else if (updateData.truckName && updateData.truckCapacityKg) {
+      const cap = Number(updateData.truckCapacityKg);
+      if (Number.isFinite(cap) && cap > 0) {
+        resolvedTruckName = String(updateData.truckName).trim();
+        resolvedTruckCapacityKg = Math.round(cap);
+      }
+    }
+
     // 注文を更新
     const order = await prisma.order.update({
       where: { id: orderId },
@@ -247,6 +293,9 @@ export async function PUT(request: Request) {
         deliveryDate: updateData.deliveryDate ? new Date(updateData.deliveryDate) : null,
         status: updateData.status || 'draft',
         notes: updateData.notes || null,
+        truckId: resolvedTruckId,
+        truckName: resolvedTruckName,
+        truckCapacityKg: resolvedTruckCapacityKg,
         orderDetails: {
           create: updateData.items?.map((item: { materialId: string; quantity: number; totalWeightKg: number; notes: string | null }) => ({
             materialId: item.materialId,

@@ -7,7 +7,7 @@ import { ArrowLeft, Check, Eye, EyeOff, Shield } from 'lucide-react';
 
 interface UserProfile {
   id: string;
-  email: string;
+  email: string | null;
   name: string;
   role: 'ADMIN' | 'MEMBER';
   tenantName: string;
@@ -204,7 +204,9 @@ export default function ProfilePage() {
               <h2 className="text-lg font-bold text-foreground tracking-tight truncate">
                 {profile?.name}
               </h2>
-              <p className="text-sm text-muted truncate">{profile?.email}</p>
+              {profile?.email && (
+                <p className="text-sm text-muted truncate">{profile.email}</p>
+              )}
             </div>
           </div>
 

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { Prisma } from '@prisma/client';
 import { getCurrentPrismaClient } from '@/lib/tenant/server';
 import { requireAuth } from '@/lib/auth';
 
@@ -76,16 +77,27 @@ export async function PUT(request: Request) {
       );
     }
 
-    const updatedUser = await prisma.user.update({
-      where: { id: currentUser.id },
-      data: { name: name.trim() },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        role: true,
-      },
-    });
+    let updatedUser;
+    try {
+      updatedUser = await prisma.user.update({
+        where: { id: currentUser.id },
+        data: { name: name.trim() },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          role: true,
+        },
+      });
+    } catch (e) {
+      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
+        return NextResponse.json(
+          { error: '同じ名前のメンバーが既に存在します。別の表記にしてください' },
+          { status: 409 }
+        );
+      }
+      throw e;
+    }
 
     return NextResponse.json({ user: updatedUser });
   } catch (error) {

@@ -620,6 +620,11 @@ export const generatePDFContent = (data: OrderDocument, options?: { hidePrintBut
             <span class="info-label">積込日:</span>
             <span>${formatDate(data.loadingDate)}</span>
           </div>` : ''}
+          ${data.truckName && data.truckCapacityKg ? `
+          <div class="info-row">
+            <span class="info-label">トラック:</span>
+            <span>${data.truckName}（${data.truckCapacityKg.toLocaleString()}kg）</span>
+          </div>` : ''}
         </div>
 
         ${data.items.length > 0 ? `

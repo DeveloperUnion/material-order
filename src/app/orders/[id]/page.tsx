@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 import { ja } from 'date-fns/locale';
-import { ArrowLeft, Printer, Edit, ArrowRight } from 'lucide-react';
+import { ArrowLeft, Printer, Edit, ArrowRight, AlertTriangle } from 'lucide-react';
 import { formatWeight, formatTotalWeight } from '@/lib/utils/format';
 
 interface OrderDetail {
@@ -16,6 +16,9 @@ interface OrderDetail {
   loadingDate: string | null;
   deliveryDate: string;
   shippingAddress: string;
+  truckId: string | null;
+  truckName: string | null;
+  truckCapacityKg: number | null;
   totalWeight: number;
   status: string;
   createdAt: string;
@@ -211,7 +214,21 @@ export default function OrderDetailPage() {
                 mono
               />
             )}
+            {order.truckName && order.truckCapacityKg && (
+              <InfoField
+                label="使用トラック"
+                value={`${order.truckName}（${order.truckCapacityKg.toLocaleString()}kg）`}
+              />
+            )}
           </div>
+          {order.truckName && order.truckCapacityKg && order.totalWeight > order.truckCapacityKg && (
+            <div className="mt-4 flex items-start gap-2 px-3 py-2.5 bg-red-50 border border-red-200 rounded-md text-xs font-semibold text-red-700">
+              <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0 mt-px" />
+              <span className="leading-snug">
+                {order.truckName}の積載量を超過しています（+{formatWeight(order.totalWeight - order.truckCapacityKg)}）
+              </span>
+            </div>
+          )}
         </div>
 
         {/* 注文商品 */}

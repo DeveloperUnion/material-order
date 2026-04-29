@@ -45,6 +45,9 @@ export async function GET(
       loadingDate: order.loadingDate,
       deliveryDate: order.deliveryDate || order.orderDate,
       shippingAddress: order.notes || '',
+      truckId: order.truckId,
+      truckName: order.truckName,
+      truckCapacityKg: order.truckCapacityKg,
       totalWeight: Math.round(order.orderDetails.reduce((sum, detail) => {
         const itemWeight = detail.totalWeightKg || (detail.quantity * detail.material.weightKg);
         return sum + Math.round(itemWeight * 10000) / 10000;
@@ -108,7 +111,40 @@ export async function PUT(
     await prisma.orderDetail.deleteMany({
       where: { orderId: resolvedParams.id }
     });
-    
+
+    // トラック情報の解決（未指定なら既存値を維持）
+    const hasTruckPayload =
+      Object.prototype.hasOwnProperty.call(data, 'truckId') ||
+      Object.prototype.hasOwnProperty.call(data, 'truckName') ||
+      Object.prototype.hasOwnProperty.call(data, 'truckCapacityKg');
+    let truckUpdate: { truckId: string | null; truckName: string | null; truckCapacityKg: number | null } | null = null;
+    if (hasTruckPayload) {
+      let resolvedTruckId: string | null = null;
+      let resolvedTruckName: string | null = null;
+      let resolvedTruckCapacityKg: number | null = null;
+      if (data.truckId) {
+        const masterTruck = await prisma.truck.findFirst({
+          where: { id: data.truckId, tenantId: currentUser.tenantId },
+        });
+        if (masterTruck) {
+          resolvedTruckId = masterTruck.id;
+          resolvedTruckName = masterTruck.name;
+          resolvedTruckCapacityKg = masterTruck.capacityKg;
+        }
+      } else if (data.truckName && data.truckCapacityKg) {
+        const cap = Number(data.truckCapacityKg);
+        if (Number.isFinite(cap) && cap > 0) {
+          resolvedTruckName = String(data.truckName).trim();
+          resolvedTruckCapacityKg = Math.round(cap);
+        }
+      }
+      truckUpdate = {
+        truckId: resolvedTruckId,
+        truckName: resolvedTruckName,
+        truckCapacityKg: resolvedTruckCapacityKg,
+      };
+    }
+
     // 注文を更新
     const order = await prisma.order.update({
       where: { id: resolvedParams.id },
@@ -121,6 +157,7 @@ export async function PUT(
         deliveryDate: data.deliveryDate ? new Date(data.deliveryDate) : null,
         status: data.status || 'draft',
         notes: data.notes || null,
+        ...(truckUpdate ?? {}),
         orderDetails: {
           create: data.items?.map((item: { materialId: string; quantity: number; totalWeightKg: number; notes: string | null }) => ({
             materialId: item.materialId,

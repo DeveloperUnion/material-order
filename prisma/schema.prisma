@@ -15,44 +15,55 @@ enum UserRole {
   MEMBER      // 一般（発注作成のみ）
 }
 
+// テナントの認証モード
+enum TenantAuthMode {
+  EMAIL // 既存: email + password ログイン（オフィスワーカー想定）
+  NAME  // 名前選択 + password ログイン（現場作業員想定）
+}
+
 // テナント/会社
 model Tenant {
-  id        String   @id @default(uuid())
-  name      String   // 会社名
-  settings  Json?    // ロゴURL、テーマカラー等
-  maxUsers  Int      @default(10) @map("max_users") // テナントごとの最大ユーザー数
-  isActive  Boolean  @default(true) @map("is_active")
-  isSystem  Boolean  @default(false) @map("is_system") // SUPER_ADMIN 専用テナント（通常の一覧から除外）
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id        String         @id @default(uuid())
+  code      String         @unique // ログイン時に入力する短い会社コード（英数 + ハイフン）
+  name      String         // 会社名
+  settings  Json?          // ロゴURL、テーマカラー等
+  maxUsers  Int            @default(10) @map("max_users")
+  isActive  Boolean        @default(true) @map("is_active")
+  isSystem  Boolean        @default(false) @map("is_system")
+  authMode  TenantAuthMode @default(EMAIL) @map("auth_mode")
+  createdAt DateTime       @default(now()) @map("created_at")
+  updatedAt DateTime       @updatedAt @map("updated_at")
 
   users       User[]
   invitations Invitation[]
   categories  Category[]
   materials   Material[]
   orders      Order[]
+  trucks      Truck[]
 
   @@map("tenants")
 }
 
 // ユーザー/従業員
 model User {
-  id          String    @id @default(uuid())
-  tenantId    String    @map("tenant_id")
-  tenant      Tenant    @relation(fields: [tenantId], references: [id])
-  email       String    @unique // グローバルで一意（ログインIDとして使用）
-  password    String?   // bcryptハッシュ（SSO時はnull）
-  name        String    // 表示名
-  role        UserRole  @default(MEMBER)
-  isActive    Boolean   @default(true) @map("is_active")
-  invitedAt   DateTime? @map("invited_at")    // 招待日時
-  joinedAt    DateTime? @map("joined_at")     // 登録完了日時
-  lastLoginAt DateTime? @map("last_login_at") // 最終ログイン
-  createdAt   DateTime  @default(now()) @map("created_at")
-  updatedAt   DateTime  @updatedAt @map("updated_at")
+  id                     String    @id @default(uuid())
+  tenantId               String    @map("tenant_id")
+  tenant                 Tenant    @relation(fields: [tenantId], references: [id])
+  email                  String?   @unique // EMAIL モード必須 / NAME モード任意。Postgres は nullable @unique で複数 NULL 許容
+  password               String?   // bcryptハッシュ。NAME モードの初回 PW 設定前は null
+  name                   String    // 表示名
+  role                   UserRole  @default(MEMBER)
+  isActive               Boolean   @default(true) @map("is_active")
+  invitedAt              DateTime? @map("invited_at")
+  joinedAt               DateTime? @map("joined_at")
+  passwordSetupExpiresAt DateTime? @map("password_setup_expires_at") // NAME モードの初回 PW 設定期限
+  lastLoginAt            DateTime? @map("last_login_at")
+  createdAt              DateTime  @default(now()) @map("created_at")
+  updatedAt              DateTime  @updatedAt @map("updated_at")
 
   orders Order[]
 
+  @@unique([tenantId, name]) // NAME モードのため必須。EMAIL モードでも害ナシ
   @@index([tenantId])
   @@index([email])
   @@map("users")
@@ -136,16 +147,38 @@ model Order {
   contactInfo        String?       @map("contact_info")
   loadingDate        DateTime?     @map("loading_date")
   userId             String        @map("user_id")
+  truckId            String?       @map("truck_id")
+  truckName          String?       @map("truck_name")        // 発注時のトラック名（マスター変更や削除に影響されないスナップショット）
+  truckCapacityKg    Int?          @map("truck_capacity_kg") // 発注時の積載容量スナップショット
   orderDetails       OrderDetail[]
   temporaryMaterials Material[]    @relation("TemporaryMaterials")
   user               User          @relation(fields: [userId], references: [id])
+  truck              Truck?        @relation(fields: [truckId], references: [id])
 
   @@unique([tenantId, orderNumber]) // テナント内で一意
   @@index([tenantId])
   @@index([userId])
   @@index([orderDate])
   @@index([status])
+  @@index([truckId])
   @@map("orders")
+}
+
+// トラック（テナントごとのマスター）
+model Truck {
+  id         String   @id @default(uuid())
+  tenantId   String   @map("tenant_id")
+  tenant     Tenant   @relation(fields: [tenantId], references: [id])
+  name       String   // 例: "4tトラック"
+  capacityKg Int      @map("capacity_kg") // 積載重量(kg)
+  isActive   Boolean  @default(true) @map("is_active")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  orders Order[]
+
+  @@index([tenantId])
+  @@map("trucks")
 }
 
 // 発注明細

@@ -21,24 +21,31 @@ import {
   UserCheck,
   Trash2,
   Mail,
+  KeyRound,
+  Copy,
 } from 'lucide-react';
+
+type AuthMode = 'EMAIL' | 'NAME';
 
 interface TenantInfo {
   id: string;
+  code: string;
   name: string;
   settings: Record<string, unknown> | null;
   maxUsers: number;
   currentUsers: number;
+  authMode: AuthMode;
   createdAt: string;
 }
 
 interface User {
   id: string;
-  email: string;
+  email: string | null;
   name: string;
   role: 'ADMIN' | 'MEMBER';
   isActive: boolean;
   joinedAt: string | null;
+  passwordSetupExpiresAt: string | null;
   lastLoginAt: string | null;
 }
 
@@ -67,9 +74,11 @@ export default function CompanySettingsPage() {
 
   const [showInviteForm, setShowInviteForm] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteName, setInviteName] = useState('');
   const [inviteRole, setInviteRole] = useState<'ADMIN' | 'MEMBER'>('MEMBER');
   const [inviteLoading, setInviteLoading] = useState(false);
   const [inviteSuccess, setInviteSuccess] = useState<string | null>(null);
+  const [createdUserName, setCreatedUserName] = useState<string | null>(null);
 
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [updateLoading, setUpdateLoading] = useState<string | null>(null);
@@ -166,31 +175,95 @@ export default function CompanySettingsPage() {
     setInviteLoading(true);
     setError(null);
     setInviteSuccess(null);
+    setCreatedUserName(null);
+
+    const isNameMode = tenant?.authMode === 'NAME';
 
     try {
-      const res = await fetch('/api/invitations', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: inviteEmail,
-          role: inviteRole,
-          sendEmail: true,
-        }),
-      });
+      if (isNameMode) {
+        const res = await fetch('/api/users', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: inviteName,
+            email: inviteEmail || null,
+            role: inviteRole,
+          }),
+        });
 
-      const data = await res.json();
+        const data = await res.json();
 
-      if (!res.ok) {
-        throw new Error(data.error || '招待の送信に失敗しました');
+        if (!res.ok) {
+          throw new Error(data.error || 'メンバーの追加に失敗しました');
+        }
+
+        setUsers([...users, data.user]);
+        setCreatedUserName(data.user.name);
+        setInviteSuccess('メンバーを追加しました。ログイン情報をご本人にお伝えください。');
+        setInviteName('');
+        setInviteEmail('');
+      } else {
+        const res = await fetch('/api/invitations', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: inviteEmail,
+            role: inviteRole,
+            sendEmail: true,
+          }),
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data.error || '招待の送信に失敗しました');
+        }
+
+        setInviteSuccess('招待メールを送信しました');
+        setInvitations([data.invitation, ...invitations]);
+        setInviteEmail('');
       }
-
-      setInviteSuccess('招待メールを送信しました');
-      setInvitations([data.invitation, ...invitations]);
-      setInviteEmail('');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'エラーが発生しました');
     } finally {
       setInviteLoading(false);
+    }
+  };
+
+  const handleRegeneratePassword = async (userId: string) => {
+    setUpdateLoading(userId);
+    setError(null);
+    setOpenMenuId(null);
+
+    try {
+      const res = await fetch(`/api/users/${userId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ regeneratePasswordSetup: true }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'パスワード再発行に失敗しました');
+      setUsers(users.map((u) => (u.id === userId ? { ...u, ...data.user } : u)));
+      setSuccess('パスワード再発行しました。本人にログイン URL を伝えてください。');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'エラーが発生しました');
+    } finally {
+      setUpdateLoading(null);
+    }
+  };
+
+  const copyLoginInfo = async (userName: string) => {
+    if (!tenant) return;
+    const text =
+      `ログイン URL: ${window.location.origin}\n` +
+      `会社コード: ${tenant.code}\n` +
+      `お名前: ${userName}\n` +
+      '初回ログイン時に名前を選んでパスワードを設定してください。';
+    try {
+      await navigator.clipboard.writeText(text);
+      setSuccess('ログイン情報をクリップボードにコピーしました');
+    } catch {
+      setError('クリップボードへのコピーに失敗しました');
     }
   };
 
@@ -425,46 +498,99 @@ export default function CompanySettingsPage() {
             )}
           </div>
 
-          {/* 招待フォーム */}
-          {showInviteForm && (
+          {/* 招待 / メンバー追加フォーム */}
+          {showInviteForm && tenant && (
             <div className="px-5 sm:px-6 py-4 border-b border-border bg-surface-muted">
               <div className="flex items-center gap-2 mb-3">
-                <Mail className="h-4 w-4 text-muted" />
-                <p className="text-sm font-medium text-foreground">新規メンバーを招待</p>
+                {tenant.authMode === 'NAME' ? (
+                  <UserPlus className="h-4 w-4 text-muted" />
+                ) : (
+                  <Mail className="h-4 w-4 text-muted" />
+                )}
+                <p className="text-sm font-medium text-foreground">
+                  {tenant.authMode === 'NAME' ? '新規メンバーを追加' : '新規メンバーを招待'}
+                </p>
               </div>
-              <form onSubmit={handleInvite}>
-                <div className="flex flex-col sm:flex-row gap-2">
-                  <input
-                    type="email"
-                    value={inviteEmail}
-                    onChange={(e) => setInviteEmail(e.target.value)}
-                    placeholder="メールアドレスを入力"
-                    required
-                    className="flex-1 min-w-0 px-3 py-2 text-sm text-foreground border border-border rounded-md bg-surface focus:border-accent focus:ring-4 focus:ring-accent/15 outline-none placeholder:text-subtle transition-all"
-                  />
-                  <select
-                    value={inviteRole}
-                    onChange={(e) => setInviteRole(e.target.value as 'ADMIN' | 'MEMBER')}
-                    className="sm:w-32 px-3 py-2 text-sm text-foreground border border-border rounded-md bg-surface focus:border-accent focus:ring-4 focus:ring-accent/15 outline-none cursor-pointer transition-all"
-                  >
-                    <option value="MEMBER">メンバー</option>
-                    <option value="ADMIN">管理者</option>
-                  </select>
-                  <button
-                    type="submit"
-                    disabled={inviteLoading}
-                    className="px-4 py-2 text-sm font-semibold bg-foreground text-background hover:bg-foreground/90 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {inviteLoading ? '送信中...' : '送信'}
-                  </button>
-                </div>
+              <form onSubmit={handleInvite} className="space-y-2">
+                {tenant.authMode === 'NAME' ? (
+                  <>
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <input
+                        type="text"
+                        value={inviteName}
+                        onChange={(e) => setInviteName(e.target.value)}
+                        placeholder="名前（必須）例: 山田 太郎"
+                        required
+                        className="flex-1 min-w-0 px-3 py-2 text-sm text-foreground border border-border rounded-md bg-surface focus:border-accent focus:ring-4 focus:ring-accent/15 outline-none placeholder:text-subtle transition-all"
+                      />
+                      <select
+                        value={inviteRole}
+                        onChange={(e) => setInviteRole(e.target.value as 'ADMIN' | 'MEMBER')}
+                        className="sm:w-32 px-3 py-2 text-sm text-foreground border border-border rounded-md bg-surface focus:border-accent focus:ring-4 focus:ring-accent/15 outline-none cursor-pointer transition-all"
+                      >
+                        <option value="MEMBER">メンバー</option>
+                        <option value="ADMIN">管理者</option>
+                      </select>
+                    </div>
+                    <input
+                      type="email"
+                      value={inviteEmail}
+                      onChange={(e) => setInviteEmail(e.target.value)}
+                      placeholder="メールアドレス（任意）"
+                      className="w-full px-3 py-2 text-sm text-foreground border border-border rounded-md bg-surface focus:border-accent focus:ring-4 focus:ring-accent/15 outline-none placeholder:text-subtle transition-all"
+                    />
+                    <button
+                      type="submit"
+                      disabled={inviteLoading}
+                      className="w-full px-4 py-2 text-sm font-semibold bg-foreground text-background hover:bg-foreground/90 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {inviteLoading ? '追加中...' : 'メンバーを追加'}
+                    </button>
+                  </>
+                ) : (
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <input
+                      type="email"
+                      value={inviteEmail}
+                      onChange={(e) => setInviteEmail(e.target.value)}
+                      placeholder="メールアドレスを入力"
+                      required
+                      className="flex-1 min-w-0 px-3 py-2 text-sm text-foreground border border-border rounded-md bg-surface focus:border-accent focus:ring-4 focus:ring-accent/15 outline-none placeholder:text-subtle transition-all"
+                    />
+                    <select
+                      value={inviteRole}
+                      onChange={(e) => setInviteRole(e.target.value as 'ADMIN' | 'MEMBER')}
+                      className="sm:w-32 px-3 py-2 text-sm text-foreground border border-border rounded-md bg-surface focus:border-accent focus:ring-4 focus:ring-accent/15 outline-none cursor-pointer transition-all"
+                    >
+                      <option value="MEMBER">メンバー</option>
+                      <option value="ADMIN">管理者</option>
+                    </select>
+                    <button
+                      type="submit"
+                      disabled={inviteLoading}
+                      className="px-4 py-2 text-sm font-semibold bg-foreground text-background hover:bg-foreground/90 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {inviteLoading ? '送信中...' : '送信'}
+                    </button>
+                  </div>
+                )}
               </form>
               {inviteSuccess && (
-                <div className="mt-3 px-3 py-2 bg-emerald-50 border border-emerald-200 rounded-md">
+                <div className="mt-3 px-3 py-2 bg-emerald-50 border border-emerald-200 rounded-md space-y-2">
                   <p className="text-xs text-emerald-700 flex items-center gap-1">
                     <Check className="h-3 w-3" />
                     {inviteSuccess}
                   </p>
+                  {createdUserName && tenant.authMode === 'NAME' && (
+                    <button
+                      type="button"
+                      onClick={() => copyLoginInfo(createdUserName)}
+                      className="inline-flex items-center gap-1 text-xs text-foreground bg-surface border border-border rounded px-2 py-1 hover:bg-surface-muted"
+                    >
+                      <Copy className="h-3 w-3" />
+                      ログイン情報をコピー
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -503,8 +629,11 @@ export default function CompanySettingsPage() {
                             無効
                           </span>
                         )}
+                        <PasswordStatusBadge user={user} />
                       </div>
-                      <p className="text-xs text-muted truncate">{user.email}</p>
+                      {user.email && (
+                        <p className="text-xs text-muted truncate">{user.email}</p>
+                      )}
                     </div>
                   </div>
 
@@ -553,6 +682,27 @@ export default function CompanySettingsPage() {
                                 <ShieldOff className="h-4 w-4 text-muted" />
                                 メンバーに変更
                               </button>
+                            )}
+                            {tenant?.authMode === 'NAME' && user.joinedAt === null && (
+                              <>
+                                <div className="border-t border-border my-1" />
+                                <button
+                                  type="button"
+                                  onClick={() => copyLoginInfo(user.name)}
+                                  className="w-full px-3 py-2 text-left text-sm hover:bg-surface-muted flex items-center gap-2 text-foreground"
+                                >
+                                  <Copy className="h-4 w-4 text-muted" />
+                                  ログイン情報をコピー
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleRegeneratePassword(user.id)}
+                                  className="w-full px-3 py-2 text-left text-sm hover:bg-surface-muted flex items-center gap-2 text-foreground"
+                                >
+                                  <KeyRound className="h-4 w-4 text-amber-600" />
+                                  パスワード再発行
+                                </button>
+                              </>
                             )}
                             <div className="border-t border-border my-1" />
                             {user.isActive ? (
@@ -669,6 +819,27 @@ export default function CompanySettingsPage() {
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+function PasswordStatusBadge({ user }: { user: User }) {
+  if (user.joinedAt) return null;
+  const expiresAt = user.passwordSetupExpiresAt
+    ? new Date(user.passwordSetupExpiresAt)
+    : null;
+  const expired = expiresAt ? expiresAt <= new Date() : true;
+
+  if (expired) {
+    return (
+      <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-red-50 text-red-700 border border-red-200">
+        PW 期限切れ
+      </span>
+    );
+  }
+  return (
+    <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200">
+      初回ログイン待ち
+    </span>
   );
 }
 

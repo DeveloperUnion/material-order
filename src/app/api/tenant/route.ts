@@ -12,10 +12,12 @@ export async function GET() {
       where: { id: currentUser.tenantId },
       select: {
         id: true,
+        code: true,
         name: true,
         settings: true,
         maxUsers: true,
         isActive: true,
+        authMode: true,
         createdAt: true,
         _count: {
           select: {
@@ -35,11 +37,13 @@ export async function GET() {
     return NextResponse.json({
       tenant: {
         id: tenant.id,
+        code: tenant.code,
         name: tenant.name,
         settings: tenant.settings,
         maxUsers: tenant.maxUsers,
         currentUsers: tenant._count.users,
         isActive: tenant.isActive,
+        authMode: tenant.authMode,
         createdAt: tenant.createdAt,
       },
     });
