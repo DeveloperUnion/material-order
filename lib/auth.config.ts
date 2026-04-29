@@ -1,25 +1,13 @@
 import type { NextAuthConfig } from 'next-auth'
 
+// middleware (Edge runtime) と auth.ts の両方から読み込む light 設定。
+// ここに bcrypt 等の Node.js 専用モジュールを import してはいけない。
+// 認証ガードのロジックは src/middleware.ts で一元管理するため
+// authorized callback は持たない。
 export const authConfig = {
+  trustHost: true,
   pages: {
     signIn: '/',
-  },
-  callbacks: {
-    authorized({ auth, request: { nextUrl } }) {
-      const isLoggedIn = !!auth?.user
-      const isOnDashboard = nextUrl.pathname.startsWith('/dashboard') ||
-        nextUrl.pathname.startsWith('/material-order') ||
-        nextUrl.pathname.startsWith('/orders') ||
-        nextUrl.pathname.startsWith('/order-history')
-
-      if (isOnDashboard) {
-        if (isLoggedIn) return true
-        return false // Redirect to login page
-      } else if (isLoggedIn && nextUrl.pathname === '/') {
-        return Response.redirect(new URL('/dashboard', nextUrl))
-      }
-      return true
-    },
   },
   providers: [], // configured in auth.ts
 } satisfies NextAuthConfig

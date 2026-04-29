@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { useTenantPath } from "@/lib/tenant/links";
 import MaterialOrderForm from "@/components/MaterialOrderForm";
 import { OrderDocument } from "@/types/material-order";
 import { formatWeight, formatTotalWeight } from "@/lib/utils/format";
@@ -28,6 +29,7 @@ interface EditOrderData {
 export default function MaterialOrderEditPage() {
   const params = useParams();
   const router = useRouter();
+  const t = useTenantPath();
   const orderId = params.id as string;
 
   const [orderData, setOrderData] = useState<OrderDocument | null>(null);
@@ -69,7 +71,7 @@ export default function MaterialOrderEditPage() {
       } catch (error) {
         console.error('Error fetching order data:', error);
         alert('発注データの取得に失敗しました');
-        window.location.href = '/dashboard';
+        router.replace(t('/dashboard'));
       } finally {
         setLoading(false);
       }
@@ -78,7 +80,7 @@ export default function MaterialOrderEditPage() {
     if (orderId) {
       fetchOrderData();
     }
-  }, [orderId]);
+  }, [orderId, router, t]);
 
   const handleFormSubmit = (data: OrderDocument) => {
     setOrderData(data);
@@ -136,7 +138,7 @@ export default function MaterialOrderEditPage() {
         // ignore
       }
 
-      router.replace(`/orders/${orderId}/print`);
+      router.replace(t(`/orders/${orderId}/print`));
     } catch (error) {
       console.error("発注書更新エラー:", error);
       alert("発注書の更新に失敗しました");
@@ -236,7 +238,7 @@ export default function MaterialOrderEditPage() {
         <div className="flex items-center gap-3 mb-5">
           <button
             type="button"
-            onClick={() => router.push(`/orders/${orderId}`)}
+            onClick={() => router.push(t(`/orders/${orderId}`))}
             className="flex items-center gap-1 px-2 py-1.5 -ml-2 text-sm text-muted hover:text-foreground hover:bg-surface-muted rounded-md transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />

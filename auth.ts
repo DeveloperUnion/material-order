@@ -23,6 +23,7 @@ async function findUserByTenantAndName(prisma: PrismaClient, tenantId: string, n
 declare module 'next-auth' {
   interface User {
     tenantId: string
+    tenantCode: string
     role: UserRole
     tenantName: string
   }
@@ -33,6 +34,7 @@ declare module 'next-auth' {
       email: string
       name: string
       tenantId: string
+      tenantCode: string
       role: UserRole
       tenantName: string
     }
@@ -97,6 +99,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             email: user.email ?? '',
             name: user.name,
             tenantId: user.tenantId,
+            tenantCode: user.tenant.code,
             role: user.role,
             tenantName: user.tenant.name,
           }
@@ -112,6 +115,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (user) {
         token.id = user.id as string
         token.tenantId = user.tenantId
+        token.tenantCode = user.tenantCode
         token.role = user.role
         token.tenantName = user.tenantName
       }
@@ -121,6 +125,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (token) {
         session.user.id = token.id as string
         session.user.tenantId = token.tenantId as string
+        session.user.tenantCode = token.tenantCode as string
         session.user.role = token.role as UserRole
         session.user.tenantName = token.tenantName as string
       }

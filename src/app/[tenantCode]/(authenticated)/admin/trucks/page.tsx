@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
+import { useTenantPath } from '@/lib/tenant/links';
 import {
   Dialog,
   DialogContent,
@@ -22,6 +23,7 @@ interface Truck {
 export default function TrucksPage() {
   const router = useRouter();
   const { data: session } = useSession();
+  const t = useTenantPath();
 
   const [trucks, setTrucks] = useState<Truck[]>([]);
   const [loading, setLoading] = useState(true);
@@ -45,7 +47,7 @@ export default function TrucksPage() {
       setError(null);
       const res = await fetch('/api/trucks');
       if (res.status === 401) {
-        router.push('/');
+        router.push(t('/'));
         return;
       }
       if (!res.ok) {
@@ -58,15 +60,15 @@ export default function TrucksPage() {
     } finally {
       setLoading(false);
     }
-  }, [router]);
+  }, [router, t]);
 
   useEffect(() => {
     if (session && session.user?.role !== 'ADMIN') {
-      router.push('/dashboard');
+      router.push(t('/dashboard'));
       return;
     }
     fetchData();
-  }, [session, router, fetchData]);
+  }, [session, router, t, fetchData]);
 
   const resetForm = () => {
     setFormData({ name: '', capacityKg: '' });
@@ -175,7 +177,7 @@ export default function TrucksPage() {
           <div className="flex items-center gap-3">
             <button
               type="button"
-              onClick={() => router.push('/dashboard')}
+              onClick={() => router.push(t('/dashboard'))}
               className="flex items-center gap-1 px-2 py-1.5 -ml-2 text-sm text-muted hover:text-foreground hover:bg-surface-muted rounded-md transition-colors"
             >
               <ArrowLeft className="h-4 w-4" />

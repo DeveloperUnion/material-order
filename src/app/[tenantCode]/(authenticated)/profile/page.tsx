@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
+import { useTenantPath } from '@/lib/tenant/links';
 import { ArrowLeft, Check, Eye, EyeOff, Shield } from 'lucide-react';
 
 interface UserProfile {
@@ -18,6 +19,7 @@ interface UserProfile {
 export default function ProfilePage() {
   const router = useRouter();
   const { update: updateSession } = useSession();
+  const t = useTenantPath();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -170,7 +172,7 @@ export default function ProfilePage() {
         <div className="flex items-center gap-3 mb-5">
           <button
             type="button"
-            onClick={() => router.push('/dashboard')}
+            onClick={() => router.push(t('/dashboard'))}
             className="flex items-center gap-1 px-2 py-1.5 -ml-2 text-sm text-muted hover:text-foreground hover:bg-surface-muted rounded-md transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />

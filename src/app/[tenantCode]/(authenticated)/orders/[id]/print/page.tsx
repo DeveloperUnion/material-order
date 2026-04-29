@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { generatePDFContent } from '@/components/OrderDocumentHTML';
 import { ArrowLeft, Printer } from 'lucide-react';
 import { useTenant } from '@/lib/tenant/context';
+import { useTenantPath } from '@/lib/tenant/links';
 import { OrderDocument } from '@/types/material-order';
 
 interface OrderDetail {
@@ -37,6 +38,7 @@ export default function OrderPrintPage() {
   const params = useParams();
   const router = useRouter();
   const { config } = useTenant();
+  const t = useTenantPath();
   const [order, setOrder] = useState<OrderDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [htmlContent, setHtmlContent] = useState<string>('');
@@ -48,7 +50,7 @@ export default function OrderPrintPage() {
     try {
       const response = await fetch(`/api/orders/${id}`);
       if (response.status === 401) {
-        router.push('/login');
+        router.push(t('/'));
         return;
       }
       if (!response.ok) {
@@ -107,11 +109,11 @@ export default function OrderPrintPage() {
     } catch (error) {
       console.error('Error fetching order:', error);
       alert('発注書の読み込みに失敗しました');
-      router.push('/order-history');
+      router.push(t('/order-history'));
     } finally {
       setLoading(false);
     }
-  }, [router]);
+  }, [router, t]);
 
   useEffect(() => {
     if (params.id) {
@@ -148,7 +150,7 @@ export default function OrderPrintPage() {
     if (window.history.length > 1) {
       router.back();
     } else {
-      router.push('/dashboard');
+      router.push(t('/dashboard'));
     }
   };
 

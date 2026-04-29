@@ -4,6 +4,7 @@ import { TenantAuthMode } from '@prisma/client'
 import { prisma } from '@/lib/tenant/prisma'
 import { getSuperAdminSession } from '@/lib/auth/super-admin'
 import { sendInvitationEmail } from '@/lib/email'
+import { isReservedTenantCode } from '@/lib/tenant/reserved'
 
 export async function GET() {
   const session = await getSuperAdminSession()
@@ -51,6 +52,12 @@ export async function POST(request: Request) {
   if (!tenantCode || !CODE_PATTERN.test(tenantCode)) {
     return NextResponse.json(
       { error: '会社コードは英小文字・数字・ハイフンの 3〜64 文字で、先頭末尾は英数字にしてください' },
+      { status: 400 }
+    )
+  }
+  if (isReservedTenantCode(tenantCode)) {
+    return NextResponse.json(
+      { error: `「${tenantCode}」はシステム予約語のため使用できません` },
       { status: 400 }
     )
   }

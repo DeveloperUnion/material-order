@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { FileText, Clock, Building2, Package, Truck, ChevronRight } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import type { LucideIcon } from 'lucide-react';
+import { useTenantPath } from '@/lib/tenant/links';
 
 interface MenuItem {
   title: string;
@@ -51,6 +52,7 @@ function formatDate(date: Date): string {
 export default function Dashboard() {
   const router = useRouter();
   const { data: session } = useSession();
+  const t = useTenantPath();
   const isAdmin = session?.user?.role === 'ADMIN';
 
   const baseItems: MenuItem[] = [
@@ -101,7 +103,7 @@ export default function Dashboard() {
             <MenuCard
               key={item.href}
               {...item}
-              onClick={() => router.push(item.href)}
+              onClick={() => router.push(t(item.href))}
             />
           ))}
           {isAdmin &&
@@ -109,7 +111,7 @@ export default function Dashboard() {
               <MenuCard
                 key={item.href}
                 {...item}
-                onClick={() => router.push(item.href)}
+                onClick={() => router.push(t(item.href))}
               />
             ))}
         </div>

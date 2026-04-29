@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTenantPath } from '@/lib/tenant/links';
 import { format } from 'date-fns';
 import { ja } from 'date-fns/locale';
 import { formatWeight } from '@/lib/utils/format';
@@ -55,6 +56,7 @@ const ITEMS_PER_PAGE = 10;
 
 export default function OrderHistory() {
   const router = useRouter();
+  const t = useTenantPath();
   const [orders, setOrders] = useState<OrderData[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -88,7 +90,7 @@ export default function OrderHistory() {
     try {
       const response = await fetch('/api/orders');
       if (response.status === 401) {
-        router.push('/');
+        router.push(t('/'));
         return;
       }
       if (!response.ok) {
@@ -101,7 +103,7 @@ export default function OrderHistory() {
     } finally {
       setLoading(false);
     }
-  }, [router]);
+  }, [router, t]);
 
   useEffect(() => {
     fetchOrders();
@@ -137,7 +139,7 @@ export default function OrderHistory() {
   }, [filteredOrders, currentPage]);
 
   const handleView = (orderId: string) => {
-    router.push(`/orders/${orderId}`);
+    router.push(t(`/orders/${orderId}`));
   };
 
   const handleDeleteClick = (order: OrderData) => {
@@ -158,7 +160,7 @@ export default function OrderHistory() {
       });
 
       if (response.status === 401) {
-        router.push('/');
+        router.push(t('/'));
         return;
       }
 
@@ -193,7 +195,7 @@ export default function OrderHistory() {
       const response = await fetch(`/api/orders/${selectedCopyOrder.id}`);
       if (response.status === 401) {
         setCopyDialogOpen(false);
-        router.push('/');
+        router.push(t('/'));
         return;
       }
       if (!response.ok) {
@@ -228,7 +230,7 @@ export default function OrderHistory() {
 
       if (createResponse.status === 401) {
         setCopyDialogOpen(false);
-        router.push('/');
+        router.push(t('/'));
         return;
       }
 
@@ -240,7 +242,7 @@ export default function OrderHistory() {
 
       const newOrderData = await createResponse.json();
       setCopyDialogOpen(false);
-      router.push(`/orders/${newOrderData.order.id}`);
+      router.push(t(`/orders/${newOrderData.order.id}`));
     } catch (error) {
       console.error('Error copying order:', error);
       alert('発注書のコピーに失敗しました');
@@ -251,7 +253,7 @@ export default function OrderHistory() {
   };
 
   const handleDownload = (orderId: string) => {
-    router.push(`/orders/${orderId}/print`);
+    router.push(t(`/orders/${orderId}/print`));
   };
 
   const getStatusBadge = (status: string) => {
@@ -304,7 +306,7 @@ export default function OrderHistory() {
         <div className="flex items-center gap-3 mb-5">
           <button
             type="button"
-            onClick={() => router.push('/dashboard')}
+            onClick={() => router.push(t('/dashboard'))}
             className="flex items-center gap-1 px-2 py-1.5 -ml-2 text-sm text-muted hover:text-foreground hover:bg-surface-muted rounded-md transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />

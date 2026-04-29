@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { useTenantPath } from '@/lib/tenant/links';
 import { format } from 'date-fns';
 import { ja } from 'date-fns/locale';
 import { ArrowLeft, Printer, Edit, ArrowRight, AlertTriangle } from 'lucide-react';
@@ -35,6 +36,7 @@ interface OrderDetail {
 export default function OrderDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const t = useTenantPath();
   const [order, setOrder] = useState<OrderDetail | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -42,7 +44,7 @@ export default function OrderDetailPage() {
     try {
       const response = await fetch(`/api/orders/${id}`);
       if (response.status === 401) {
-        router.push('/');
+        router.push(t('/'));
         return;
       }
       if (!response.ok) {
@@ -55,7 +57,7 @@ export default function OrderDetailPage() {
     } finally {
       setLoading(false);
     }
-  }, [router]);
+  }, [router, t]);
 
   useEffect(() => {
     if (params.id) {
@@ -65,12 +67,12 @@ export default function OrderDetailPage() {
 
   const handleDownload = () => {
     if (!order) return;
-    router.push(`/orders/${order.id}/print`);
+    router.push(t(`/orders/${order.id}/print`));
   };
 
   const handleEdit = () => {
     if (!order) return;
-    router.push(`/material-order/edit/${order.id}`);
+    router.push(t(`/material-order/edit/${order.id}`));
   };
 
   if (loading) {
@@ -92,7 +94,7 @@ export default function OrderDetailPage() {
             <p className="text-sm text-muted mb-5">発注書が見つかりません</p>
             <button
               type="button"
-              onClick={() => router.push('/order-history')}
+              onClick={() => router.push(t('/order-history'))}
               className="px-4 py-2 bg-foreground text-background rounded-md hover:bg-foreground/90 font-semibold text-sm transition-colors"
             >
               履歴に戻る
@@ -143,7 +145,7 @@ export default function OrderDetailPage() {
           <div className="flex items-center gap-3">
             <button
               type="button"
-              onClick={() => router.push('/order-history')}
+              onClick={() => router.push(t('/order-history'))}
               className="flex items-center gap-1 px-2 py-1.5 -ml-2 text-sm text-muted hover:text-foreground hover:bg-surface-muted rounded-md transition-colors"
             >
               <ArrowLeft className="h-4 w-4" />

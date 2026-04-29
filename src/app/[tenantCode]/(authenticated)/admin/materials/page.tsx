@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
+import { useTenantPath } from '@/lib/tenant/links';
 import {
   Dialog,
   DialogContent,
@@ -33,6 +34,7 @@ interface Material {
 export default function MaterialsPage() {
   const router = useRouter();
   const { data: session } = useSession();
+  const t = useTenantPath();
 
   const [materials, setMaterials] = useState<Material[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -65,7 +67,7 @@ export default function MaterialsPage() {
       ]);
 
       if (materialsRes.status === 401 || categoriesRes.status === 401) {
-        router.push('/');
+        router.push(t('/'));
         return;
       }
 
@@ -83,15 +85,15 @@ export default function MaterialsPage() {
     } finally {
       setLoading(false);
     }
-  }, [router]);
+  }, [router, t]);
 
   useEffect(() => {
     if (session && session.user?.role !== 'ADMIN') {
-      router.push('/dashboard');
+      router.push(t('/dashboard'));
       return;
     }
     fetchData();
-  }, [session, router, fetchData]);
+  }, [session, router, t, fetchData]);
 
   const resetForm = () => {
     setFormData({ name: '', categoryId: '', size: '', weightKg: '' });
@@ -205,7 +207,7 @@ export default function MaterialsPage() {
           <div className="flex items-center gap-3">
             <button
               type="button"
-              onClick={() => router.push('/dashboard')}
+              onClick={() => router.push(t('/dashboard'))}
               className="flex items-center gap-1 px-2 py-1.5 -ml-2 text-sm text-muted hover:text-foreground hover:bg-surface-muted rounded-md transition-colors"
             >
               <ArrowLeft className="h-4 w-4" />

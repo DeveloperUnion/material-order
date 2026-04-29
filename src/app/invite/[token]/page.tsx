@@ -91,10 +91,10 @@ export default function InviteRegistrationPage() {
 
       setSuccess(true);
 
-      // 次回のログインがスムーズになるよう、会社コードを localStorage にも保存しておく
+      // 次回 / で会社コード入力欄に自動入力するため
       try {
         if (invitation?.tenantCode) {
-          localStorage.setItem('material-order:tenant-code', invitation.tenantCode);
+          localStorage.setItem('material-order:last-tenant-code', invitation.tenantCode);
         }
       } catch {
         // localStorage が使えない環境では無視
@@ -110,8 +110,10 @@ export default function InviteRegistrationPage() {
         redirect: false,
       });
 
-      if (signInResult?.ok) {
-        router.push('/dashboard');
+      if (signInResult?.ok && invitation?.tenantCode) {
+        router.push(`/${invitation.tenantCode}/dashboard`);
+      } else if (invitation?.tenantCode) {
+        setTimeout(() => router.push(`/${invitation.tenantCode}`), 2000);
       } else {
         setTimeout(() => router.push('/'), 2000);
       }

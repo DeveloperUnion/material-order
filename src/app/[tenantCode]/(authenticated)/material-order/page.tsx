@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTenantPath } from "@/lib/tenant/links";
 import MaterialOrderForm from "@/components/MaterialOrderForm";
 import { OrderDocument } from "@/types/material-order";
 import { formatWeight, formatTotalWeight } from "@/lib/utils/format";
@@ -9,6 +10,7 @@ import { ArrowLeft, ArrowRight } from "lucide-react";
 
 export default function MaterialOrderPage() {
   const router = useRouter();
+  const t = useTenantPath();
   const [orderData, setOrderData] = useState<OrderDocument | null>(null);
   const [showPDFPreview, setShowPDFPreview] = useState(false);
   const [isCreatingOrder, setIsCreatingOrder] = useState(false);
@@ -83,7 +85,7 @@ export default function MaterialOrderPage() {
         // ignore
       }
 
-      router.replace(`/orders/${result.order.id}/print`);
+      router.replace(t(`/orders/${result.order.id}/print`));
     } catch (error) {
       console.error("発注書作成エラー:", error);
       alert("発注書の作成に失敗しました");
@@ -177,7 +179,7 @@ export default function MaterialOrderPage() {
             type="button"
             onClick={() => {
               try { sessionStorage.removeItem('material-order-draft-new'); } catch {}
-              router.push('/dashboard');
+              router.push(t('/dashboard'));
             }}
             className="flex items-center gap-1 px-2 py-1.5 -ml-2 text-sm text-muted hover:text-foreground hover:bg-surface-muted rounded-md transition-colors"
           >
