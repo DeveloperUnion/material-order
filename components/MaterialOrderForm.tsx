@@ -59,7 +59,7 @@ type Material = {
   id: string;
   materialCode: string;
   name: string;
-  categoryId: string;
+  categoryId: string | null;
   size?: string;
   weightKg: number;
   isActive: boolean;
@@ -73,6 +73,9 @@ type Truck = {
 };
 
 const TRUCK_CUSTOM_OPTION = 'custom';
+
+const UNCATEGORIZED_KEY = '__uncategorized__';
+const UNCATEGORIZED_LABEL = '未分類';
 
 // sessionStorage のキーを生成
 function getDraftStorageKey(editMode: boolean, orderId?: string): string {
@@ -212,8 +215,12 @@ export default function MaterialOrderForm({ onSubmit, editMode = false, editOrde
         setMaterials(materialsData);
         setTrucks(trucksData);
 
-        if (categoriesData.length > 0 && !initialDraft.current?.selectedCategoryId) {
-          setSelectedCategoryId(categoriesData[0].id);
+        if (!initialDraft.current?.selectedCategoryId) {
+          if (categoriesData.length > 0) {
+            setSelectedCategoryId(categoriesData[0].id);
+          } else {
+            setSelectedCategoryId(UNCATEGORIZED_KEY);
+          }
         }
       } catch (error) {
         console.error('データの取得に失敗しました:', error);
@@ -339,10 +346,21 @@ export default function MaterialOrderForm({ onSubmit, editMode = false, editOrde
     return () => clearTimeout(timer);
   }, [watchedMaterials, watchedFields, watchedTruck, selectedCategoryId, draftOrderId, loading, getValues, storageKey]);
 
+  const usesCategories = categories.length > 0;
+  const isUncategorizedView = !usesCategories || selectedCategoryId === UNCATEGORIZED_KEY;
+
   const currentMaterials = useMemo(() => {
     const filtered = materials.filter(m => {
-      if (m.categoryId !== selectedCategoryId || !m.isActive) {
-        return false;
+      if (!m.isActive) return false;
+
+      // カテゴリなしテナントはタブを描画しないので全資材を表示。
+      // カテゴリありテナントでは選択中タブに合致するもののみ。
+      if (usesCategories) {
+        const matchesCategory =
+          selectedCategoryId === UNCATEGORIZED_KEY
+            ? m.categoryId === null
+            : m.categoryId === selectedCategoryId;
+        if (!matchesCategory) return false;
       }
 
       if (searchQuery.trim() === "") {
@@ -366,15 +384,22 @@ export default function MaterialOrderForm({ onSubmit, editMode = false, editOrde
     }
 
     return filtered;
-  }, [materials, selectedCategoryId, searchQuery, editMode, selectedMaterials]);
+  }, [materials, selectedCategoryId, searchQuery, editMode, selectedMaterials, usesCategories]);
 
-  const categoryTotalCount = useMemo(
-    () => materials.filter(m => m.categoryId === selectedCategoryId && m.isActive).length,
-    [materials, selectedCategoryId]
+  const categoryTotalCount = useMemo(() => {
+    if (!usesCategories) {
+      return materials.filter(m => m.isActive).length;
+    }
+    if (selectedCategoryId === UNCATEGORIZED_KEY) {
+      return materials.filter(m => m.categoryId === null && m.isActive).length;
+    }
+    return materials.filter(m => m.categoryId === selectedCategoryId && m.isActive).length;
+  }, [materials, selectedCategoryId, usesCategories]);
+
+  const uncategorizedCount = useMemo(
+    () => materials.filter(m => m.categoryId === null && m.isActive).length,
+    [materials],
   );
-
-  const selectedCategory = categories.find(cat => cat.id === selectedCategoryId);
-  const isOtherCategory = selectedCategory?.name === 'その他';
 
   const handleAddMaterialClick = async () => {
     if (!editMode && !draftOrderId) {
@@ -427,7 +452,9 @@ export default function MaterialOrderForm({ onSubmit, editMode = false, editOrde
           items.push({
             id: material.id,
             name: material.name,
-            categoryName: categories.find(c => c.id === material.categoryId)?.name || '',
+            categoryName: material.categoryId
+              ? categories.find(c => c.id === material.categoryId)?.name || ''
+              : '',
             quantity: Number(quantity),
             weightPerUnit: materialWeight,
             totalWeight: totalWeight,
@@ -672,25 +699,40 @@ export default function MaterialOrderForm({ onSubmit, editMode = false, editOrde
           {/* LEFT: browser */}
           <div className="min-w-0 space-y-3">
             {/* Categories */}
-            <div className="bg-surface border border-border rounded-xl p-2.5 flex gap-1.5 overflow-x-auto">
-              {categories.map((category) => {
-                const isActive = selectedCategoryId === category.id;
-                return (
+            {usesCategories && (
+              <div className="bg-surface border border-border rounded-xl p-2.5 flex gap-1.5 overflow-x-auto">
+                {categories.map((category) => {
+                  const isActive = selectedCategoryId === category.id;
+                  return (
+                    <button
+                      key={category.id}
+                      type="button"
+                      onClick={() => setSelectedCategoryId(category.id)}
+                      className={`px-3.5 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors border ${
+                        isActive
+                          ? "bg-foreground text-background border-foreground"
+                          : "bg-surface text-foreground border-border hover:bg-surface-muted"
+                      }`}
+                    >
+                      {category.name}
+                    </button>
+                  );
+                })}
+                {uncategorizedCount > 0 && (
                   <button
-                    key={category.id}
                     type="button"
-                    onClick={() => setSelectedCategoryId(category.id)}
+                    onClick={() => setSelectedCategoryId(UNCATEGORIZED_KEY)}
                     className={`px-3.5 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors border ${
-                      isActive
+                      selectedCategoryId === UNCATEGORIZED_KEY
                         ? "bg-foreground text-background border-foreground"
                         : "bg-surface text-foreground border-border hover:bg-surface-muted"
                     }`}
                   >
-                    {category.name}
+                    {UNCATEGORIZED_LABEL}
                   </button>
-                );
-              })}
-            </div>
+                )}
+              </div>
+            )}
 
             {/* Search */}
             <div className="bg-surface border border-border rounded-xl px-4 py-3 flex items-center gap-3">
@@ -717,8 +759,8 @@ export default function MaterialOrderForm({ onSubmit, editMode = false, editOrde
               </span>
             </div>
 
-            {/* Toolbar (add custom material for その他) */}
-            {isOtherCategory && (
+            {/* Toolbar (add custom material when in uncategorized view) */}
+            {isUncategorizedView && (
               <div className="flex justify-end">
                 <button
                   type="button"
@@ -950,7 +992,7 @@ export default function MaterialOrderForm({ onSubmit, editMode = false, editOrde
 
       {showAddMaterialForm && (
         <AddMaterialForm
-          categoryId={selectedCategoryId}
+          categoryId={isUncategorizedView ? null : selectedCategoryId}
           orderId={editMode ? editData?.orderId : draftOrderId}
           onSuccess={handleAddMaterial}
           onCancel={() => setShowAddMaterialForm(false)}

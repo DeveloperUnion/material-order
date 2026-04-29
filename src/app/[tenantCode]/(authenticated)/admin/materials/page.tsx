@@ -27,9 +27,11 @@ interface Material {
   weightKg: number;
   isActive: boolean;
   isTemporary: boolean;
-  category: Category;
-  categoryId: string;
+  category: Category | null;
+  categoryId: string | null;
 }
+
+const UNCATEGORIZED_LABEL = '未分類';
 
 export default function MaterialsPage() {
   const router = useRouter();
@@ -47,10 +49,13 @@ export default function MaterialsPage() {
   const [formData, setFormData] = useState({
     name: '',
     categoryId: '',
+    materialCode: '',
     size: '',
     weightKg: '',
   });
   const [formLoading, setFormLoading] = useState(false);
+
+  const usesCategories = categories.length > 0;
 
   const [filterCategory, setFilterCategory] = useState<string>('all');
 
@@ -96,7 +101,7 @@ export default function MaterialsPage() {
   }, [session, router, t, fetchData]);
 
   const resetForm = () => {
-    setFormData({ name: '', categoryId: '', size: '', weightKg: '' });
+    setFormData({ name: '', categoryId: '', materialCode: '', size: '', weightKg: '' });
     setEditingId(null);
     setShowForm(false);
   };
@@ -104,7 +109,8 @@ export default function MaterialsPage() {
   const handleEdit = (material: Material) => {
     setFormData({
       name: material.name,
-      categoryId: material.categoryId,
+      categoryId: material.categoryId ?? '',
+      materialCode: material.materialCode,
       size: material.size || '',
       weightKg: String(material.weightKg),
     });
@@ -124,7 +130,12 @@ export default function MaterialsPage() {
         const res = await fetch(`/api/materials/${editingId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(formData),
+          body: JSON.stringify({
+            name: formData.name,
+            categoryId: formData.categoryId,
+            size: formData.size,
+            weightKg: formData.weightKg,
+          }),
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || '更新に失敗しました');
@@ -179,14 +190,20 @@ export default function MaterialsPage() {
   };
 
   const filteredMaterials =
-    filterCategory === 'all' ? materials : materials.filter((m) => m.categoryId === filterCategory);
+    filterCategory === 'all'
+      ? materials
+      : filterCategory === 'uncategorized'
+      ? materials.filter((m) => m.categoryId === null)
+      : materials.filter((m) => m.categoryId === filterCategory);
 
   const groupedMaterials = filteredMaterials.reduce<Record<string, Material[]>>((acc, m) => {
-    const catName = m.category.name;
+    const catName = m.category?.name ?? UNCATEGORIZED_LABEL;
     if (!acc[catName]) acc[catName] = [];
     acc[catName].push(m);
     return acc;
   }, {});
+
+  const uncategorizedCount = materials.filter((m) => m.categoryId === null).length;
 
   if (loading) {
     return (
@@ -274,24 +291,50 @@ export default function MaterialsPage() {
                     className="w-full px-3 py-2 text-sm text-foreground border border-border rounded-md bg-surface focus:border-accent focus:ring-4 focus:ring-accent/15 outline-none transition-all"
                   />
                 </div>
-                <div>
-                  <label className="block text-xs font-medium text-muted mb-1.5">
-                    カテゴリ <span className="text-red-600">*</span>
-                  </label>
-                  <select
-                    value={formData.categoryId}
-                    onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
-                    required
-                    className="w-full px-3 py-2 text-sm text-foreground border border-border rounded-md bg-surface focus:border-accent focus:ring-4 focus:ring-accent/15 outline-none cursor-pointer transition-all"
-                  >
-                    <option value="">選択してください</option>
-                    {categories.map((cat) => (
-                      <option key={cat.id} value={cat.id}>
-                        {cat.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                {!editingId && (
+                  <div>
+                    <label className="block text-xs font-medium text-muted mb-1.5">
+                      品番 <span className="text-subtle">(任意)</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.materialCode}
+                      onChange={(e) => setFormData({ ...formData, materialCode: e.target.value })}
+                      placeholder="未入力時は自動採番 (M-001...)"
+                      className="w-full px-3 py-2 text-sm text-foreground border border-border rounded-md bg-surface focus:border-accent focus:ring-4 focus:ring-accent/15 outline-none transition-all font-mono"
+                    />
+                  </div>
+                )}
+                {editingId && (
+                  <div>
+                    <label className="block text-xs font-medium text-muted mb-1.5">品番</label>
+                    <input
+                      type="text"
+                      value={formData.materialCode}
+                      readOnly
+                      className="w-full px-3 py-2 text-sm text-muted border border-border rounded-md bg-surface-muted outline-none font-mono cursor-not-allowed"
+                    />
+                  </div>
+                )}
+                {usesCategories && (
+                  <div>
+                    <label className="block text-xs font-medium text-muted mb-1.5">
+                      カテゴリ
+                    </label>
+                    <select
+                      value={formData.categoryId}
+                      onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
+                      className="w-full px-3 py-2 text-sm text-foreground border border-border rounded-md bg-surface focus:border-accent focus:ring-4 focus:ring-accent/15 outline-none cursor-pointer transition-all"
+                    >
+                      <option value="">{UNCATEGORIZED_LABEL}</option>
+                      {categories.map((cat) => (
+                        <option key={cat.id} value={cat.id}>
+                          {cat.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
                 <div>
                   <label className="block text-xs font-medium text-muted mb-1.5">サイズ</label>
                   <input
@@ -337,26 +380,36 @@ export default function MaterialsPage() {
         )}
 
         {/* カテゴリフィルター */}
-        <div className="bg-surface border border-border rounded-xl p-2.5 mb-4 flex gap-1.5 overflow-x-auto">
-          <FilterPill
-            active={filterCategory === 'all'}
-            onClick={() => setFilterCategory('all')}
-            label="すべて"
-            count={materials.length}
-          />
-          {categories.map((cat) => {
-            const count = materials.filter((m) => m.categoryId === cat.id).length;
-            return (
+        {usesCategories && (
+          <div className="bg-surface border border-border rounded-xl p-2.5 mb-4 flex gap-1.5 overflow-x-auto">
+            <FilterPill
+              active={filterCategory === 'all'}
+              onClick={() => setFilterCategory('all')}
+              label="すべて"
+              count={materials.length}
+            />
+            {categories.map((cat) => {
+              const count = materials.filter((m) => m.categoryId === cat.id).length;
+              return (
+                <FilterPill
+                  key={cat.id}
+                  active={filterCategory === cat.id}
+                  onClick={() => setFilterCategory(cat.id)}
+                  label={cat.name}
+                  count={count}
+                />
+              );
+            })}
+            {uncategorizedCount > 0 && (
               <FilterPill
-                key={cat.id}
-                active={filterCategory === cat.id}
-                onClick={() => setFilterCategory(cat.id)}
-                label={cat.name}
-                count={count}
+                active={filterCategory === 'uncategorized'}
+                onClick={() => setFilterCategory('uncategorized')}
+                label={UNCATEGORIZED_LABEL}
+                count={uncategorizedCount}
               />
-            );
-          })}
-        </div>
+            )}
+          </div>
+        )}
 
         {/* 資材一覧 */}
         {Object.keys(groupedMaterials).length === 0 ? (

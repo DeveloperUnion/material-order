@@ -26,7 +26,7 @@ type Material = {
   id: string;
   materialCode: string;
   name: string;
-  categoryId: string;
+  categoryId: string | null;
   size?: string;
   type: string;
   weightKg: number;
@@ -34,7 +34,7 @@ type Material = {
 };
 
 interface AddMaterialFormProps {
-  categoryId: string;
+  categoryId: string | null;
   orderId?: string | null;
   onSuccess: (material: Material) => void;
   onCancel: () => void;
