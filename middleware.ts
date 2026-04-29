@@ -10,8 +10,8 @@ export default auth((request) => {
     publicPaths.some(
       (path) => pathname === path || pathname.startsWith(path + '/')
     ) ||
-    // ログイン画面が叩く NAME モードのメンバー一覧 API
-    /^\/api\/tenant\/[^/]+\/users\/?$/.test(pathname)
+    // ログイン画面が叩く: NAME モードのメンバー一覧 / EMAIL モードの状態判定
+    /^\/api\/tenant\/[^/]+\/(users|email-status)\/?$/.test(pathname)
 
   // 認証状態を取得
   const isLoggedIn = !!request.auth?.user

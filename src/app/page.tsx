@@ -34,6 +34,8 @@ export default function Home() {
   const [memberSearch, setMemberSearch] = useState('')
 
   const [email, setEmail] = useState('')
+  // EMAIL モードで「初回 PW 設定 / 再発行後の再設定」が必要かのフラグ
+  const [emailNeedsSetup, setEmailNeedsSetup] = useState(false)
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
 
@@ -136,14 +138,34 @@ export default function Home() {
     setStep('password')
   }
 
-  const handleEmailSubmit = (e: React.FormEvent) => {
+  const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
-    if (!email.trim()) {
+    setEmailNeedsSetup(false)
+    if (!email.trim() || !tenant) {
       setError('メールアドレスを入力してください')
       return
     }
-    setStep('password')
+    setLoading(true)
+    try {
+      // 初回 PW 設定 / 再発行待ちかをサーバに問い合わせる（プライバシー上、true / false しか返らない）
+      const res = await fetch(`/api/tenant/${tenant.id}/email-status`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim().toLowerCase() }),
+      })
+      const data = await res.json().catch(() => ({ requiresSetup: false }))
+      setEmailNeedsSetup(!!data.requiresSetup)
+      setPassword('')
+      setConfirmPassword('')
+      setStep('password')
+    } catch {
+      // 失敗時は通常ログイン UI に倒す（誤入力ならログイン側でエラーになる）
+      setEmailNeedsSetup(false)
+      setStep('password')
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handlePasswordSubmit = async (e: React.FormEvent) => {
@@ -156,7 +178,7 @@ export default function Home() {
       if (tenant.authMode === 'NAME') {
         if (!selectedMember) throw new Error('ユーザーが選択されていません')
 
-        // 初回パスワード設定が必要な場合
+        // 初回 PW 設定 / 再発行後の再設定
         if (!selectedMember.hasPassword) {
           if (!selectedMember.canSetupPassword) {
             throw new Error('パスワード設定の有効期限が切れています。管理者に再発行を依頼してください')
@@ -192,6 +214,29 @@ export default function Home() {
           throw new Error('パスワードが正しくありません')
         }
       } else {
+        // EMAIL モード。初回 PW 設定 / 再発行後の再設定が必要なら setup-password を先に叩く
+        if (emailNeedsSetup) {
+          if (password.length < 8) {
+            throw new Error('パスワードは8文字以上で入力してください')
+          }
+          if (password !== confirmPassword) {
+            throw new Error('パスワードが一致しません')
+          }
+          const setupRes = await fetch('/api/auth/setup-password', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              tenantId: tenant.id,
+              email: email.trim().toLowerCase(),
+              password,
+            }),
+          })
+          if (!setupRes.ok) {
+            const data = await setupRes.json().catch(() => ({}))
+            throw new Error(data.error || 'パスワード設定に失敗しました')
+          }
+        }
+
         const result = await signIn('credentials', {
           email,
           password,
@@ -417,7 +462,12 @@ export default function Home() {
             </form>
           )}
 
-          {step === 'password' && tenant && (
+          {step === 'password' && tenant && (() => {
+            const needsSetup =
+              tenant.authMode === 'NAME'
+                ? !!selectedMember && !selectedMember.hasPassword
+                : emailNeedsSetup
+            return (
             <form onSubmit={handlePasswordSubmit} className="space-y-5">
               <div className="flex items-center gap-3 pb-4 border-b border-border">
                 <div className="h-10 w-10 rounded-full bg-accent-soft text-accent flex items-center justify-center flex-shrink-0">
@@ -431,40 +481,30 @@ export default function Home() {
                 </div>
               </div>
 
-              {tenant.authMode === 'NAME' && selectedMember && !selectedMember.hasPassword && (
+              {needsSetup && (
                 <div className="rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-800">
-                  初回ログインです。新しいパスワードを設定してください。
+                  パスワードが未設定です。新しいパスワードを設定してください。
                 </div>
               )}
 
               <div>
                 <label htmlFor="password" className="block text-xs font-medium text-muted mb-2">
-                  {tenant.authMode === 'NAME' && selectedMember && !selectedMember.hasPassword
-                    ? '新しいパスワード'
-                    : 'パスワード'}
+                  {needsSetup ? '新しいパスワード' : 'パスワード'}
                 </label>
                 <input
                   id="password"
                   type="password"
                   required
                   autoFocus
-                  autoComplete={
-                    tenant.authMode === 'NAME' && selectedMember && !selectedMember.hasPassword
-                      ? 'new-password'
-                      : 'current-password'
-                  }
-                  placeholder={
-                    tenant.authMode === 'NAME' && selectedMember && !selectedMember.hasPassword
-                      ? '8文字以上'
-                      : '••••••••'
-                  }
+                  autoComplete={needsSetup ? 'new-password' : 'current-password'}
+                  placeholder={needsSetup ? '8文字以上' : '••••••••'}
                   className="w-full px-4 py-3 border border-border rounded-lg bg-surface text-foreground text-sm placeholder:text-subtle focus:border-accent focus:ring-4 focus:ring-accent/15 transition-all outline-none"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                 />
               </div>
 
-              {tenant.authMode === 'NAME' && selectedMember && !selectedMember.hasPassword && (
+              {needsSetup && (
                 <div>
                   <label htmlFor="confirmPassword" className="block text-xs font-medium text-muted mb-2">
                     パスワード（確認）
@@ -492,7 +532,7 @@ export default function Home() {
                 <span>
                   {loading
                     ? 'ログイン中...'
-                    : tenant.authMode === 'NAME' && selectedMember && !selectedMember.hasPassword
+                    : needsSetup
                       ? 'パスワードを設定してログイン'
                       : 'ログイン'}
                 </span>
@@ -513,7 +553,8 @@ export default function Home() {
                 {tenant.authMode === 'NAME' ? '別のメンバーを選ぶ' : 'メールアドレスを変更'}
               </button>
             </form>
-          )}
+            )
+          })()}
         </div>
 
         <p className="mt-6 text-center text-[10px] tracking-[0.18em] text-subtle font-mono uppercase">

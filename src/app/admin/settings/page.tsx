@@ -244,7 +244,11 @@ export default function CompanySettingsPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'パスワード再発行に失敗しました');
       setUsers(users.map((u) => (u.id === userId ? { ...u, ...data.user } : u)));
-      setSuccess('パスワード再発行しました。本人にログイン URL を伝えてください。');
+      setSuccess(
+        tenant?.authMode === 'NAME'
+          ? 'パスワードを再発行しました。本人にログイン URL を伝えてください（24h 有効）'
+          : 'パスワードを再発行しました。本人にトップページから再設定するよう伝えてください（24h 有効）'
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : 'エラーが発生しました');
     } finally {
@@ -683,26 +687,24 @@ export default function CompanySettingsPage() {
                                 メンバーに変更
                               </button>
                             )}
-                            {tenant?.authMode === 'NAME' && user.joinedAt === null && (
-                              <>
-                                <div className="border-t border-border my-1" />
-                                <button
-                                  type="button"
-                                  onClick={() => copyLoginInfo(user.name)}
-                                  className="w-full px-3 py-2 text-left text-sm hover:bg-surface-muted flex items-center gap-2 text-foreground"
-                                >
-                                  <Copy className="h-4 w-4 text-muted" />
-                                  ログイン情報をコピー
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => handleRegeneratePassword(user.id)}
-                                  className="w-full px-3 py-2 text-left text-sm hover:bg-surface-muted flex items-center gap-2 text-foreground"
-                                >
-                                  <KeyRound className="h-4 w-4 text-amber-600" />
-                                  パスワード再発行
-                                </button>
-                              </>
+                            <div className="border-t border-border my-1" />
+                            <button
+                              type="button"
+                              onClick={() => handleRegeneratePassword(user.id)}
+                              className="w-full px-3 py-2 text-left text-sm hover:bg-surface-muted flex items-center gap-2 text-foreground"
+                            >
+                              <KeyRound className="h-4 w-4 text-amber-600" />
+                              パスワード再発行
+                            </button>
+                            {tenant?.authMode === 'NAME' && (
+                              <button
+                                type="button"
+                                onClick={() => copyLoginInfo(user.name)}
+                                className="w-full px-3 py-2 text-left text-sm hover:bg-surface-muted flex items-center gap-2 text-foreground"
+                              >
+                                <Copy className="h-4 w-4 text-muted" />
+                                ログイン情報をコピー
+                              </button>
                             )}
                             <div className="border-t border-border my-1" />
                             {user.isActive ? (

@@ -2,18 +2,19 @@ import { NextResponse } from 'next/server'
 import bcrypt from 'bcrypt'
 import { getCurrentPrismaClient } from '@/lib/tenant/server'
 
-// NAME モードのメンバーが初回パスワードを設定する。
-// 入力: { tenantId, userId, password }
-// 検証: tenant.authMode === 'NAME' / user.tenantId 一致 / user.password === null
-//        / passwordSetupExpiresAt が未来 / user.isActive
+// メンバーが初回パスワードを設定する。または ADMIN が再発行した後の再設定。
+// 入力: { tenantId, password, userId? | email? }
+//   - NAME モード: tenantId + userId（名前選択画面で得る）
+//   - EMAIL モード: tenantId + email（メール入力画面で得る）
+// 検証: tenantId 一致 / user.password === null / passwordSetupExpiresAt が未来 / user.isActive
 export async function POST(request: Request) {
   try {
     const prisma = getCurrentPrismaClient()
-    const body = await request.json().catch(() => null) as
-      | { tenantId?: string; userId?: string; password?: string }
+    const body = (await request.json().catch(() => null)) as
+      | { tenantId?: string; userId?: string; email?: string; password?: string }
       | null
 
-    if (!body?.tenantId || !body?.userId || !body?.password) {
+    if (!body?.tenantId || !body?.password || (!body.userId && !body.email)) {
       return NextResponse.json(
         { error: '必須項目が不足しています' },
         { status: 400 }
@@ -27,17 +28,21 @@ export async function POST(request: Request) {
       )
     }
 
-    const user = await prisma.user.findUnique({
-      where: { id: body.userId },
-      include: { tenant: true },
-    })
+    const user = body.userId
+      ? await prisma.user.findUnique({
+          where: { id: body.userId },
+          include: { tenant: true },
+        })
+      : await prisma.user.findUnique({
+          where: { email: body.email!.toLowerCase() },
+          include: { tenant: true },
+        })
 
     if (
       !user ||
       user.tenantId !== body.tenantId ||
       !user.isActive ||
-      !user.tenant.isActive ||
-      user.tenant.authMode !== 'NAME'
+      !user.tenant.isActive
     ) {
       return NextResponse.json(
         { error: '対象のユーザーが見つかりません' },
@@ -69,7 +74,8 @@ export async function POST(request: Request) {
       where: { id: user.id },
       data: {
         password: hashed,
-        joinedAt: now,
+        // joinedAt は初回登録時のみセット、再発行後の再設定では維持する
+        joinedAt: user.joinedAt ?? now,
         passwordSetupExpiresAt: null,
         lastLoginAt: now,
       },
