@@ -136,14 +136,9 @@ export default function InviteRegistrationPage() {
             </div>
             <h2 className="text-lg font-bold text-foreground mb-2 tracking-tight">招待が無効です</h2>
             <p className="text-sm text-muted mb-6">{error}</p>
-            <button
-              type="button"
-              onClick={() => router.push('/')}
-              className="w-full flex items-center justify-center gap-2 py-3 px-4 text-sm font-semibold rounded-lg text-primary-foreground bg-primary hover:bg-primary/90 transition-colors"
-            >
-              ログインページへ
-              <ArrowRight className="h-4 w-4" />
-            </button>
+            <p className="text-xs text-muted">
+              招待した管理者にお問い合わせください。
+            </p>
           </div>
         </div>
       </div>
