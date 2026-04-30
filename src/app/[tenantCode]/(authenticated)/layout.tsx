@@ -1,4 +1,4 @@
-import { redirect } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import { getCurrentUser } from '@/lib/auth'
 
 interface AuthenticatedLayoutProps {
@@ -10,7 +10,8 @@ interface AuthenticatedLayoutProps {
 // 1. 未認証 → /[tenantCode] (ログイン画面) に redirect
 // 2. session.tenantCode と URL の tenantCode 不一致 → 自分のテナントの同等パスに redirect
 //    (誤った URL を踏んでも他テナントの画面が見えないようにする)
-// 3. SUPER_ADMIN → /super-admin に redirect
+// 3. SUPER_ADMIN は middleware が /[tenantCode] (ログイン画面) にバウンスするため、
+//    この layout には到達しないはず。万一到達したら設計ミスとして 404 を返す。
 export default async function AuthenticatedLayout({
   children,
   params,
@@ -23,7 +24,7 @@ export default async function AuthenticatedLayout({
   }
 
   if (user.role === 'SUPER_ADMIN') {
-    redirect('/super-admin')
+    notFound()
   }
 
   if (user.tenantCode !== tenantCode) {
