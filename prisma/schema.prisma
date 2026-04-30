@@ -31,6 +31,10 @@ model Tenant {
   isActive  Boolean        @default(true) @map("is_active")
   isSystem  Boolean        @default(false) @map("is_system")
   authMode  TenantAuthMode @default(EMAIL) @map("auth_mode")
+  // 無料トライアル期限。null = 本契約（または旧テナント）。
+  // 期限を過ぎたテナントはログイン時に拒否され、isActive が false に落とされる。
+  // トライアル中に本契約決定 → null にクリアして継続。
+  trialEndsAt DateTime?    @map("trial_ends_at")
   createdAt DateTime       @default(now()) @map("created_at")
   updatedAt DateTime       @updatedAt @map("updated_at")
 

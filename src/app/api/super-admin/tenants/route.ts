@@ -32,6 +32,8 @@ export async function POST(request: Request) {
     adminName?: string
     maxUsers?: number
     authMode?: TenantAuthMode
+    trial?: boolean
+    trialDays?: number
   }
   try {
     body = await request.json()
@@ -45,6 +47,11 @@ export async function POST(request: Request) {
   const adminName = body.adminName?.trim() || '管理者'
   const maxUsers = Math.max(1, Math.min(999, body.maxUsers ?? 10))
   const authMode: TenantAuthMode = body.authMode === 'NAME' ? 'NAME' : 'EMAIL'
+  // 新規テナントは無料トライアル有り (デフォルト 30 日) で開始するのが標準。
+  // 直接本契約で作りたい時のみ trial=false を渡す。
+  const trial = body.trial !== false
+  const trialDays = Math.max(1, Math.min(365, Math.floor(body.trialDays ?? 30)))
+  const trialEndsAt = trial ? new Date(Date.now() + trialDays * 24 * 60 * 60 * 1000) : null
 
   if (!companyName) {
     return NextResponse.json({ error: '会社名を入力してください' }, { status: 400 })
@@ -131,6 +138,7 @@ export async function POST(request: Request) {
       authMode,
       maxUsers,
       isActive: true,
+      trialEndsAt,
     },
   })
 

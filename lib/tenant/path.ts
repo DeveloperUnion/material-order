@@ -8,6 +8,7 @@ export interface ResolvedTenant {
   name: string
   authMode: TenantAuthMode
   isActive: boolean
+  trialEndsAt: Date | null
 }
 
 const CODE_PATTERN = /^[a-z0-9][a-z0-9-]{1,62}[a-z0-9]$/
@@ -31,6 +32,7 @@ export async function getTenantByCode(code: string): Promise<ResolvedTenant | nu
       authMode: true,
       isActive: true,
       isSystem: true,
+      trialEndsAt: true,
     },
   })
 
@@ -42,5 +44,6 @@ export async function getTenantByCode(code: string): Promise<ResolvedTenant | nu
     name: tenant.name,
     authMode: tenant.authMode,
     isActive: tenant.isActive,
+    trialEndsAt: tenant.trialEndsAt,
   }
 }

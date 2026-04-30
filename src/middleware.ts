@@ -57,6 +57,7 @@ export default auth((request) => {
   const isLoggedIn = !!request.auth?.user
   const role = request.auth?.user?.role
   const sessionTenantCode = request.auth?.user?.tenantCode
+  const sessionTrialEndsAt = request.auth?.user?.tenantTrialEndsAt
 
   // パスベース化以前に発行された JWT には tenantCode が入っていない。
   // そのまま動かすと redirect 先が /undefined/dashboard になり 404 ループするので、
@@ -69,6 +70,20 @@ export default auth((request) => {
     !pathname.startsWith('/api/auth')
   ) {
     return forceSignoutRedirect(request, '/')
+  }
+
+  // トライアル期間中にログインしたユーザーが、期限を過ぎてもセッション有効期限内 (7日) は
+  // そのままアクセスできてしまうのを防ぐ。期限切れを検知したら force-signout。
+  // /api/auth/* は signout 自身を回さないと無限ループになるので除外。
+  if (
+    isLoggedIn &&
+    role !== 'SUPER_ADMIN' &&
+    sessionTrialEndsAt &&
+    new Date(sessionTrialEndsAt).getTime() <= Date.now() &&
+    !pathname.startsWith('/api/auth')
+  ) {
+    const callback = sessionTenantCode ? `/${sessionTenantCode}?trial=expired` : '/'
+    return forceSignoutRedirect(request, callback)
   }
 
   // /super-admin* は SUPER_ADMIN 以外から見えないよう 404

@@ -3,6 +3,7 @@ import { format } from 'date-fns'
 import { ja } from 'date-fns/locale'
 import { Building2, Plus, ArrowRight } from 'lucide-react'
 import { prisma } from '@/lib/tenant/prisma'
+import { getTrialStatus } from '@/lib/trial'
 
 export default async function TenantsListPage() {
   const tenants = await prisma.tenant.findMany({
@@ -44,14 +45,16 @@ export default async function TenantsListPage() {
         </div>
       ) : (
         <div className="bg-surface border border-border rounded-xl divide-y divide-border">
-          {tenants.map((t) => (
+          {tenants.map((t) => {
+            const trial = getTrialStatus(t.trialEndsAt)
+            return (
             <Link
               key={t.id}
               href={`/super-admin/tenants/${t.id}`}
               className="flex items-center justify-between gap-4 px-5 py-4 hover:bg-surface-muted transition-colors"
             >
               <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <p className="text-sm font-semibold text-foreground truncate">{t.name}</p>
                   <span
                     className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium flex-shrink-0 ${
@@ -63,6 +66,24 @@ export default async function TenantsListPage() {
                     <span className={`w-1.5 h-1.5 rounded-full ${t.isActive ? 'bg-emerald-500' : 'bg-subtle'}`} />
                     {t.isActive ? '有効' : '無効'}
                   </span>
+                  {trial.kind === 'ACTIVE' && (
+                    <span
+                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium flex-shrink-0 border ${
+                        trial.daysLeft <= 3
+                          ? 'bg-red-50 text-red-700 border-red-200'
+                          : trial.daysLeft <= 7
+                            ? 'bg-amber-50 text-amber-800 border-amber-200'
+                            : 'bg-accent-soft text-accent border-accent/20'
+                      }`}
+                    >
+                      トライアル 残り{trial.daysLeft}日
+                    </span>
+                  )}
+                  {trial.kind === 'EXPIRED' && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium flex-shrink-0 bg-red-50 text-red-700 border border-red-200">
+                      トライアル期限切れ
+                    </span>
+                  )}
                 </div>
                 <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-0.5 text-xs text-muted font-mono tabular-nums">
                   <span>
@@ -76,7 +97,8 @@ export default async function TenantsListPage() {
               </div>
               <ArrowRight className="h-4 w-4 text-subtle flex-shrink-0" />
             </Link>
-          ))}
+            )
+          })}
         </div>
       )}
     </div>

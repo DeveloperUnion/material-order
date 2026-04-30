@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter, Zen_Kaku_Gothic_New, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/Header";
+import TrialBanner from "@/components/TrialBanner";
 import Providers from "@/components/Providers";
 import PwaRegister from "@/components/PwaRegister";
 import { defaultAppConfig } from "@/lib/tenant/config";
@@ -69,6 +70,7 @@ export default function RootLayout({
       >
         <Providers>
           <Header />
+          <TrialBanner />
           {children}
           <PwaRegister />
         </Providers>
