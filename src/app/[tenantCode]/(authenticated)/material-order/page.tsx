@@ -150,7 +150,7 @@ export default function MaterialOrderPage() {
                 <tbody>
                   {orderData.items.map((item) => (
                     <tr key={item.id} className="hover:bg-surface-muted border-b border-border">
-                      <td className="p-2 md:p-3 text-sm text-foreground">{item.name}</td>
+                      <td className="p-2 md:p-3 text-sm text-foreground">{item.name}{item.size ? `（${item.size}）` : ''}</td>
                       <td className="p-2 md:p-3 text-right text-sm font-mono font-semibold tabular-nums text-foreground">{item.quantity}</td>
                       <td className="p-2 md:p-3 text-right text-sm font-mono tabular-nums text-muted">{formatWeight(item.weightPerUnit).replace('kg', '')}</td>
                       <td className="p-2 md:p-3 text-right text-sm font-mono font-semibold tabular-nums text-foreground">{formatWeight(item.totalWeight).replace('kg', '')}</td>

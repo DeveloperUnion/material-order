@@ -39,6 +39,19 @@ function isPublicRootPath(pathname: string): boolean {
   )
 }
 
+// /api/auth/force-signout 経由で session を破棄してから callbackUrl に戻す。
+// Auth.js の signOut() を route handler 側で呼ぶことで、chunked / __Host-/__Secure-
+// prefix を含む全 cookie を確実に削除する (middleware からの手動削除より頑健)。
+function forceSignoutRedirect(request: { nextUrl: URL; url: string }, callbackUrl: string) {
+  const url = new URL('/api/auth/force-signout', request.url)
+  url.searchParams.set('callbackUrl', callbackUrl)
+  const response = NextResponse.redirect(url)
+  // ブラウザ / CDN が redirect 自体をキャッシュして「コードを直しても症状が消えない」
+  // 状況を防ぐ。
+  response.headers.set('Cache-Control', 'no-store')
+  return response
+}
+
 export default auth((request) => {
   const { pathname } = request.nextUrl
   const isLoggedIn = !!request.auth?.user
@@ -47,36 +60,15 @@ export default auth((request) => {
 
   // パスベース化以前に発行された JWT には tenantCode が入っていない。
   // そのまま動かすと redirect 先が /undefined/dashboard になり 404 ループするので、
-  // session cookie を削除して / に戻し再ログインさせる。
-  //
-  // NextResponse.cookies.delete(name) は Secure 属性を付けない Set-Cookie を吐くため、
-  // ブラウザは __Secure- / __Host- プレフィックス付き cookie の上書き・削除を拒否する
-  // (HTTP State Tokens / cookie prefix 仕様)。結果として cookie が残り続け、/ → / の
-  // 同 URL redirect とあわせて ERR_TOO_MANY_REDIRECTS の無限ループが発生する。
-  // 明示的に Secure / HttpOnly / Path を付けて set('', maxAge: 0) で消す。
+  // /api/auth/force-signout 経由で Auth.js のネイティブ cookie 削除を呼び出す。
+  // (chunked session cookie や __Host-/__Secure- prefix を含む全 Auth.js cookie を確実に削除)
   if (
     isLoggedIn &&
     role !== 'SUPER_ADMIN' &&
     !sessionTenantCode &&
     !pathname.startsWith('/api/auth')
   ) {
-    // 既に / にいる場合は同 URL redirect を避けて next() で素通し。
-    // どちらにせよこのレスポンスで cookie が消えるので、次回以降は通常フロー。
-    const response =
-      pathname === '/'
-        ? NextResponse.next()
-        : NextResponse.redirect(new URL('/', request.url))
-    const baseOpts = {
-      path: '/',
-      maxAge: 0,
-      httpOnly: true,
-      sameSite: 'lax',
-    } as const
-    response.cookies.set('next-auth.session-token', '', baseOpts)
-    response.cookies.set('authjs.session-token', '', baseOpts)
-    response.cookies.set('__Secure-next-auth.session-token', '', { ...baseOpts, secure: true })
-    response.cookies.set('__Secure-authjs.session-token', '', { ...baseOpts, secure: true })
-    return response
+    return forceSignoutRedirect(request, '/')
   }
 
   // /super-admin* は SUPER_ADMIN 以外から見えないよう 404
@@ -141,9 +133,10 @@ export default auth((request) => {
     if (isLoggedIn && sessionTenantCode === tenantCode) {
       return NextResponse.redirect(new URL(`/${tenantCode}/dashboard`, request.url))
     }
-    // SUPER_ADMIN は /super-admin に
+    // SUPER_ADMIN がテナントログイン URL を直打ちした = アカウント切替の意図と解釈し、
+    // 自動的に super-admin セッションを破棄してから同じ URL に戻す。
     if (isLoggedIn && role === 'SUPER_ADMIN') {
-      return NextResponse.redirect(new URL('/super-admin', request.url))
+      return forceSignoutRedirect(request, `/${tenantCode}`)
     }
     return NextResponse.next()
   }
@@ -153,8 +146,10 @@ export default auth((request) => {
     return NextResponse.redirect(new URL(`/${tenantCode}`, request.url))
   }
 
+  // SUPER_ADMIN が /[tenantCode]/{authenticated} を直打ちしたらテナントログインに送る。
+  // (上の isLoginPage 分岐でさらに force-signout される)
   if (role === 'SUPER_ADMIN') {
-    return NextResponse.redirect(new URL('/super-admin', request.url))
+    return NextResponse.redirect(new URL(`/${tenantCode}`, request.url))
   }
 
   // session.tenantCode と URL の tenantCode が一致しない時は自分のテナントに redirect

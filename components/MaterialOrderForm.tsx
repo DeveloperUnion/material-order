@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo, useEffect, useRef, useCallback } from "react";
-import { useForm, Controller, useWatch } from "react-hook-form";
+import { useForm, Controller, useWatch, type Control } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import {
@@ -10,7 +10,7 @@ import {
 } from "@/types/material-order";
 import { formatWeight, formatTotalWeight } from "@/lib/utils/format";
 import AddMaterialForm from "./AddMaterialForm";
-import { Search, X, Plus, Minus, ArrowRight, Check, Pencil, AlertTriangle } from "lucide-react";
+import { Search, X, Plus, Minus, ArrowRight, Check, Pencil, AlertTriangle, ChevronRight } from "lucide-react";
 
 const orderFormSchema = z.object({
   ordererName: z.string().min(1, "注文者名を入力してください"),
@@ -135,6 +135,8 @@ export default function MaterialOrderForm({ onSubmit, editMode = false, editOrde
   const [restoredFromDraft, setRestoredFromDraft] = useState(!!initialDraft.current);
   const isInitializedRef = useRef(!!initialDraft.current);
   const saveEnabledRef = useRef(false);
+  // 同名資材グループの開閉状態（true=展開, false=折りたたみ, 未設定=自動判定）
+  const [groupExpandOverride, setGroupExpandOverride] = useState<Record<string, boolean>>({});
 
   const clearDraft = useCallback(() => {
     try {
@@ -252,7 +254,9 @@ export default function MaterialOrderForm({ onSubmit, editMode = false, editOrde
     if (editMode && editData && materials.length > 0 && !loading) {
       const materialQuantities: { [key: string]: number } = {};
       editData.items?.forEach((item) => {
-        const material = materials.find((m: Material) => m.name === item.name);
+        const material =
+          materials.find((m: Material) => m.id === item.id) ||
+          materials.find((m: Material) => m.name === item.name);
         if (material) {
           materialQuantities[material.id] = item.quantity;
         }
@@ -373,18 +377,29 @@ export default function MaterialOrderForm({ onSubmit, editMode = false, editOrde
              m.materialCode.toLowerCase().includes(query);
     });
 
+    return filtered;
+  }, [materials, selectedCategoryId, searchQuery, usesCategories]);
+
+  // 同名資材をグループ化（先頭出現順を保持）
+  const materialGroups = useMemo<{ key: string; items: Material[] }[]>(() => {
+    const map = new Map<string, Material[]>();
+    for (const m of currentMaterials) {
+      const list = map.get(m.name);
+      if (list) list.push(m);
+      else map.set(m.name, [m]);
+    }
+    let arr = Array.from(map, ([key, items]) => ({ key, items }));
     if (editMode) {
-      return filtered.sort((a, b) => {
-        const quantityA = selectedMaterials[a.id] || 0;
-        const quantityB = selectedMaterials[b.id] || 0;
-        if (quantityA > 0 && quantityB === 0) return -1;
-        if (quantityA === 0 && quantityB > 0) return 1;
+      arr = arr.sort((a, b) => {
+        const aSel = a.items.some(it => Number(selectedMaterials[it.id] || 0) > 0);
+        const bSel = b.items.some(it => Number(selectedMaterials[it.id] || 0) > 0);
+        if (aSel && !bSel) return -1;
+        if (!aSel && bSel) return 1;
         return 0;
       });
     }
-
-    return filtered;
-  }, [materials, selectedCategoryId, searchQuery, editMode, selectedMaterials, usesCategories]);
+    return arr;
+  }, [currentMaterials, editMode, selectedMaterials]);
 
   const categoryTotalCount = useMemo(() => {
     if (!usesCategories) {
@@ -452,6 +467,7 @@ export default function MaterialOrderForm({ onSubmit, editMode = false, editOrde
           items.push({
             id: material.id,
             name: material.name,
+            size: material.size ?? null,
             categoryName: material.categoryId
               ? categories.find(c => c.id === material.categoryId)?.name || ''
               : '',
@@ -775,97 +791,98 @@ export default function MaterialOrderForm({ onSubmit, editMode = false, editOrde
 
             {/* Material list */}
             <div className="bg-surface border border-border rounded-xl overflow-hidden">
-              {currentMaterials.length === 0 ? (
+              {materialGroups.length === 0 ? (
                 <div className="px-5 py-10 text-center text-sm text-subtle">
                   {searchQuery ? "該当する資材がありません" : "資材が登録されていません"}
                 </div>
               ) : (
-                currentMaterials.map((material, idx) => {
-                  const qty = Number(selectedMaterials[material.id] || 0);
-                  const unitWeight = Number(material.weightKg);
-                  const rowTotal = qty * unitWeight;
-                  const isLast = idx === currentMaterials.length - 1;
+                materialGroups.map((group, gIdx) => {
+                  const isLastGroup = gIdx === materialGroups.length - 1;
+
+                  // 単一サイズ → 従来どおりの行
+                  if (group.items.length === 1) {
+                    const material = group.items[0];
+                    return (
+                      <MaterialQtyRow
+                        key={material.id}
+                        material={material}
+                        primaryLabel={`${material.name}${material.size ? `（${material.size}）` : ''}`}
+                        control={control}
+                        qty={Number(selectedMaterials[material.id] || 0)}
+                        onChange={handleQuantityChange}
+                        bordered={!isLastGroup}
+                      />
+                    );
+                  }
+
+                  // 同名で複数サイズ → アコーディオン
+                  const groupTotalWeight = group.items.reduce(
+                    (s, it) => s + Number(selectedMaterials[it.id] || 0) * Number(it.weightKg),
+                    0,
+                  );
+                  const selectedSizeCount = group.items.filter(
+                    it => Number(selectedMaterials[it.id] || 0) > 0,
+                  ).length;
+                  const autoExpand = selectedSizeCount > 0 || searchQuery.trim() !== '';
+                  const open = group.key in groupExpandOverride
+                    ? groupExpandOverride[group.key]
+                    : autoExpand;
+
                   return (
                     <div
-                      key={material.id}
-                      className={`px-4 py-3 flex items-center gap-3 sm:gap-4 ${!isLast ? "border-b border-border" : ""}`}
+                      key={group.key}
+                      className={!isLastGroup ? "border-b border-border" : ""}
                     >
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm font-semibold text-foreground leading-tight line-clamp-2 break-words">
-                          {material.name}
-                        </div>
-                        <div className="mt-0.5 text-xs font-mono tabular-nums text-muted">
-                          {formatWeight(unitWeight)}
-                        </div>
-                      </div>
-
-                      <div className="flex items-center border border-border rounded-md overflow-hidden flex-shrink-0">
-                        <button
-                          type="button"
-                          onClick={() => handleQuantityChange(material.id, -1)}
-                          className="w-8 h-8 flex items-center justify-center text-muted hover:bg-surface-muted hover:text-foreground transition-colors"
-                          aria-label="減らす"
-                        >
-                          <Minus className="h-3.5 w-3.5" />
-                        </button>
-                        <Controller
-                          name={`materials.${material.id}`}
-                          control={control}
-                          defaultValue={0}
-                          render={({ field }) => (
-                            <input
-                              {...field}
-                              type="number"
-                              inputMode="numeric"
-                              min="0"
-                              step="1"
-                              value={field.value ?? 0}
-                              onChange={(e) => {
-                                const inputValue = e.target.value;
-                                if (inputValue === '') {
-                                  field.onChange('');
-                                  return;
-                                }
-                                const value = parseInt(inputValue);
-                                if (isNaN(value)) {
-                                  field.onChange(0);
-                                } else {
-                                  field.onChange(Math.max(0, value));
-                                }
-                              }}
-                              onFocus={(e) => {
-                                if (field.value === 0) {
-                                  field.onChange('');
-                                } else {
-                                  e.target.select();
-                                }
-                              }}
-                              onBlur={(e) => {
-                                if (e.target.value === '' || e.target.value === null) {
-                                  field.onChange(0);
-                                }
-                              }}
-                              className="w-11 h-8 text-center text-sm font-semibold font-mono tabular-nums border-x border-border bg-transparent text-foreground outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                            />
-                          )}
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setGroupExpandOverride(prev => ({ ...prev, [group.key]: !open }))
+                        }
+                        aria-expanded={open}
+                        className="w-full px-4 py-3 flex items-center gap-3 sm:gap-4 text-left hover:bg-surface-muted transition-colors"
+                      >
+                        <ChevronRight
+                          className={`h-4 w-4 text-muted flex-shrink-0 transition-transform ${open ? 'rotate-90' : ''}`}
                         />
-                        <button
-                          type="button"
-                          onClick={() => handleQuantityChange(material.id, 1)}
-                          className="w-8 h-8 flex items-center justify-center text-muted hover:bg-surface-muted hover:text-foreground transition-colors"
-                          aria-label="増やす"
-                        >
-                          <Plus className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-semibold text-foreground leading-tight line-clamp-2 break-words">
+                            {group.key}
+                          </div>
+                          <div className="mt-0.5 text-xs font-mono tabular-nums text-muted">
+                            {group.items.length}サイズ
+                            {selectedSizeCount > 0 ? ` ・ ${selectedSizeCount}件選択中` : ''}
+                          </div>
+                        </div>
+                        <div className="min-w-[70px] text-right font-mono text-sm tabular-nums font-semibold flex-shrink-0">
+                          {groupTotalWeight > 0 ? (
+                            <span className="text-foreground">{formatWeight(groupTotalWeight)}</span>
+                          ) : (
+                            <span className="text-subtle font-normal">—</span>
+                          )}
+                        </div>
+                      </button>
 
-                      <div className="min-w-[70px] text-right font-mono text-sm tabular-nums font-semibold flex-shrink-0">
-                        {qty > 0 ? (
-                          <span className="text-foreground">{formatWeight(rowTotal)}</span>
-                        ) : (
-                          <span className="text-subtle font-normal">—</span>
-                        )}
-                      </div>
+                      {open && (
+                        <div className="bg-surface-muted/50">
+                          {group.items.map((material, sIdx) => {
+                            const isLastSub = sIdx === group.items.length - 1;
+                            return (
+                              <MaterialQtyRow
+                                key={material.id}
+                                material={material}
+                                primaryLabel={material.size || material.materialCode}
+                                primaryWeight="medium"
+                                indent
+                                control={control}
+                                qty={Number(selectedMaterials[material.id] || 0)}
+                                onChange={handleQuantityChange}
+                                bordered={!isLastSub}
+                                borderSubtle
+                              />
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
                   );
                 })
@@ -895,7 +912,7 @@ export default function MaterialOrderForm({ onSubmit, editMode = false, editOrde
                     <div key={item.id} className="px-5 py-2.5 flex items-start gap-3 hover:bg-surface-muted transition-colors">
                       <div className="flex-1 min-w-0">
                         <div className="text-xs font-semibold text-foreground leading-snug truncate">
-                          {item.name}
+                          {item.name}{item.size ? `（${item.size}）` : ''}
                         </div>
                         <div className="mt-0.5 font-mono text-[11px] tabular-nums text-subtle">
                           {formatWeight(item.weightPerUnit)} × {item.quantity}
@@ -1143,6 +1160,119 @@ function Field({
       {error && (
         <p className="mt-1 text-xs text-red-600 font-medium">{error}</p>
       )}
+    </div>
+  );
+}
+
+function MaterialQtyRow({
+  material,
+  primaryLabel,
+  primaryWeight = "semibold",
+  indent = false,
+  control,
+  qty,
+  onChange,
+  bordered,
+  borderSubtle = false,
+}: {
+  material: Material;
+  primaryLabel: string;
+  primaryWeight?: "semibold" | "medium";
+  indent?: boolean;
+  control: Control<OrderFormData>;
+  qty: number;
+  onChange: (materialId: string, delta: number) => void;
+  bordered: boolean;
+  borderSubtle?: boolean;
+}) {
+  const unitWeight = Number(material.weightKg);
+  const rowTotal = qty * unitWeight;
+  const borderClass = bordered
+    ? borderSubtle
+      ? "border-b border-border/60"
+      : "border-b border-border"
+    : "";
+  const padClass = indent ? "pl-11 pr-4 py-2.5" : "px-4 py-3";
+  const labelWeightClass = primaryWeight === "medium" ? "font-medium" : "font-semibold";
+
+  return (
+    <div className={`${padClass} flex items-center gap-3 sm:gap-4 ${borderClass}`}>
+      <div className="flex-1 min-w-0">
+        <div className={`text-sm ${labelWeightClass} text-foreground leading-tight line-clamp-2 break-words`}>
+          {primaryLabel}
+        </div>
+        <div className="mt-0.5 text-xs font-mono tabular-nums text-muted">
+          {formatWeight(unitWeight)}
+        </div>
+      </div>
+
+      <div className="flex items-center border border-border rounded-md overflow-hidden flex-shrink-0 bg-surface">
+        <button
+          type="button"
+          onClick={() => onChange(material.id, -1)}
+          className="w-8 h-8 flex items-center justify-center text-muted hover:bg-surface-muted hover:text-foreground transition-colors"
+          aria-label="減らす"
+        >
+          <Minus className="h-3.5 w-3.5" />
+        </button>
+        <Controller
+          name={`materials.${material.id}`}
+          control={control}
+          defaultValue={0}
+          render={({ field }) => (
+            <input
+              {...field}
+              type="number"
+              inputMode="numeric"
+              min="0"
+              step="1"
+              value={field.value ?? 0}
+              onChange={(e) => {
+                const inputValue = e.target.value;
+                if (inputValue === '') {
+                  field.onChange('');
+                  return;
+                }
+                const value = parseInt(inputValue);
+                if (isNaN(value)) {
+                  field.onChange(0);
+                } else {
+                  field.onChange(Math.max(0, value));
+                }
+              }}
+              onFocus={(e) => {
+                if (field.value === 0) {
+                  field.onChange('');
+                } else {
+                  e.target.select();
+                }
+              }}
+              onBlur={(e) => {
+                if (e.target.value === '' || e.target.value === null) {
+                  field.onChange(0);
+                }
+              }}
+              className="w-11 h-8 text-center text-sm font-semibold font-mono tabular-nums border-x border-border bg-transparent text-foreground outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+            />
+          )}
+        />
+        <button
+          type="button"
+          onClick={() => onChange(material.id, 1)}
+          className="w-8 h-8 flex items-center justify-center text-muted hover:bg-surface-muted hover:text-foreground transition-colors"
+          aria-label="増やす"
+        >
+          <Plus className="h-3.5 w-3.5" />
+        </button>
+      </div>
+
+      <div className="min-w-[70px] text-right font-mono text-sm tabular-nums font-semibold flex-shrink-0">
+        {qty > 0 ? (
+          <span className="text-foreground">{formatWeight(rowTotal)}</span>
+        ) : (
+          <span className="text-subtle font-normal">—</span>
+        )}
+      </div>
     </div>
   );
 }
