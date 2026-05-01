@@ -24,6 +24,8 @@ export const authConfig = {
         token.tenantCode = user.tenantCode
         token.role = user.role
         token.tenantName = user.tenantName
+        // ISO 文字列で保持（Edge / serialization 越しでも壊れない）。null = 本契約。
+        token.tenantTrialEndsAt = user.tenantTrialEndsAt ?? null
       }
       return token
     },
@@ -34,6 +36,7 @@ export const authConfig = {
         session.user.tenantCode = token.tenantCode as string
         session.user.role = token.role as UserRole
         session.user.tenantName = token.tenantName as string
+        session.user.tenantTrialEndsAt = (token.tenantTrialEndsAt as string | null) ?? null
       }
       return session
     },

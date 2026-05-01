@@ -87,6 +87,7 @@ export default async function TenantDetailPage({
         tenantName={tenant.name}
         initialMaxUsers={tenant.maxUsers}
         initialIsActive={tenant.isActive}
+        initialTrialEndsAt={tenant.trialEndsAt ? tenant.trialEndsAt.toISOString() : null}
         userCount={tenant.users.length}
       />
 

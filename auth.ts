@@ -26,6 +26,8 @@ declare module 'next-auth' {
     tenantCode: string
     role: UserRole
     tenantName: string
+    // 無料トライアル期限。null = 本契約。ISO 文字列で持たせて Edge をまたいでも壊さない。
+    tenantTrialEndsAt: string | null
   }
 
   interface Session {
@@ -37,6 +39,7 @@ declare module 'next-auth' {
       tenantCode: string
       role: UserRole
       tenantName: string
+      tenantTrialEndsAt: string | null
     }
   }
 }
@@ -89,6 +92,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           const isValidPassword = await bcrypt.compare(password, user.password)
           if (!isValidPassword) return null
 
+          // 無料トライアル期限切れ → ログイン拒否。あわせて DB 上も isActive=false に落とし、
+          // 以降は通常の「無効テナント」と同じ挙動に統一する。
+          if (user.tenant.trialEndsAt && user.tenant.trialEndsAt.getTime() <= Date.now()) {
+            await prisma.tenant.update({
+              where: { id: user.tenant.id },
+              data: { isActive: false },
+            })
+            return null
+          }
+
           await prisma.user.update({
             where: { id: user.id },
             data: { lastLoginAt: new Date() },
@@ -102,6 +115,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             tenantCode: user.tenant.code,
             role: user.role,
             tenantName: user.tenant.name,
+            tenantTrialEndsAt: user.tenant.trialEndsAt ? user.tenant.trialEndsAt.toISOString() : null,
           }
         } catch (error) {
           console.error('Authentication error:', error)

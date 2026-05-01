@@ -44,14 +44,22 @@ export async function PATCH(
     return NextResponse.json({ error: 'テナントが見つかりません' }, { status: 404 })
   }
 
-  let body: { name?: string; maxUsers?: number; isActive?: boolean }
+  let body: {
+    name?: string
+    maxUsers?: number
+    isActive?: boolean
+    // 'convert-to-paid' = 本契約に切り替え（trialEndsAt を null に）
+    // 'extend' = トライアル期限を extendDays 日延長（既に切れていれば now + extendDays）
+    trialAction?: 'convert-to-paid' | 'extend'
+    extendDays?: number
+  }
   try {
     body = await request.json()
   } catch {
     return NextResponse.json({ error: '不正なリクエストです' }, { status: 400 })
   }
 
-  const data: { name?: string; maxUsers?: number; isActive?: boolean } = {}
+  const data: { name?: string; maxUsers?: number; isActive?: boolean; trialEndsAt?: Date | null } = {}
   if (typeof body.name === 'string' && body.name.trim().length > 0) {
     data.name = body.name.trim()
   }
@@ -67,6 +75,24 @@ export async function PATCH(
   }
   if (typeof body.isActive === 'boolean') {
     data.isActive = body.isActive
+  }
+
+  if (body.trialAction === 'convert-to-paid') {
+    // 本契約決定。trial 解除＋（auth.ts が落としていた場合に備えて）isActive 復活も同時に行う。
+    data.trialEndsAt = null
+    if (data.isActive === undefined) {
+      data.isActive = true
+    }
+  } else if (body.trialAction === 'extend') {
+    const days = Math.max(1, Math.min(365, Math.floor(body.extendDays ?? 30)))
+    const base = tenant.trialEndsAt && tenant.trialEndsAt.getTime() > Date.now()
+      ? tenant.trialEndsAt
+      : new Date()
+    data.trialEndsAt = new Date(base.getTime() + days * 24 * 60 * 60 * 1000)
+    // 期限切れで isActive=false に落ちていた場合は復活させる。
+    if (data.isActive === undefined) {
+      data.isActive = true
+    }
   }
 
   if (Object.keys(data).length === 0) {

@@ -14,6 +14,8 @@ export default function NewTenantForm() {
   const [adminName, setAdminName] = useState('')
   const [maxUsers, setMaxUsers] = useState(10)
   const [authMode, setAuthMode] = useState<AuthMode>('EMAIL')
+  const [trial, setTrial] = useState(true)
+  const [trialDays, setTrialDays] = useState(30)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -32,6 +34,8 @@ export default function NewTenantForm() {
           adminName: adminName.trim() || '管理者',
           maxUsers,
           authMode,
+          trial,
+          trialDays: trial ? trialDays : undefined,
         }),
       })
       if (!res.ok) {
@@ -137,6 +141,39 @@ export default function NewTenantForm() {
           onChange={(e) => setMaxUsers(Math.max(1, parseInt(e.target.value) || 1))}
           className="w-full px-3 py-2.5 text-sm text-foreground border border-border rounded-md bg-surface font-mono tabular-nums focus:border-accent focus:ring-4 focus:ring-accent/15 outline-none transition-all"
         />
+      </Field>
+
+      <Field label="無料トライアル" hint="期限を過ぎるとログイン不可になります。導入決定時に「本契約に切り替え」で解除できます">
+        <div className="space-y-3">
+          <label className="flex items-start gap-2.5 cursor-pointer p-3 border border-border rounded-md hover:bg-surface-muted transition-colors">
+            <input
+              type="checkbox"
+              checked={trial}
+              onChange={(e) => setTrial(e.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border-border text-accent focus:ring-2 focus:ring-accent/30"
+            />
+            <span className="flex-1">
+              <span className="block text-sm font-medium text-foreground">無料トライアルで開始</span>
+              <span className="block text-xs text-muted mt-0.5">
+                チェックを外すと最初から本契約として作成
+              </span>
+            </span>
+          </label>
+          {trial && (
+            <div className="pl-7">
+              <label className="block text-xs font-medium text-muted mb-1.5">トライアル期間（日）</label>
+              <input
+                type="number"
+                inputMode="numeric"
+                min={1}
+                max={365}
+                value={trialDays}
+                onChange={(e) => setTrialDays(Math.max(1, Math.min(365, parseInt(e.target.value) || 30)))}
+                className="w-32 px-3 py-2.5 text-sm text-foreground border border-border rounded-md bg-surface font-mono tabular-nums focus:border-accent focus:ring-4 focus:ring-accent/15 outline-none transition-all"
+              />
+            </div>
+          )}
+        </div>
       </Field>
 
       {error && (
