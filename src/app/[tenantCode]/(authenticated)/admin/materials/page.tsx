@@ -166,7 +166,7 @@ export default function MaterialsPage() {
     );
     if (groupMembers.length < 2) return;
 
-    const currentDir = sortDirByGroup[groupKey] ?? 'asc';
+    const currentDir = sortDirByGroup[groupKey] ?? 'desc';
     const newDir: 'asc' | 'desc' = currentDir === 'asc' ? 'desc' : 'asc';
 
     const slots = groupMembers.map((m) => m.displayOrder).sort((a, b) => a - b);
@@ -720,7 +720,7 @@ export default function MaterialsPage() {
                           key={group.key}
                           group={group}
                           open={openByGroup[group.key] ?? false}
-                          sortDir={sortDirByGroup[group.key] ?? 'asc'}
+                          sortDir={sortDirByGroup[group.key] ?? 'desc'}
                           onToggleOpen={() => toggleOpen(group.key)}
                           onToggleSort={() => toggleSort(group.key)}
                           onEdit={handleEdit}
@@ -904,33 +904,37 @@ function SortableMaterialGroup({
             {group.items.length} 件
           </span>
         </button>
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            onToggleSort();
-          }}
-          className="p-1.5 rounded-md text-muted hover:text-foreground hover:bg-surface-muted transition-colors flex-shrink-0"
-          title={sortDir === 'asc' ? '昇順 (クリックで降順)' : '降順 (クリックで昇順)'}
-          aria-label={sortDir === 'asc' ? 'サイズ昇順' : 'サイズ降順'}
-        >
-          {sortDir === 'asc' ? (
-            <ArrowDownAZ className="h-3.5 w-3.5" />
-          ) : (
-            <ArrowUpAZ className="h-3.5 w-3.5" />
-          )}
-        </button>
       </div>
       {open && (
-        <div className="bg-surface-muted/40 border-t border-border divide-y divide-border">
-          {sortedItems.map((material) => (
-            <MaterialSizeRow
-              key={material.id}
-              material={material}
-              onEdit={() => onEdit(material)}
-              onDelete={() => onDelete(material)}
-            />
-          ))}
+        <div className="bg-surface-muted/40 border-t border-border">
+          <div className="px-3 py-2 flex justify-end border-b border-border">
+            <button
+              type="button"
+              onClick={onToggleSort}
+              className="px-2 py-1 rounded-md text-foreground hover:bg-surface-muted transition-colors inline-flex items-center gap-1 border border-border bg-surface"
+              title={sortDir === 'asc' ? 'サイズ昇順 (クリックで降順)' : 'サイズ降順 (クリックで昇順)'}
+              aria-label={sortDir === 'asc' ? 'サイズ昇順' : 'サイズ降順'}
+            >
+              {sortDir === 'asc' ? (
+                <ArrowDownAZ className="h-3.5 w-3.5" />
+              ) : (
+                <ArrowUpAZ className="h-3.5 w-3.5" />
+              )}
+              <span className="text-xs font-medium">
+                {sortDir === 'asc' ? 'サイズ昇順' : 'サイズ降順'}
+              </span>
+            </button>
+          </div>
+          <div className="divide-y divide-border">
+            {sortedItems.map((material) => (
+              <MaterialSizeRow
+                key={material.id}
+                material={material}
+                onEdit={() => onEdit(material)}
+                onDelete={() => onDelete(material)}
+              />
+            ))}
+          </div>
         </div>
       )}
     </div>
