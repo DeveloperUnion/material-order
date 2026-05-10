@@ -19,9 +19,25 @@ import {
   Pencil,
   Trash2,
   X,
-  ArrowUp,
-  ArrowDown,
+  GripVertical,
 } from 'lucide-react';
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface Category {
   id: string;
@@ -170,43 +186,51 @@ export default function CategoriesPage() {
     }
   };
 
-  const move = async (id: string, direction: 'up' | 'down') => {
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
     const sorted = [...categories].sort((a, b) => a.displayOrder - b.displayOrder);
-    const idx = sorted.findIndex((c) => c.id === id);
-    if (idx === -1) return;
-    const targetIdx = direction === 'up' ? idx - 1 : idx + 1;
-    if (targetIdx < 0 || targetIdx >= sorted.length) return;
+    const fromIdx = sorted.findIndex((c) => c.id === String(active.id));
+    const toIdx = sorted.findIndex((c) => c.id === String(over.id));
+    if (fromIdx === -1 || toIdx === -1) return;
 
-    const a = sorted[idx];
-    const b = sorted[targetIdx];
+    const reordered = arrayMove(sorted, fromIdx, toIdx);
+    const affected = new Map<string, number>();
+    reordered.forEach((c, idx) => {
+      if (c.displayOrder !== idx) affected.set(c.id, idx);
+    });
+    if (affected.size === 0) return;
 
+    const snapshot = categories;
+    const next = categories.map((c) => {
+      const order = affected.get(c.id);
+      return order !== undefined ? { ...c, displayOrder: order } : c;
+    });
+    setCategories(next);
     setError(null);
+
     try {
-      const [resA, resB] = await Promise.all([
-        fetch(`/api/categories/${a.id}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ displayOrder: b.displayOrder }),
-        }),
-        fetch(`/api/categories/${b.id}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ displayOrder: a.displayOrder }),
-        }),
-      ]);
-      if (!resA.ok || !resB.ok) {
-        throw new Error('並び替えに失敗しました');
+      const updates = Array.from(affected.entries()).map(([id, displayOrder]) => ({
+        id,
+        displayOrder,
+      }));
+      const res = await fetch('/api/categories/reorder', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ updates }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || '並び替えに失敗しました');
       }
-      const updatedA = await resA.json();
-      const updatedB = await resB.json();
-      setCategories(
-        categories.map((c) => {
-          if (c.id === updatedA.id) return updatedA;
-          if (c.id === updatedB.id) return updatedB;
-          return c;
-        }),
-      );
     } catch (err) {
+      setCategories(snapshot);
       setError(err instanceof Error ? err.message : 'エラーが発生しました');
     }
   };
@@ -337,64 +361,28 @@ export default function CategoriesPage() {
           </div>
         ) : (
           <div className="bg-surface rounded-xl border border-border overflow-hidden">
-            <div className="divide-y divide-border">
-              {sortedCategories.map((category, idx) => {
-                const count = countMaterials(category.id);
-                return (
-                  <div
-                    key={category.id}
-                    className="px-5 py-3 flex items-center justify-between gap-3 hover:bg-surface-muted transition-colors"
-                  >
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-sm font-medium text-foreground truncate">
-                          {category.name}
-                        </span>
-                        <span className="text-[10px] font-mono text-muted bg-surface-muted border border-border px-1.5 py-0.5 rounded">
-                          {count} 件
-                        </span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-0.5 flex-shrink-0">
-                      <button
-                        type="button"
-                        onClick={() => move(category.id, 'up')}
-                        disabled={idx === 0}
-                        className="p-1.5 rounded-md text-muted hover:text-foreground hover:bg-surface-muted transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                        title="上へ"
-                      >
-                        <ArrowUp className="h-3.5 w-3.5" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => move(category.id, 'down')}
-                        disabled={idx === sortedCategories.length - 1}
-                        className="p-1.5 rounded-md text-muted hover:text-foreground hover:bg-surface-muted transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                        title="下へ"
-                      >
-                        <ArrowDown className="h-3.5 w-3.5" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleEdit(category)}
-                        className="p-1.5 rounded-md text-muted hover:text-foreground hover:bg-surface-muted transition-colors"
-                        title="編集"
-                      >
-                        <Pencil className="h-3.5 w-3.5" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteClick(category)}
-                        className="p-1.5 rounded-md text-red-500 hover:text-red-600 hover:bg-red-50 transition-colors"
-                        title="削除"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <SortableContext
+                items={sortedCategories.map((c) => c.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                <div className="divide-y divide-border">
+                  {sortedCategories.map((category) => (
+                    <SortableCategoryRow
+                      key={category.id}
+                      category={category}
+                      count={countMaterials(category.id)}
+                      onEdit={() => handleEdit(category)}
+                      onDelete={() => handleDeleteClick(category)}
+                    />
+                  ))}
+                </div>
+              </SortableContext>
+            </DndContext>
           </div>
         )}
       </div>
@@ -439,6 +427,75 @@ export default function CategoriesPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+function SortableCategoryRow({
+  category,
+  count,
+  onEdit,
+  onDelete,
+}: {
+  category: Category;
+  count: number;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: category.id,
+  });
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.4 : 1,
+    zIndex: isDragging ? 10 : 'auto',
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="bg-surface px-2 py-3 sm:pl-3 sm:pr-5 flex items-center gap-2 sm:gap-3 hover:bg-surface-muted transition-colors touch-none"
+    >
+      <button
+        type="button"
+        {...attributes}
+        {...listeners}
+        className="p-1.5 rounded-md text-subtle hover:text-foreground hover:bg-surface-muted cursor-grab active:cursor-grabbing touch-none"
+        aria-label="ドラッグして並び替え"
+        title="ドラッグして並び替え"
+      >
+        <GripVertical className="h-4 w-4" />
+      </button>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-sm font-medium text-foreground truncate">
+            {category.name}
+          </span>
+          <span className="text-[10px] font-mono text-muted bg-surface-muted border border-border px-1.5 py-0.5 rounded">
+            {count} 件
+          </span>
+        </div>
+      </div>
+      <div className="flex items-center gap-0.5 flex-shrink-0">
+        <button
+          type="button"
+          onClick={onEdit}
+          className="p-1.5 rounded-md text-muted hover:text-foreground hover:bg-surface-muted transition-colors"
+          title="編集"
+        >
+          <Pencil className="h-3.5 w-3.5" />
+        </button>
+        <button
+          type="button"
+          onClick={onDelete}
+          className="p-1.5 rounded-md text-red-500 hover:text-red-600 hover:bg-red-50 transition-colors"
+          title="削除"
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </button>
+      </div>
     </div>
   );
 }
