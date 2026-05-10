@@ -6,6 +6,7 @@ import { generateMaterialCode } from '@/lib/material/generateMaterialCode';
 
 const MATERIAL_ORDER_BY: Prisma.MaterialOrderByWithRelationInput[] = [
   { category: { displayOrder: 'asc' } },
+  { displayOrder: 'asc' },
   { materialCode: 'asc' },
 ];
 
@@ -108,6 +109,14 @@ export async function POST(request: NextRequest) {
         ? rawMaterialCode.trim()
         : null;
 
+    // 新規資材は末尾に並ぶよう、テナント単位の最大 displayOrder + 1 を採番する。
+    const lastByOrder = await prisma.material.findFirst({
+      where: { tenantId: currentUser.tenantId },
+      orderBy: { displayOrder: 'desc' },
+      select: { displayOrder: true },
+    });
+    const nextDisplayOrder = (lastByOrder?.displayOrder ?? -1) + 1;
+
     // ユーザー指定がなければテナント単位の連番 (M-001) で採番。
     // unique 制約衝突は並行作成時のみ発生しうるため、その場合は採番をやり直す。
     const MAX_RETRIES = 3;
@@ -124,6 +133,7 @@ export async function POST(request: NextRequest) {
             categoryId,
             size: size || null,
             weightKg: parseFloat(weightKg),
+            displayOrder: nextDisplayOrder,
             isActive: true,
             isTemporary: isTemporary || false,
             createdForOrderId: createdForOrderId || null,

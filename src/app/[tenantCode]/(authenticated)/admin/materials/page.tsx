@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useTenantPath } from '@/lib/tenant/links';
@@ -11,7 +11,36 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { ArrowLeft, Plus, Check, Package, Pencil, Trash2, X } from 'lucide-react';
+import {
+  ArrowLeft,
+  Plus,
+  Check,
+  Package,
+  Pencil,
+  Trash2,
+  X,
+  GripVertical,
+  ChevronRight,
+  ArrowDownAZ,
+  ArrowUpAZ,
+} from 'lucide-react';
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface Category {
   id: string;
@@ -25,6 +54,7 @@ interface Material {
   name: string;
   size: string | null;
   weightKg: number;
+  displayOrder: number;
   isActive: boolean;
   isTemporary: boolean;
   category: Category | null;
@@ -32,6 +62,60 @@ interface Material {
 }
 
 const UNCATEGORIZED_LABEL = '未分類';
+const UNCATEGORIZED_KEY = '__uncategorized__';
+const GROUP_KEY_SEP = '::';
+
+const naturalCollator = new Intl.Collator(undefined, {
+  numeric: true,
+  sensitivity: 'base',
+});
+
+const sortMaterials = (list: Material[]): Material[] =>
+  [...list].sort((x, y) => {
+    const cx = x.category?.displayOrder ?? Number.MAX_SAFE_INTEGER;
+    const cy = y.category?.displayOrder ?? Number.MAX_SAFE_INTEGER;
+    if (cx !== cy) return cx - cy;
+    if (x.displayOrder !== y.displayOrder) return x.displayOrder - y.displayOrder;
+    return x.materialCode.localeCompare(y.materialCode);
+  });
+
+const makeGroupKey = (categoryId: string | null, name: string): string =>
+  `${categoryId ?? UNCATEGORIZED_KEY}${GROUP_KEY_SEP}${name}`;
+
+const parseGroupKey = (
+  key: string,
+): { categoryId: string | null; name: string } | null => {
+  const idx = key.indexOf(GROUP_KEY_SEP);
+  if (idx < 0) return null;
+  const catPart = key.slice(0, idx);
+  const namePart = key.slice(idx + GROUP_KEY_SEP.length);
+  return {
+    categoryId: catPart === UNCATEGORIZED_KEY ? null : catPart,
+    name: namePart,
+  };
+};
+
+interface MaterialGroup {
+  key: string;
+  name: string;
+  categoryId: string | null;
+  items: Material[];
+}
+
+// 同名資材を 1 グループに集約。グループの並び順は先頭出現順（=displayOrder 順で来た配列の出現順）。
+const buildGroups = (items: Material[]): MaterialGroup[] => {
+  const map = new Map<string, MaterialGroup>();
+  for (const m of items) {
+    const key = makeGroupKey(m.categoryId, m.name);
+    let g = map.get(key);
+    if (!g) {
+      g = { key, name: m.name, categoryId: m.categoryId, items: [] };
+      map.set(key, g);
+    }
+    g.items.push(m);
+  }
+  return Array.from(map.values());
+};
 
 export default function MaterialsPage() {
   const router = useRouter();
@@ -62,6 +146,58 @@ export default function MaterialsPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedMaterial, setSelectedMaterial] = useState<Material | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // グループごとの開閉状態とサイズ並び順 (asc/desc)。永続化はしない
+  const [openByGroup, setOpenByGroup] = useState<Record<string, boolean>>({});
+  const [sortDirByGroup, setSortDirByGroup] = useState<Record<string, 'asc' | 'desc'>>({});
+
+  const toggleOpen = useCallback((groupKey: string) => {
+    setOpenByGroup((prev) => ({ ...prev, [groupKey]: !prev[groupKey] }));
+  }, []);
+
+  // トグルクリック時にグループ内 size 並びを反転させ、displayOrder を再採番して保存する。
+  // member の displayOrder スロット（既存の値の集合）を保持したまま、ナチュラルソート結果を割り当て直す。
+  // 他グループ・他カテゴリの並びには影響しない。
+  const toggleSort = (groupKey: string) => {
+    const parsed = parseGroupKey(groupKey);
+    if (!parsed) return;
+    const groupMembers = materials.filter(
+      (m) => m.categoryId === parsed.categoryId && m.name === parsed.name,
+    );
+    if (groupMembers.length < 2) return;
+
+    const currentDir = sortDirByGroup[groupKey] ?? 'asc';
+    const newDir: 'asc' | 'desc' = currentDir === 'asc' ? 'desc' : 'asc';
+
+    const slots = groupMembers.map((m) => m.displayOrder).sort((a, b) => a - b);
+    const sortedMembers = [...groupMembers].sort((a, b) => {
+      const ka = a.size ?? a.materialCode;
+      const kb = b.size ?? b.materialCode;
+      const cmp = naturalCollator.compare(ka, kb);
+      return newDir === 'asc' ? cmp : -cmp;
+    });
+
+    const affected = new Map<string, { displayOrder: number; categoryId: string | null }>();
+    sortedMembers.forEach((m, i) => {
+      const slot = slots[i];
+      if (m.displayOrder !== slot) {
+        affected.set(m.id, { displayOrder: slot, categoryId: m.categoryId });
+      }
+    });
+
+    const dirSnapshot = sortDirByGroup;
+    setSortDirByGroup((prev) => ({ ...prev, [groupKey]: newDir }));
+
+    if (affected.size === 0) return; // 既に目的の並びになっている場合は state 反転のみ
+
+    const next = materials.map((m) => {
+      const upd = affected.get(m.id);
+      return upd ? { ...m, displayOrder: upd.displayOrder } : m;
+    });
+    void persistReorder(sortMaterials(next), affected, () => {
+      setSortDirByGroup(dirSnapshot);
+    });
+  };
 
   const fetchData = useCallback(async () => {
     try {
@@ -165,6 +301,141 @@ export default function MaterialsPage() {
   const handleDeleteClick = (material: Material) => {
     setSelectedMaterial(material);
     setDeleteDialogOpen(true);
+  };
+
+  // DnD: 並び替え
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  const persistReorder = async (
+    next: Material[],
+    affected: Map<string, { displayOrder: number; categoryId: string | null }>,
+    onRollback?: () => void,
+  ) => {
+    const snapshot = materials;
+    setMaterials(next);
+    setError(null);
+
+    try {
+      const updates = Array.from(affected.entries()).map(([id, v]) => ({
+        id,
+        displayOrder: v.displayOrder,
+        categoryId: v.categoryId,
+      }));
+      const res = await fetch('/api/materials/reorder', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ updates }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || '並び替えに失敗しました');
+      }
+    } catch (err) {
+      setMaterials(snapshot);
+      onRollback?.();
+      setError(err instanceof Error ? err.message : 'エラーが発生しました');
+    }
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const activeKey = String(active.id);
+    const overKey = String(over.id);
+    const activeParsed = parseGroupKey(activeKey);
+    const overParsed = parseGroupKey(overKey);
+    if (!activeParsed || !overParsed) return;
+
+    const sourceCatId = activeParsed.categoryId;
+    const targetCatId = overParsed.categoryId;
+
+    const sourceCatMaterials = sortMaterials(
+      materials.filter((m) => m.categoryId === sourceCatId),
+    );
+    const sourceGroups = buildGroups(sourceCatMaterials);
+    const movedGroup = sourceGroups.find((g) => g.key === activeKey);
+    if (!movedGroup) return;
+
+    const affected = new Map<string, { displayOrder: number; categoryId: string | null }>();
+
+    if (sourceCatId === targetCatId) {
+      // 同一カテゴリ内: グループ単位で arrayMove → flat 展開して 0..N-1 で再採番
+      const fromIdx = sourceGroups.findIndex((g) => g.key === activeKey);
+      const toIdx = sourceGroups.findIndex((g) => g.key === overKey);
+      if (fromIdx === -1 || toIdx === -1) return;
+      const reordered = arrayMove(sourceGroups, fromIdx, toIdx);
+      const flat = reordered.flatMap((g) => g.items);
+      flat.forEach((m, idx) => {
+        if (m.displayOrder !== idx) {
+          affected.set(m.id, { displayOrder: idx, categoryId: m.categoryId });
+        }
+      });
+      if (affected.size === 0) return;
+
+      const next = materials.map((m) => {
+        const upd = affected.get(m.id);
+        return upd ? { ...m, displayOrder: upd.displayOrder } : m;
+      });
+      void persistReorder(sortMaterials(next), affected);
+      return;
+    }
+
+    // 別カテゴリへ: 移動グループの全 size を新カテゴリへ。元/先の両方を 0..N-1 で再採番
+    const targetCatMaterials = sortMaterials(
+      materials.filter((m) => m.categoryId === targetCatId),
+    );
+    const targetGroups = buildGroups(targetCatMaterials);
+    const insertIdx = targetGroups.findIndex((g) => g.key === overKey);
+    if (insertIdx === -1) return;
+
+    const newTargetCategory =
+      targetCatId === null
+        ? null
+        : categories.find((c) => c.id === targetCatId) ?? null;
+    const movedItems: Material[] = movedGroup.items.map((m) => ({
+      ...m,
+      categoryId: targetCatId,
+      category: newTargetCategory,
+    }));
+    const movedItemIds = new Set(movedItems.map((m) => m.id));
+
+    const remainingSourceGroups = sourceGroups.filter((g) => g.key !== activeKey);
+    const sourceFlat = remainingSourceGroups.flatMap((g) => g.items);
+    sourceFlat.forEach((m, idx) => {
+      if (m.displayOrder !== idx) {
+        affected.set(m.id, { displayOrder: idx, categoryId: m.categoryId });
+      }
+    });
+
+    const newTargetFlat = [
+      ...targetGroups.slice(0, insertIdx).flatMap((g) => g.items),
+      ...movedItems,
+      ...targetGroups.slice(insertIdx).flatMap((g) => g.items),
+    ];
+    newTargetFlat.forEach((m, idx) => {
+      const wasMoved = movedItemIds.has(m.id);
+      if (wasMoved || m.displayOrder !== idx) {
+        affected.set(m.id, { displayOrder: idx, categoryId: m.categoryId });
+      }
+    });
+
+    if (affected.size === 0) return;
+
+    const movedById = new Map(movedItems.map((m) => [m.id, m]));
+    const next = materials.map((m) => {
+      const moved = movedById.get(m.id);
+      if (moved) {
+        const upd = affected.get(m.id);
+        return upd ? { ...moved, displayOrder: upd.displayOrder } : moved;
+      }
+      const upd = affected.get(m.id);
+      return upd ? { ...m, displayOrder: upd.displayOrder } : m;
+    });
+    void persistReorder(sortMaterials(next), affected);
   };
 
   const confirmDelete = async () => {
@@ -423,66 +694,45 @@ export default function MaterialsPage() {
             </p>
           </div>
         ) : (
-          Object.entries(groupedMaterials).map(([categoryName, items]) => (
-            <div
-              key={categoryName}
-              className="bg-surface rounded-xl border border-border overflow-hidden mb-3"
-            >
-              <div className="px-5 py-3 bg-surface-muted border-b border-border flex items-baseline justify-between">
-                <p className="font-mono text-[11px] uppercase tracking-wider font-semibold text-muted">
-                  {categoryName}
-                </p>
-                <span className="font-mono text-[10px] tabular-nums text-subtle">
-                  {items.length} 件
-                </span>
-              </div>
-              <div className="divide-y divide-border">
-                {items.map((material) => (
-                  <div
-                    key={material.id}
-                    className="px-5 py-3 flex items-center justify-between gap-3 hover:bg-surface-muted transition-colors"
-                  >
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-[10px] font-mono text-accent bg-accent-soft border border-accent/20 px-1.5 py-0.5 rounded">
-                          {material.materialCode}
-                        </span>
-                        <span className="text-sm font-medium text-foreground truncate">
-                          {material.name}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-3 mt-1">
-                        {material.size && (
-                          <span className="text-xs text-muted">{material.size}</span>
-                        )}
-                        <span className="text-xs text-muted font-mono tabular-nums">
-                          {material.weightKg}kg
-                        </span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-0.5 flex-shrink-0">
-                      <button
-                        type="button"
-                        onClick={() => handleEdit(material)}
-                        className="p-1.5 rounded-md text-muted hover:text-foreground hover:bg-surface-muted transition-colors"
-                        title="編集"
-                      >
-                        <Pencil className="h-3.5 w-3.5" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteClick(material)}
-                        className="p-1.5 rounded-md text-red-500 hover:text-red-600 hover:bg-red-50 transition-colors"
-                        title="削除"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            {Object.entries(groupedMaterials).map(([categoryName, items]) => {
+              const groups = buildGroups(items);
+              return (
+                <div
+                  key={categoryName}
+                  className="bg-surface rounded-xl border border-border overflow-hidden mb-3"
+                >
+                  <div className="px-5 py-3 bg-surface-muted border-b border-border flex items-baseline justify-between">
+                    <p className="font-mono text-[11px] uppercase tracking-wider font-semibold text-muted">
+                      {categoryName}
+                    </p>
+                    <span className="font-mono text-[10px] tabular-nums text-subtle">
+                      {items.length} 件
+                    </span>
                   </div>
-                ))}
-              </div>
-            </div>
-          ))
+                  <SortableContext
+                    items={groups.map((g) => g.key)}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    <div className="divide-y divide-border">
+                      {groups.map((group) => (
+                        <SortableMaterialGroup
+                          key={group.key}
+                          group={group}
+                          open={openByGroup[group.key] ?? false}
+                          sortDir={sortDirByGroup[group.key] ?? 'asc'}
+                          onToggleOpen={() => toggleOpen(group.key)}
+                          onToggleSort={() => toggleSort(group.key)}
+                          onEdit={handleEdit}
+                          onDelete={handleDeleteClick}
+                        />
+                      ))}
+                    </div>
+                  </SortableContext>
+                </div>
+              );
+            })}
+          </DndContext>
         )}
       </div>
 
@@ -522,6 +772,217 @@ export default function MaterialsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+function SortableMaterialGroup({
+  group,
+  open,
+  sortDir,
+  onToggleOpen,
+  onToggleSort,
+  onEdit,
+  onDelete,
+}: {
+  group: MaterialGroup;
+  open: boolean;
+  sortDir: 'asc' | 'desc';
+  onToggleOpen: () => void;
+  onToggleSort: () => void;
+  onEdit: (material: Material) => void;
+  onDelete: (material: Material) => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: group.key,
+  });
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.4 : 1,
+    zIndex: isDragging ? 10 : 'auto',
+  };
+
+  const sortedItems = useMemo(() => {
+    const arr = [...group.items];
+    arr.sort((a, b) => {
+      const ka = a.size ?? a.materialCode;
+      const kb = b.size ?? b.materialCode;
+      const cmp = naturalCollator.compare(ka, kb);
+      return sortDir === 'asc' ? cmp : -cmp;
+    });
+    return arr;
+  }, [group.items, sortDir]);
+
+  // 1 件のみのグループはアコーディオンにせず行をそのまま出す
+  if (group.items.length === 1) {
+    const only = group.items[0];
+    return (
+      <div
+        ref={setNodeRef}
+        style={style}
+        className="bg-surface px-2 py-3 sm:pl-3 sm:pr-5 flex items-center gap-2 sm:gap-3 hover:bg-surface-muted transition-colors touch-none"
+      >
+        <button
+          type="button"
+          {...attributes}
+          {...listeners}
+          className="p-1.5 rounded-md text-subtle hover:text-foreground hover:bg-surface-muted cursor-grab active:cursor-grabbing touch-none"
+          aria-label="ドラッグして並び替え"
+          title="ドラッグして並び替え"
+        >
+          <GripVertical className="h-4 w-4" />
+        </button>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-[10px] font-mono text-accent bg-accent-soft border border-accent/20 px-1.5 py-0.5 rounded">
+              {only.materialCode}
+            </span>
+            <span className="text-sm font-medium text-foreground truncate">
+              {only.name}
+            </span>
+          </div>
+          <div className="flex items-center gap-3 mt-1">
+            {only.size && (
+              <span className="text-xs text-muted">{only.size}</span>
+            )}
+            <span className="text-xs text-muted font-mono tabular-nums">
+              {only.weightKg}kg
+            </span>
+          </div>
+        </div>
+        <div className="flex items-center gap-0.5 flex-shrink-0">
+          <button
+            type="button"
+            onClick={() => onEdit(only)}
+            className="p-1.5 rounded-md text-muted hover:text-foreground hover:bg-surface-muted transition-colors"
+            title="編集"
+          >
+            <Pencil className="h-3.5 w-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={() => onDelete(only)}
+            className="p-1.5 rounded-md text-red-500 hover:text-red-600 hover:bg-red-50 transition-colors"
+            title="削除"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div ref={setNodeRef} style={style} className="bg-surface">
+      <div className="px-2 py-2.5 sm:pl-3 sm:pr-5 flex items-center gap-1 sm:gap-2 touch-none">
+        <button
+          type="button"
+          {...attributes}
+          {...listeners}
+          className="p-1.5 rounded-md text-subtle hover:text-foreground hover:bg-surface-muted cursor-grab active:cursor-grabbing touch-none"
+          aria-label="ドラッグして並び替え"
+          title="ドラッグして並び替え"
+        >
+          <GripVertical className="h-4 w-4" />
+        </button>
+        <button
+          type="button"
+          onClick={onToggleOpen}
+          className="flex-1 min-w-0 flex items-center gap-2 text-left p-1 rounded-md hover:bg-surface-muted transition-colors"
+          aria-expanded={open}
+        >
+          <ChevronRight
+            className={`h-3.5 w-3.5 text-muted flex-shrink-0 transition-transform ${
+              open ? 'rotate-90' : ''
+            }`}
+          />
+          <span className="text-sm font-medium text-foreground truncate">
+            {group.name}
+          </span>
+          <span className="text-[10px] font-mono text-muted bg-surface-muted border border-border px-1.5 py-0.5 rounded flex-shrink-0">
+            {group.items.length} 件
+          </span>
+        </button>
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleSort();
+          }}
+          className="p-1.5 rounded-md text-muted hover:text-foreground hover:bg-surface-muted transition-colors flex-shrink-0"
+          title={sortDir === 'asc' ? '昇順 (クリックで降順)' : '降順 (クリックで昇順)'}
+          aria-label={sortDir === 'asc' ? 'サイズ昇順' : 'サイズ降順'}
+        >
+          {sortDir === 'asc' ? (
+            <ArrowDownAZ className="h-3.5 w-3.5" />
+          ) : (
+            <ArrowUpAZ className="h-3.5 w-3.5" />
+          )}
+        </button>
+      </div>
+      {open && (
+        <div className="bg-surface-muted/40 border-t border-border divide-y divide-border">
+          {sortedItems.map((material) => (
+            <MaterialSizeRow
+              key={material.id}
+              material={material}
+              onEdit={() => onEdit(material)}
+              onDelete={() => onDelete(material)}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MaterialSizeRow({
+  material,
+  onEdit,
+  onDelete,
+}: {
+  material: Material;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  return (
+    <div className="pl-10 sm:pl-14 pr-3 sm:pr-5 py-2 flex items-center justify-between gap-3">
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-[10px] font-mono text-accent bg-accent-soft border border-accent/20 px-1.5 py-0.5 rounded">
+            {material.materialCode}
+          </span>
+          {material.size ? (
+            <span className="text-sm font-medium text-foreground truncate">
+              {material.size}
+            </span>
+          ) : (
+            <span className="text-xs text-subtle italic">サイズ指定なし</span>
+          )}
+          <span className="text-xs text-muted font-mono tabular-nums">
+            {material.weightKg}kg
+          </span>
+        </div>
+      </div>
+      <div className="flex items-center gap-0.5 flex-shrink-0">
+        <button
+          type="button"
+          onClick={onEdit}
+          className="p-1.5 rounded-md text-muted hover:text-foreground hover:bg-surface-muted transition-colors"
+          title="編集"
+        >
+          <Pencil className="h-3.5 w-3.5" />
+        </button>
+        <button
+          type="button"
+          onClick={onDelete}
+          className="p-1.5 rounded-md text-red-500 hover:text-red-600 hover:bg-red-50 transition-colors"
+          title="削除"
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </button>
+      </div>
     </div>
   );
 }

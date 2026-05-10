@@ -318,6 +318,13 @@ export async function executeImport(
         }
       }
 
+      const lastMaterialOrder = await tx.material.findFirst({
+        where: { tenantId },
+        orderBy: { displayOrder: 'desc' },
+        select: { displayOrder: true },
+      })
+      let nextMaterialOrder = (lastMaterialOrder?.displayOrder ?? -1) + 1
+
       let created = 0
       for (const row of plan.toCreateRows) {
         const code = row.materialCode ?? autoCodeByRow.get(row.rowNumber)
@@ -333,10 +340,12 @@ export async function executeImport(
             categoryId,
             size: row.size,
             weightKg: row.weightKg,
+            displayOrder: nextMaterialOrder,
             isActive: true,
             isTemporary: false,
           },
         })
+        nextMaterialOrder++
         created++
       }
 
