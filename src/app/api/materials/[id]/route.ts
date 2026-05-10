@@ -13,7 +13,7 @@ export async function PUT(
     const resolvedParams = await params;
     const body = await request.json();
 
-    const { name, size, weightKg, categoryId, isActive } = body;
+    const { name, size, weightKg, categoryId, isActive, displayOrder } = body;
 
     const material = await prisma.material.findUnique({
       where: { id: resolvedParams.id },
@@ -54,6 +54,15 @@ export async function PUT(
       updateData.categoryId = normalized;
     }
     if (isActive !== undefined) updateData.isActive = isActive;
+    if (displayOrder !== undefined) {
+      if (typeof displayOrder !== 'number' || !Number.isFinite(displayOrder)) {
+        return NextResponse.json(
+          { error: '並び順が不正です' },
+          { status: 400 }
+        );
+      }
+      updateData.displayOrder = displayOrder;
+    }
 
     const updated = await prisma.material.update({
       where: { id: resolvedParams.id },
