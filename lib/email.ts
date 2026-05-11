@@ -144,3 +144,123 @@ export async function sendInvitationEmail({
     };
   }
 }
+
+interface SendRegistrationWelcomeEmailParams {
+  to: string;
+  userName: string;
+  tenantName: string;
+  loginUrl: string;
+}
+
+export async function sendRegistrationWelcomeEmail({
+  to,
+  userName,
+  tenantName,
+  loginUrl,
+}: SendRegistrationWelcomeEmailParams): Promise<{ success: boolean; error?: string }> {
+  const resend = getResendClient();
+  if (!resend) {
+    console.log('RESEND_API_KEY not set, skipping welcome email send');
+    return { success: false, error: 'RESEND_API_KEY not configured' };
+  }
+
+  const fromEmail = process.env.RESEND_FROM_EMAIL || 'noreply@resend.dev';
+
+  try {
+    const { error } = await resend.emails.send({
+      from: `union資材発注 <${fromEmail}>`,
+      to: [to],
+      subject: `【${tenantName}】union資材発注 — 登録が完了しました`,
+      html: `
+        <!DOCTYPE html>
+        <html lang="ja">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        </head>
+        <body style="margin: 0; padding: 0; font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #f5f5f5;">
+          <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f5f5f5; padding: 40px 20px;">
+            <tr>
+              <td align="center">
+                <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                  <!-- Header -->
+                  <tr>
+                    <td style="background-color: #334155; padding: 30px 40px; text-align: center;">
+                      <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 600;">
+                        union資材発注
+                      </h1>
+                    </td>
+                  </tr>
+
+                  <!-- Content -->
+                  <tr>
+                    <td style="padding: 40px;">
+                      <h2 style="color: #1e293b; margin: 0 0 20px 0; font-size: 20px;">
+                        登録が完了しました
+                      </h2>
+
+                      <p style="color: #475569; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">
+                        ${userName} 様、${tenantName} の union 資材発注へのご登録が完了しました。<br>
+                        今後のログインは下記の URL からお願いします。
+                      </p>
+
+                      <!-- Button -->
+                      <table width="100%" cellpadding="0" cellspacing="0">
+                        <tr>
+                          <td align="center" style="padding: 20px 0;">
+                            <a href="${loginUrl}" style="display: inline-block; background-color: #334155; color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 6px; font-size: 16px; font-weight: 600;">
+                              ログイン画面へ
+                            </a>
+                          </td>
+                        </tr>
+                      </table>
+
+                      <p style="color: #94a3b8; font-size: 14px; line-height: 1.6; margin: 20px 0 0 0;">
+                        ボタンが機能しない場合は、以下のURLをブラウザに貼り付けてください：<br>
+                        <a href="${loginUrl}" style="color: #3b82f6; word-break: break-all;">${loginUrl}</a>
+                      </p>
+
+                      <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f8fafc; border-radius: 6px; margin: 24px 0 0 0;">
+                        <tr>
+                          <td style="padding: 16px 20px;">
+                            <p style="color: #64748b; font-size: 13px; line-height: 1.6; margin: 0;">
+                              次回以降のアクセスを容易にするため、このメールをブックマーク代わりに保管するか、ブラウザに URL を登録することをおすすめします。
+                            </p>
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+
+                  <!-- Footer -->
+                  <tr>
+                    <td style="background-color: #f8fafc; padding: 20px 40px; border-top: 1px solid #e2e8f0;">
+                      <p style="color: #94a3b8; font-size: 12px; margin: 0; text-align: center;">
+                        このメールは${tenantName}の union資材発注 から自動送信されました。<br>
+                        心当たりがない場合は、このメールを無視してください。
+                      </p>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+        </body>
+        </html>
+      `,
+    });
+
+    if (error) {
+      console.error('Error sending welcome email:', error);
+      return { success: false, error: error.message };
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error sending welcome email:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    };
+  }
+}
