@@ -456,34 +456,28 @@ export default function MaterialOrderForm({ onSubmit, editMode = false, editOrde
     const unitWeights: number[] = [];
     let total = 0;
 
-    Object.entries(selectedMaterials).forEach(([materialId, quantity]) => {
-      if (quantity > 0) {
-        const material = materials.find((m) => m.id === materialId);
+    for (const material of materials) {
+      const quantity = Number(selectedMaterials[material.id] || 0);
+      if (quantity <= 0) continue;
 
-        if (material) {
-          const materialWeight = Number(material.weightKg);
-          const totalWeight = Math.round((materialWeight * Number(quantity)) * 10000) / 10000;
+      const materialWeight = Number(material.weightKg);
+      const totalWeight = Math.round((materialWeight * quantity) * 10000) / 10000;
 
-          items.push({
-            id: material.id,
-            name: material.name,
-            size: material.size ?? null,
-            categoryName: material.categoryId
-              ? categories.find(c => c.id === material.categoryId)?.name || ''
-              : '',
-            quantity: Number(quantity),
-            weightPerUnit: materialWeight,
-            totalWeight: totalWeight,
-          });
+      items.push({
+        id: material.id,
+        name: material.name,
+        size: material.size ?? null,
+        categoryName: material.categoryId
+          ? categories.find(c => c.id === material.categoryId)?.name || ''
+          : '',
+        quantity,
+        weightPerUnit: materialWeight,
+        totalWeight,
+      });
 
-          if (!unitWeights.includes(materialWeight)) {
-            unitWeights.push(materialWeight);
-          }
-
-          total += totalWeight;
-        }
-      }
-    });
+      if (!unitWeights.includes(materialWeight)) unitWeights.push(materialWeight);
+      total += totalWeight;
+    }
 
     total = Math.round(total * 10000) / 10000;
     return { items, totalWeight: total, unitWeights };

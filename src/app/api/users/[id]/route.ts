@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
+import { Prisma, UserRole } from '@prisma/client';
 import { getCurrentPrismaClient } from '@/lib/tenant/server';
 import { requireAdmin } from '@/lib/auth';
-import { UserRole } from '@prisma/client';
 
 // ユーザー更新（管理者のみ）
 export async function PUT(
@@ -14,10 +14,11 @@ export async function PUT(
     const resolvedParams = await params;
     const body = await request.json();
 
-    const { role, isActive, regeneratePasswordSetup } = body as {
+    const { role, isActive, regeneratePasswordSetup, name } = body as {
       role?: UserRole;
       isActive?: boolean;
       regeneratePasswordSetup?: boolean;
+      name?: string;
     };
 
     // 対象ユーザーを取得
@@ -64,6 +65,22 @@ export async function PUT(
       );
     }
 
+    // 名前の検証（指定された場合のみ）
+    if (name !== undefined) {
+      if (typeof name !== 'string' || name.trim().length === 0) {
+        return NextResponse.json(
+          { error: '名前を入力してください' },
+          { status: 400 }
+        );
+      }
+      if (name.trim().length > 100) {
+        return NextResponse.json(
+          { error: '名前は100文字以内で入力してください' },
+          { status: 400 }
+        );
+      }
+    }
+
     // 最後の管理者を降格させないチェック
     if (role === 'MEMBER' && targetUser.role === 'ADMIN') {
       const adminCount = await prisma.user.count({
@@ -86,11 +103,13 @@ export async function PUT(
     const updateData: {
       role?: UserRole;
       isActive?: boolean;
+      name?: string;
       password?: null;
       passwordSetupExpiresAt?: Date;
     } = {};
     if (role !== undefined) updateData.role = role as UserRole;
     if (isActive !== undefined) updateData.isActive = isActive;
+    if (name !== undefined) updateData.name = name.trim();
 
     if (regeneratePasswordSetup === true) {
       // EMAIL / NAME 両モードで動く。joinedAt は履歴として残すため触らない
@@ -100,19 +119,30 @@ export async function PUT(
       );
     }
 
-    const updatedUser = await prisma.user.update({
-      where: { id: resolvedParams.id },
-      data: updateData,
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        role: true,
-        isActive: true,
-        joinedAt: true,
-        passwordSetupExpiresAt: true,
-      },
-    });
+    let updatedUser;
+    try {
+      updatedUser = await prisma.user.update({
+        where: { id: resolvedParams.id },
+        data: updateData,
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          role: true,
+          isActive: true,
+          joinedAt: true,
+          passwordSetupExpiresAt: true,
+        },
+      });
+    } catch (e) {
+      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
+        return NextResponse.json(
+          { error: '同じ名前のメンバーが既に存在します。別の表記にしてください' },
+          { status: 409 }
+        );
+      }
+      throw e;
+    }
 
     return NextResponse.json({ user: updatedUser });
   } catch (error) {

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { Prisma } from '@prisma/client';
 import { getCurrentPrismaClient } from '@/lib/tenant/server';
+import { sendRegistrationWelcomeEmail } from '@/lib/email';
 import bcrypt from 'bcrypt';
 
 // 招待トークンの検証
@@ -197,6 +198,24 @@ export async function POST(request: Request) {
       throw e;
     }
 
+    // ベース URL を組み立て、登録完了ウェルカムメールを送信
+    const host = request.headers.get('host') || 'localhost:3000';
+    const protocol = request.headers.get('x-forwarded-proto') || 'http';
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || `${protocol}://${host}`;
+    const loginUrl = `${baseUrl}/${invitation.tenant.code}`;
+
+    const welcomeEmailResult = await sendRegistrationWelcomeEmail({
+      to: invitation.email,
+      userName: name.trim(),
+      tenantName: invitation.tenant.name,
+      loginUrl,
+    });
+
+    if (!welcomeEmailResult.success) {
+      // 登録自体は成功扱いのまま、画面側でフォールバック表示にさせる
+      console.error('Welcome email send failed:', welcomeEmailResult.error);
+    }
+
     return NextResponse.json({
       message: '登録が完了しました',
       user: {
@@ -211,6 +230,8 @@ export async function POST(request: Request) {
         code: invitation.tenant.code,
         authMode: invitation.tenant.authMode,
       },
+      emailSent: welcomeEmailResult.success,
+      loginUrl,
     }, { status: 201 });
   } catch (error) {
     console.error('Error registering user:', error);

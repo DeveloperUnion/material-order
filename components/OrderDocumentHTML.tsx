@@ -643,9 +643,11 @@ export const generatePDFContent = (data: OrderDocument, options?: { hidePrintBut
               <tbody>
                 ${columnItems.filter(row => row.type === 'item').map((row, rowIndex) => {
                   if (row.type !== 'item') return '';
+                  const hasSize = row.item.size && row.item.size.trim() !== '';
+                  const displayName = hasSize ? `${row.item.name} ${row.item.size}` : row.item.name;
                   return `
                 <tr ${rowIndex % 2 === 1 ? 'class="row-alternate"' : ''}>
-                  <td style="font-weight: bold; white-space: normal; line-height: 1.3;">${row.item.name}</td>
+                  <td style="font-weight: bold; white-space: normal; line-height: 1.3;">${displayName}</td>
                   <td style="text-align: right; font-weight: bold;">${row.item.quantity}</td>
                   <td style="text-align: right;">${formatWeight(row.item.weightPerUnit).replace('kg', '')}</td>
                   <td style="text-align: right; font-weight: bold;">${formatWeight(row.item.totalWeight).replace('kg', '')}</td>
