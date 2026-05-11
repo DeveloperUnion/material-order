@@ -23,6 +23,7 @@ import {
   Trash2,
   Mail,
   KeyRound,
+  Pencil,
 } from 'lucide-react';
 
 type AuthMode = 'EMAIL' | 'NAME';
@@ -86,6 +87,11 @@ export default function CompanySettingsPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedInvitation, setSelectedInvitation] = useState<Invitation | null>(null);
   const [isDeletingInvitation, setIsDeletingInvitation] = useState(false);
+
+  const [editMemberNameUser, setEditMemberNameUser] = useState<User | null>(null);
+  const [editMemberNameValue, setEditMemberNameValue] = useState('');
+  const [editMemberNameLoading, setEditMemberNameLoading] = useState(false);
+  const [editMemberNameError, setEditMemberNameError] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
     try {
@@ -282,7 +288,7 @@ export default function CompanySettingsPage() {
 
   const handleUpdateUser = async (
     userId: string,
-    data: { role?: 'ADMIN' | 'MEMBER'; isActive?: boolean }
+    data: { role?: 'ADMIN' | 'MEMBER'; isActive?: boolean; name?: string }
   ) => {
     setUpdateLoading(userId);
     setError(null);
@@ -306,6 +312,62 @@ export default function CompanySettingsPage() {
       setError(err instanceof Error ? err.message : 'エラーが発生しました');
     } finally {
       setUpdateLoading(null);
+    }
+  };
+
+  const openEditMemberName = (user: User) => {
+    setEditMemberNameUser(user);
+    setEditMemberNameValue(user.name);
+    setEditMemberNameError(null);
+    setOpenMenuId(null);
+  };
+
+  const closeEditMemberName = () => {
+    if (editMemberNameLoading) return;
+    setEditMemberNameUser(null);
+    setEditMemberNameError(null);
+  };
+
+  const submitEditMemberName = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editMemberNameUser) return;
+
+    const trimmed = editMemberNameValue.trim();
+    if (trimmed.length === 0) {
+      setEditMemberNameError('名前を入力してください');
+      return;
+    }
+    if (trimmed.length > 100) {
+      setEditMemberNameError('名前は100文字以内で入力してください');
+      return;
+    }
+    if (trimmed === editMemberNameUser.name) {
+      setEditMemberNameUser(null);
+      return;
+    }
+
+    setEditMemberNameLoading(true);
+    setEditMemberNameError(null);
+    try {
+      const res = await fetch(`/api/users/${editMemberNameUser.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: trimmed }),
+      });
+
+      const result = await res.json();
+
+      if (!res.ok) {
+        setEditMemberNameError(result.error || '名前の更新に失敗しました');
+        return;
+      }
+
+      setUsers(users.map((u) => (u.id === editMemberNameUser.id ? { ...u, ...result.user } : u)));
+      setEditMemberNameUser(null);
+    } catch {
+      setEditMemberNameError('名前の更新に失敗しました');
+    } finally {
+      setEditMemberNameLoading(false);
     }
   };
 
@@ -632,6 +694,15 @@ export default function CompanySettingsPage() {
                             className="absolute right-0 mt-1 w-44 bg-surface rounded-xl shadow-lg border border-border py-1 z-20"
                             onClick={(e) => e.stopPropagation()}
                           >
+                            <button
+                              type="button"
+                              onClick={() => openEditMemberName(user)}
+                              className="w-full px-3 py-2 text-left text-sm hover:bg-surface-muted flex items-center gap-2 text-foreground"
+                            >
+                              <Pencil className="h-4 w-4 text-muted" />
+                              名前を編集
+                            </button>
+                            <div className="border-t border-border my-1" />
                             {user.role === 'MEMBER' ? (
                               <button
                                 type="button"
@@ -772,6 +843,58 @@ export default function CompanySettingsPage() {
               {isDeletingInvitation ? '削除中...' : '削除'}
             </button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={editMemberNameUser !== null}
+        onOpenChange={(open) => {
+          if (!open) closeEditMemberName();
+        }}
+      >
+        <DialogContent className="sm:max-w-md bg-surface rounded-xl">
+          <DialogHeader>
+            <DialogTitle className="text-foreground">メンバー名を編集</DialogTitle>
+          </DialogHeader>
+          {editMemberNameUser && (
+            <form onSubmit={submitEditMemberName} className="space-y-3">
+              <label className="block text-xs font-medium text-muted">
+                名前
+                <input
+                  type="text"
+                  value={editMemberNameValue}
+                  onChange={(e) => {
+                    setEditMemberNameValue(e.target.value);
+                    if (editMemberNameError) setEditMemberNameError(null);
+                  }}
+                  disabled={editMemberNameLoading}
+                  maxLength={100}
+                  autoFocus
+                  className="mt-1 w-full px-3 py-2 text-sm border border-border rounded-md bg-surface text-foreground focus:outline-none focus:ring-2 focus:ring-accent disabled:opacity-50"
+                />
+              </label>
+              {editMemberNameError && (
+                <p className="text-xs text-red-700 font-medium">{editMemberNameError}</p>
+              )}
+              <DialogFooter className="flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-1">
+                <button
+                  type="button"
+                  disabled={editMemberNameLoading}
+                  onClick={closeEditMemberName}
+                  className="px-4 py-2 text-sm font-medium border border-border bg-surface text-foreground hover:bg-surface-muted rounded-md transition-colors disabled:opacity-50"
+                >
+                  キャンセル
+                </button>
+                <button
+                  type="submit"
+                  disabled={editMemberNameLoading}
+                  className="px-4 py-2 text-sm font-semibold bg-foreground text-background hover:bg-foreground/90 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {editMemberNameLoading ? '保存中...' : '保存'}
+                </button>
+              </DialogFooter>
+            </form>
+          )}
         </DialogContent>
       </Dialog>
     </div>
