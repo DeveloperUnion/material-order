@@ -26,6 +26,7 @@ interface OrderDetail {
   items: Array<{
     materialId: string;
     productName: string;
+    size: string | null;
     categoryName: string;
     quantity: number;
     weightPerUnit: number;
@@ -69,8 +70,9 @@ export default function OrderPrintPage() {
         truckName: data.order.truckName ?? null,
         truckCapacityKg: data.order.truckCapacityKg ?? null,
         items: data.order.items.map((item: OrderDetail['items'][0]) => ({
-          id: `${data.order.id}-${item.productName}`,
+          id: `${data.order.id}-${item.productName}-${item.size ?? ''}`,
           name: item.productName,
+          size: item.size ?? null,
           categoryName: item.categoryName,
           quantity: item.quantity,
           weightPerUnit: item.weightPerUnit,

@@ -57,6 +57,7 @@ export async function GET(
       items: order.orderDetails.map((detail) => ({
         materialId: detail.materialId,
         productName: detail.material.name,
+        size: detail.material.size,
         categoryName: detail.material.category?.name ?? '',
         quantity: detail.quantity,
         weightPerUnit: detail.material.weightKg,
