@@ -26,6 +26,7 @@ interface OrderDetail {
   items: Array<{
     materialId: string;
     productName: string;
+    size: string | null;
     quantity: number;
     weightPerUnit: number;
     totalWeight: number;
@@ -259,7 +260,11 @@ export default function OrderDetailPage() {
                     key={index}
                     className="border-b border-border last:border-b-0 hover:bg-surface-muted transition-colors"
                   >
-                    <td className="px-5 py-3 text-sm text-foreground">{item.productName}</td>
+                    <td className="px-5 py-3 text-sm text-foreground">
+                      {item.size && item.size.trim() !== ''
+                        ? `${item.productName} ${item.size}`
+                        : item.productName}
+                    </td>
                     <td className="text-right px-5 py-3 text-sm font-mono tabular-nums font-semibold text-foreground">
                       {item.quantity}
                     </td>

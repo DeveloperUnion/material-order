@@ -800,7 +800,7 @@ export default function MaterialOrderForm({ onSubmit, editMode = false, editOrde
                       <MaterialQtyRow
                         key={material.id}
                         material={material}
-                        primaryLabel={`${material.name}${material.size ? `（${material.size}）` : ''}`}
+                        primaryLabel={material.size && material.size.trim() !== '' ? `${material.name} ${material.size}` : material.name}
                         control={control}
                         qty={Number(selectedMaterials[material.id] || 0)}
                         onChange={handleQuantityChange}
@@ -906,7 +906,7 @@ export default function MaterialOrderForm({ onSubmit, editMode = false, editOrde
                     <div key={item.id} className="px-5 py-2.5 flex items-start gap-3 hover:bg-surface-muted transition-colors">
                       <div className="flex-1 min-w-0">
                         <div className="text-xs font-semibold text-foreground leading-snug truncate">
-                          {item.name}{item.size ? `（${item.size}）` : ''}
+                          {item.size && item.size.trim() !== '' ? `${item.name} ${item.size}` : item.name}
                         </div>
                         <div className="mt-0.5 font-mono text-[11px] tabular-nums text-subtle">
                           {formatWeight(item.weightPerUnit)} × {item.quantity}
