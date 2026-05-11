@@ -476,7 +476,7 @@ export const generatePDFContent = (data: OrderDocument, options?: { hidePrintBut
           tbody tr:not(.category-header-row) {
             display: grid;
             grid-template-areas:
-              "name name size"
+              "name name name"
               "qty  unit total";
             grid-template-columns: 1fr 1fr 1fr;
             border-bottom: 1px solid var(--rule-mute);
@@ -492,7 +492,7 @@ export const generatePDFContent = (data: OrderDocument, options?: { hidePrintBut
             padding: 0;
           }
 
-          /* Name cell (top-left, spans 2 cols) */
+          /* Name row (full width within card) */
           tbody tr:not(.category-header-row) td:nth-child(1) {
             grid-area: name;
             padding: 7px 8px 5px;
@@ -505,26 +505,10 @@ export const generatePDFContent = (data: OrderDocument, options?: { hidePrintBut
             word-break: break-word;
           }
 
-          /* Size cell (top-right) */
-          tbody tr:not(.category-header-row) td:nth-child(2) {
-            grid-area: size;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 7px 6px 5px;
-            font-size: 11px;
-            font-weight: 600;
-            color: var(--ink-soft);
-            text-align: center !important;
-            border-bottom: 1px solid var(--rule-mute);
-            border-left: 1px solid var(--rule-mute);
-            word-break: break-all;
-          }
-
           /* Value cells (数量 / 単重 / 合計) */
+          tbody tr:not(.category-header-row) td:nth-child(2),
           tbody tr:not(.category-header-row) td:nth-child(3),
-          tbody tr:not(.category-header-row) td:nth-child(4),
-          tbody tr:not(.category-header-row) td:nth-child(5) {
+          tbody tr:not(.category-header-row) td:nth-child(4) {
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -539,9 +523,9 @@ export const generatePDFContent = (data: OrderDocument, options?: { hidePrintBut
             text-align: center !important;
             line-height: 1.25;
           }
-          tbody tr:not(.category-header-row) td:nth-child(3) { grid-area: qty; }
-          tbody tr:not(.category-header-row) td:nth-child(4) { grid-area: unit; }
-          tbody tr:not(.category-header-row) td:nth-child(5) {
+          tbody tr:not(.category-header-row) td:nth-child(2) { grid-area: qty; }
+          tbody tr:not(.category-header-row) td:nth-child(3) { grid-area: unit; }
+          tbody tr:not(.category-header-row) td:nth-child(4) {
             grid-area: total;
             border-right: none;
             font-weight: 700;
@@ -549,9 +533,9 @@ export const generatePDFContent = (data: OrderDocument, options?: { hidePrintBut
           }
 
           /* Label pseudo-elements (shortened for 2-col mobile) */
+          tbody tr:not(.category-header-row) td:nth-child(2)::before,
           tbody tr:not(.category-header-row) td:nth-child(3)::before,
-          tbody tr:not(.category-header-row) td:nth-child(4)::before,
-          tbody tr:not(.category-header-row) td:nth-child(5)::before {
+          tbody tr:not(.category-header-row) td:nth-child(4)::before {
             font-size: 9px;
             color: var(--ink-mute);
             font-weight: 700;
@@ -560,9 +544,9 @@ export const generatePDFContent = (data: OrderDocument, options?: { hidePrintBut
             text-align: center;
             padding: 0 0 3px;
           }
-          tbody tr:not(.category-header-row) td:nth-child(3)::before { content: "数量"; }
-          tbody tr:not(.category-header-row) td:nth-child(4)::before { content: "単重"; }
-          tbody tr:not(.category-header-row) td:nth-child(5)::before { content: "合計"; }
+          tbody tr:not(.category-header-row) td:nth-child(2)::before { content: "数量"; }
+          tbody tr:not(.category-header-row) td:nth-child(3)::before { content: "単重"; }
+          tbody tr:not(.category-header-row) td:nth-child(4)::before { content: "合計"; }
 
           .category-header-row { display: block; }
           .category-header-row td {
@@ -650,21 +634,20 @@ export const generatePDFContent = (data: OrderDocument, options?: { hidePrintBut
             <table>
               <thead>
                 <tr>
-                  <th style="text-align: left; width: 38%;">資材名</th>
-                  <th style="text-align: center; width: 14%;">サイズ</th>
-                  <th style="text-align: right; width: 14%;">数量</th>
-                  <th style="text-align: right; width: 14%;">単重</th>
+                  <th style="text-align: left; width: 46%;">資材名</th>
+                  <th style="text-align: right; width: 18%;">数量</th>
+                  <th style="text-align: right; width: 16%;">単重</th>
                   <th style="text-align: right; width: 20%;">合計</th>
                 </tr>
               </thead>
               <tbody>
                 ${columnItems.filter(row => row.type === 'item').map((row, rowIndex) => {
                   if (row.type !== 'item') return '';
-                  const sizeText = row.item.size && row.item.size.trim() !== '' ? row.item.size : '-';
+                  const hasSize = row.item.size && row.item.size.trim() !== '';
+                  const displayName = hasSize ? `${row.item.name} ${row.item.size}` : row.item.name;
                   return `
                 <tr ${rowIndex % 2 === 1 ? 'class="row-alternate"' : ''}>
-                  <td style="font-weight: bold; white-space: normal; line-height: 1.3;">${row.item.name}</td>
-                  <td style="text-align: center;">${sizeText}</td>
+                  <td style="font-weight: bold; white-space: normal; line-height: 1.3;">${displayName}</td>
                   <td style="text-align: right; font-weight: bold;">${row.item.quantity}</td>
                   <td style="text-align: right;">${formatWeight(row.item.weightPerUnit).replace('kg', '')}</td>
                   <td style="text-align: right; font-weight: bold;">${formatWeight(row.item.totalWeight).replace('kg', '')}</td>
