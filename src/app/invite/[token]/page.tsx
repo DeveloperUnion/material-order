@@ -2,10 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
-import { useParams, useRouter } from 'next/navigation';
-import { signIn } from 'next-auth/react';
+import { useParams } from 'next/navigation';
 import { defaultAppConfig } from '@/lib/tenant/config';
-import { ArrowRight, X, Check, Shield } from 'lucide-react';
+import { ArrowRight, X, Check, Shield, Mail, Copy } from 'lucide-react';
 
 interface InvitationInfo {
   email: string;
@@ -19,7 +18,6 @@ interface InvitationInfo {
 
 export default function InviteRegistrationPage() {
   const params = useParams();
-  const router = useRouter();
   const token = params.token as string;
 
   const [invitation, setInvitation] = useState<InvitationInfo | null>(null);
@@ -31,6 +29,9 @@ export default function InviteRegistrationPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [emailSent, setEmailSent] = useState(false);
+  const [loginUrl, setLoginUrl] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     const validateToken = async () => {
@@ -89,29 +90,24 @@ export default function InviteRegistrationPage() {
         return;
       }
 
+      setEmailSent(Boolean(data.emailSent));
+      setLoginUrl(typeof data.loginUrl === 'string' ? data.loginUrl : null);
       setSuccess(true);
-
-      const credentials =
-        invitation?.tenantAuthMode === 'NAME'
-          ? { tenantId: invitation.tenantId, name: name.trim(), password }
-          : { email: invitation?.email, password };
-
-      const signInResult = await signIn('credentials', {
-        ...credentials,
-        redirect: false,
-      });
-
-      if (signInResult?.ok && invitation?.tenantCode) {
-        router.push(`/${invitation.tenantCode}/dashboard`);
-      } else if (invitation?.tenantCode) {
-        setTimeout(() => router.push(`/${invitation.tenantCode}`), 2000);
-      } else {
-        setTimeout(() => router.push('/'), 2000);
-      }
     } catch {
       setError('登録に失敗しました');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleCopyLoginUrl = async () => {
+    if (!loginUrl) return;
+    try {
+      await navigator.clipboard.writeText(loginUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('クリップボードへのコピーに失敗しました', err);
     }
   };
 
@@ -147,14 +143,72 @@ export default function InviteRegistrationPage() {
 
   if (success) {
     return (
-      <div className="min-h-screen flex items-start justify-center bg-background pt-16 sm:pt-24 px-4">
+      <div className="min-h-screen flex items-start justify-center bg-background pt-16 sm:pt-24 px-4 pb-12">
         <div className="w-full max-w-md">
-          <div className="bg-surface border border-border rounded-2xl p-7 sm:p-8 shadow-sm text-center">
-            <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center">
-              <Check className="h-6 w-6 text-emerald-600" />
+          <div className="bg-surface border border-border rounded-2xl p-7 sm:p-8 shadow-sm">
+            <div className="text-center">
+              <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center">
+                <Check className="h-6 w-6 text-emerald-600" />
+              </div>
+              <h2 className="text-lg font-bold text-foreground mb-2 tracking-tight">
+                登録が完了しました
+              </h2>
             </div>
-            <h2 className="text-lg font-bold text-foreground mb-2 tracking-tight">登録完了</h2>
-            <p className="text-sm text-muted">ダッシュボードへ移動します...</p>
+
+            {emailSent ? (
+              <>
+                <p className="text-sm text-muted leading-relaxed text-center mb-4">
+                  <span className="font-medium text-foreground break-all">{invitation?.email}</span>
+                  <span> 宛に確認メールを送信しました。</span>
+                </p>
+                <div className="flex items-start gap-2 px-4 py-3 rounded-lg bg-accent-soft border border-accent/20">
+                  <Mail className="h-4 w-4 text-accent flex-shrink-0 mt-0.5" />
+                  <p className="text-sm text-foreground leading-relaxed">
+                    メール内のリンクから今後のログイン URL にアクセスしてください。
+                  </p>
+                </div>
+                <p className="mt-4 text-xs text-subtle text-center">
+                  メールが届かない場合は、迷惑メールフォルダもご確認ください。
+                </p>
+              </>
+            ) : (
+              <>
+                <div className="mt-2 px-4 py-3 rounded-lg bg-amber-50 border border-amber-200 text-sm text-amber-800">
+                  <p className="font-semibold mb-1">確認メールの送信に失敗しました</p>
+                  <p className="text-xs leading-relaxed">
+                    お手数ですが、以下のログイン URL を控えてアクセスしてください。
+                  </p>
+                </div>
+
+                {loginUrl && (
+                  <div className="mt-5">
+                    <p className="text-[11px] font-medium text-muted mb-1.5">ログイン URL</p>
+                    <div className="flex items-stretch gap-2">
+                      <input
+                        type="text"
+                        readOnly
+                        value={loginUrl}
+                        onFocus={(e) => e.currentTarget.select()}
+                        className="flex-1 min-w-0 px-3 py-2 text-xs font-mono text-foreground border border-border rounded-md bg-surface focus:border-accent focus:ring-4 focus:ring-accent/15 outline-none transition-all"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleCopyLoginUrl}
+                        aria-label="ログイン URL をコピー"
+                        className={`inline-flex items-center gap-1 px-3 py-2 text-xs font-semibold rounded-md border transition-colors flex-shrink-0 ${
+                          copied
+                            ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                            : 'border-border bg-surface text-foreground hover:bg-surface-muted'
+                        }`}
+                      >
+                        {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                        {copied ? 'コピーしました' : 'コピー'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
           </div>
         </div>
       </div>
