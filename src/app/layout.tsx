@@ -16,8 +16,17 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "櫻建資材発注",
   description: "建設業向け資材発注管理アプリケーション",
+  appleWebApp: {
+    capable: true,
+    title: "資材発注管理",
+    statusBarStyle: "default",
+  },
   icons: {
-    apple: "/icons/oken-icon.jpeg",
+    icon: [
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180" }],
   },
 };
 
