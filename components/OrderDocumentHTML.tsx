@@ -448,12 +448,14 @@ export const generatePDFContent = (data: OrderDocument, options?: { hidePrintBut
           ${(() => {
             const watermarks = [];
             const rows = 8;
-            const spacingVw = 25;
+            const spacing = 25;
 
             for (let row = 0; row < rows; row++) {
-              for (let colVw = 0; colVw <= 100; colVw += spacingVw) {
-                const top = (row * (100 / (rows - 1))) + (Math.floor(colVw / spacingVw) % 2 === 0 ? 0 : 5);
-                watermarks.push(`<div class="watermark" style="top: ${top}%; left: ${colVw}vw;">${options?.watermarkText || '株式会社　櫻建'}</div>`);
+              // 横位置はコンテナ相対の%で指定する。vwは印刷時に用紙幅ではなく
+              // 画面のviewport幅で解決されるため、スマホ印刷で透かしが左に偏る
+              for (let col = 0; col <= 100; col += spacing) {
+                const top = (row * (100 / (rows - 1))) + (Math.floor(col / spacing) % 2 === 0 ? 0 : 5);
+                watermarks.push(`<div class="watermark" style="top: ${top}%; left: ${col}%;">${options?.watermarkText || '株式会社　櫻建'}</div>`);
               }
             }
 
